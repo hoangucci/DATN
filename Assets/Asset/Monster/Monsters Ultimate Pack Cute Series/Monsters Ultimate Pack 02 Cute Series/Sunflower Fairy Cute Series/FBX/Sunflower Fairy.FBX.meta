@@ -1,0 +1,273 @@
+fileFormatVersion: 2
+guid: 797ce6dfa07722b449fc58a58b27db4d
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: f
+    100004: fFeelerL1
+    100006: fFeelerL2
+    100008: fFeelerL3
+    100010: fFeelerL4
+    100012: fFeelerR1
+    100014: fFeelerR2
+    100016: fFeelerR3
+    100018: fFeelerR4
+    100020: fHead
+    100022: fLArm1
+    100024: fLArm2
+    100026: fLArmFinger1
+    100028: fLArmPalm
+    100030: fLLeg1
+    100032: fLLeg2
+    100034: fLLegAnkle
+    100036: fLLegPlatform
+    100038: fNeck
+    100040: fPelvis
+    100042: fRArm1
+    100044: fRArm2
+    100046: fRArmFinger1
+    100048: fRArmPalm
+    100050: fRibcage
+    100052: fRLeg1
+    100054: fRLeg2
+    100056: fRLegAnkle
+    100058: fRLegPlatform
+    100060: fSpine1
+    100062: fSpine2
+    100064: fWingL
+    100066: fWingR
+    100068: RigFeelerL1Gizmo
+    100070: RigFeelerL2Gizmo
+    100072: RigFeelerL3Gizmo
+    100074: RigFeelerL4Gizmo
+    100076: RigFeelerR1Gizmo
+    100078: RigFeelerR2Gizmo
+    100080: RigFeelerR3Gizmo
+    100082: RigFeelerR4Gizmo
+    100084: RigHead
+    100086: RigLArm1Gizmo
+    100088: RigLArm2Gizmo
+    100090: RigLArmPalmGizmo
+    100092: RigPelvisGizmo
+    100094: RigRArm1Gizmo
+    100096: RigRArm2Gizmo
+    100098: RigRArmPalmGizmo
+    100100: RigRibcageGizmo
+    100102: RigWingLGizmo
+    100104: RigWingRGizmo
+    100106: Sunflower Fairy
+    100108: Rig
+    100110: RigFeelerL1
+    100112: RigFeelerL2
+    100114: RigFeelerL3
+    100116: RigFeelerL4
+    100118: RigFeelerR1
+    100120: RigFeelerR2
+    100122: RigFeelerR3
+    100124: RigFeelerR4
+    100126: RigHead 1
+    100128: RigLArm1
+    100130: RigLArm2
+    100132: RigLArmFinger1
+    100134: RigLArmPalm
+    100136: RigLLeg1
+    100138: RigLLeg2
+    100140: RigLLegAnkle
+    100142: RigLLegPlatform
+    100144: RigNeck
+    100146: RigPelvis
+    100148: RigRArm1
+    100150: RigRArm2
+    100152: RigRArmFinger1
+    100154: RigRArmPalm
+    100156: RigRibcage
+    100158: RigRLeg1
+    100160: RigRLeg2
+    100162: RigRLegAnkle
+    100164: RigRLegPlatform
+    100166: RigSpine1
+    100168: RigSpine2
+    100170: RigWingL
+    100172: RigWingR
+    400000: //RootNode
+    400002: f
+    400004: fFeelerL1
+    400006: fFeelerL2
+    400008: fFeelerL3
+    400010: fFeelerL4
+    400012: fFeelerR1
+    400014: fFeelerR2
+    400016: fFeelerR3
+    400018: fFeelerR4
+    400020: fHead
+    400022: fLArm1
+    400024: fLArm2
+    400026: fLArmFinger1
+    400028: fLArmPalm
+    400030: fLLeg1
+    400032: fLLeg2
+    400034: fLLegAnkle
+    400036: fLLegPlatform
+    400038: fNeck
+    400040: fPelvis
+    400042: fRArm1
+    400044: fRArm2
+    400046: fRArmFinger1
+    400048: fRArmPalm
+    400050: fRibcage
+    400052: fRLeg1
+    400054: fRLeg2
+    400056: fRLegAnkle
+    400058: fRLegPlatform
+    400060: fSpine1
+    400062: fSpine2
+    400064: fWingL
+    400066: fWingR
+    400068: RigFeelerL1Gizmo
+    400070: RigFeelerL2Gizmo
+    400072: RigFeelerL3Gizmo
+    400074: RigFeelerL4Gizmo
+    400076: RigFeelerR1Gizmo
+    400078: RigFeelerR2Gizmo
+    400080: RigFeelerR3Gizmo
+    400082: RigFeelerR4Gizmo
+    400084: RigHead
+    400086: RigLArm1Gizmo
+    400088: RigLArm2Gizmo
+    400090: RigLArmPalmGizmo
+    400092: RigPelvisGizmo
+    400094: RigRArm1Gizmo
+    400096: RigRArm2Gizmo
+    400098: RigRArmPalmGizmo
+    400100: RigRibcageGizmo
+    400102: RigWingLGizmo
+    400104: RigWingRGizmo
+    400106: Sunflower Fairy
+    400108: Rig
+    400110: RigFeelerL1
+    400112: RigFeelerL2
+    400114: RigFeelerL3
+    400116: RigFeelerL4
+    400118: RigFeelerR1
+    400120: RigFeelerR2
+    400122: RigFeelerR3
+    400124: RigFeelerR4
+    400126: RigHead 1
+    400128: RigLArm1
+    400130: RigLArm2
+    400132: RigLArmFinger1
+    400134: RigLArmPalm
+    400136: RigLLeg1
+    400138: RigLLeg2
+    400140: RigLLegAnkle
+    400142: RigLLegPlatform
+    400144: RigNeck
+    400146: RigPelvis
+    400148: RigRArm1
+    400150: RigRArm2
+    400152: RigRArmFinger1
+    400154: RigRArmPalm
+    400156: RigRibcage
+    400158: RigRLeg1
+    400160: RigRLeg2
+    400162: RigRLegAnkle
+    400164: RigRLegPlatform
+    400166: RigSpine1
+    400168: RigSpine2
+    400170: RigWingL
+    400172: RigWingR
+    2100000: 'Material #27'
+    2300000: //RootNode
+    2300002: Sunflower Fairy
+    3300000: //RootNode
+    3300002: Sunflower Fairy
+    4300000: Sunflower Fairy
+    9500000: //RootNode
+    13700000: Sunflower Fairy
+  externalObjects: {}
+  materials:
+    importMaterials: 0
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 3
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 0.01
+    hasPreviousCalculatedGlobalScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "218286160239",
+    "project_id": "midnightchaosauth",
+    "storage_bucket": "midnightchaosauth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:218286160239:android:f60cd9e1e362c0beb5909a",
+        "android_client_info": {
+          "package_name": "com.midnightchaos.auth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvKLsny7sAUY-gz--d_HVsSLSI3sTTkZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,89 @@
+MIDNIGHT CHAOS - LAN BOOTSTRAP v0.3.2
+
+Purpose
+-------
+Gate A Host/Join LAN, Gate B combat and Gate C resource transactions remain
+intact.
+
+Gate C.1 unifies combat and harvesting into one Host-validated attack:
+
+attack input -> Host validates one shared cooldown -> Host finds the nearest
+valid Player or Tree -> Host commits exactly one damage or harvest result
+-> state replicates to every peer.
+
+The client sends no target, damage, resource ID, item ID or quantity. E no
+longer sends a gathering request and remains free for future interactions.
+
+Changes in v0.3.2
+-----------------
+- F or left mouse button attacks Players and harvests Trees.
+- Combat and harvesting share one RPC and one 0.65 second Host cooldown.
+- Host compares all valid Player and Tree candidates and chooses the nearest.
+- One accepted attack commits at most one gameplay consequence.
+- Tree labels and diagnostic UI no longer instruct the player to press E.
+- Keeps the v0.3.1 UnityTransport self-repair.
+
+Required baseline
+-----------------
+1. Unity 6000.0.69f1.
+2. Universal 3D template (URP 17).
+3. Netcode for GameObjects 2.7.0.
+4. Input System 1.14.2 with Active Input Handling set to Input System Package.
+
+Install or update
+-----------------
+1. Copy Assets/MidnightChaos into the Unity project's Assets folder.
+2. Replace the existing files when prompted.
+3. Wait until Unity finishes compiling with zero Console errors.
+4. Run:
+   Midnight Chaos > Bootstrap > Create or Refresh LAN Test Scene
+5. Open:
+   Assets/MidnightChaos/Generated/Scenes/LAN_Bootstrap.unity
+6. Rebuild the Windows client because the prefabs and scripts changed.
+
+Two-machine test
+----------------
+1. Start Host LAN on one machine.
+2. Join using the Host IPv4 and the same UDP port from the second machine.
+3. Move a player close to a green Tree and face it.
+4. Press F or left mouse button once.
+5. Confirm the Tree changes from 3/3 to 2/3 and that player's Wood changes
+   from 0 to 1 on both peers.
+6. Move the other Player beside the Tree and verify one attack affects only
+   the nearest valid target.
+7. Alternate both players while attacking the same Tree.
+
+Gate C.1 pass criteria
+----------------------
+- Exactly three accepted attacks deplete one Tree.
+- Each accepted Tree hit adds exactly one Wood to only the attacking player.
+- Both peers display the same Tree hits and player Wood count.
+- Attacking outside 2.6 units does nothing.
+- Attacking while facing away does nothing.
+- Input spam cannot bypass the shared 0.65 second Host cooldown.
+- Two clients racing for the final hit cannot receive Wood twice.
+- A depleted Tree cannot grant more Wood.
+- Dead players cannot attack or harvest.
+- One attack never damages a Player and harvests a Tree together.
+- Pressing E alone does not damage or harvest anything.
+- Gate A disconnect/reconnect still works.
+
+Controls
+--------
+- Move: WASD
+- Sprint: Left Shift
+- Jump: Space
+- Attack / Harvest: F or left mouse button
+- Interact: E is reserved and has no action in this bootstrap
+
+Important limits
+----------------
+- DiagnosticLanUI and world labels use OnGUI and are not production UI.
+- DiagnosticNetworkInventory stores only one integer: Wood.
+- Trees do not respawn and do not require a tool in this proof.
+- There are no dropped pickup objects, item stacks, save data or crafting yet.
+- This is a transaction/authority proof, not the final item database.
+- The bootstrap still has no Lobby Ready, scene loading, procedural
+  generation, Chaos Evolution, enemy AI, boss flow or final death flow.
+- Keep Host authority for combat, AI, inventory, loot, Chaos Evolution,
+  day/night and win/lose state.

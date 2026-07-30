@@ -1,0 +1,185 @@
+fileFormatVersion: 2
+guid: 312c0120222f0734c98c90003b5e96bf
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: Cylinder001
+    100002: Cylinder004
+    100004: Cylinder005
+    100006: Cylinder006
+    100008: Cylinder007
+    100010: Cylinder008
+    100012: Cylinder009
+    100014: Cylinder010
+    100016: Object001
+    100018: //RootNode
+    100020: Rig
+    100022: RigLArm1
+    100024: RigLArm1Gizmo
+    100026: RigLArm2
+    100028: RigLArm2Gizmo
+    100030: RigLLeg1
+    100032: RigLLegPlatform
+    100034: RigPelvis
+    100036: RigPelvisGizmo
+    100038: RigRArm1
+    100040: RigRArm1Gizmo
+    100042: RigRArm2
+    100044: RigRArm2Gizmo
+    100046: RigRibcage
+    100048: RigRibcageGizmo
+    100050: RigRLeg1
+    100052: RigRLegPlatform
+    100054: RigSpine
+    100056: Target Dummy
+    400000: Cylinder001
+    400002: Cylinder004
+    400004: Cylinder005
+    400006: Cylinder006
+    400008: Cylinder007
+    400010: Cylinder008
+    400012: Cylinder009
+    400014: Cylinder010
+    400016: Object001
+    400018: //RootNode
+    400020: Rig
+    400022: RigLArm1
+    400024: RigLArm1Gizmo
+    400026: RigLArm2
+    400028: RigLArm2Gizmo
+    400030: RigLLeg1
+    400032: RigLLegPlatform
+    400034: RigPelvis
+    400036: RigPelvisGizmo
+    400038: RigRArm1
+    400040: RigRArm1Gizmo
+    400042: RigRArm2
+    400044: RigRArm2Gizmo
+    400046: RigRibcage
+    400048: RigRibcageGizmo
+    400050: RigRLeg1
+    400052: RigRLegPlatform
+    400054: RigSpine
+    400056: Target Dummy
+    2100000: No Name
+    2100002: 'Material #25'
+    2300000: Cylinder001
+    2300002: Cylinder004
+    2300004: Cylinder005
+    2300006: Cylinder006
+    2300008: Cylinder007
+    2300010: Cylinder008
+    2300012: Cylinder009
+    2300014: Cylinder010
+    2300016: Object001
+    2300018: //RootNode
+    2300020: Target Dummy
+    3300000: Cylinder001
+    3300002: Cylinder004
+    3300004: Cylinder005
+    3300006: Cylinder006
+    3300008: Cylinder007
+    3300010: Cylinder008
+    3300012: Cylinder009
+    3300014: Cylinder010
+    3300016: Object001
+    3300018: //RootNode
+    3300020: Target Dummy
+    4300000: Cylinder001
+    4300002: Object001
+    4300004: Cylinder004
+    4300006: Cylinder005
+    4300008: Cylinder006
+    4300010: Cylinder007
+    4300012: Cylinder008
+    4300014: Cylinder009
+    4300016: Cylinder010
+    4300018: Target Dummy
+    9500000: //RootNode
+    13700000: Target Dummy
+  externalObjects: {}
+  materials:
+    importMaterials: 0
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 3
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 0.01
+    hasPreviousCalculatedGlobalScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,18 @@
+{
+  "name": "MidnightChaos.Runtime",
+  "rootNamespace": "MidnightChaos",
+  "references": [
+    "Unity.InputSystem",
+    "Unity.Netcode.Runtime",
+    "Unity.Networking.Transport"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

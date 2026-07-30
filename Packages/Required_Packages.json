@@ -1,0 +1,13 @@
+{
+  "unity": "6000.0.69f1",
+  "renderPipeline": "URP 17",
+  "dependencies": {
+    "com.unity.netcode.gameobjects": "2.7.0",
+    "com.unity.inputsystem": "1.14.2"
+  },
+  "notes": [
+    "Create the project from the Universal 3D template so URP is configured before importing this bootstrap.",
+    "Install packages from Unity Registry before copying Assets/MidnightChaos.",
+    "Unity Transport is used through the Netcode for GameObjects package dependency."
+  ]
+}

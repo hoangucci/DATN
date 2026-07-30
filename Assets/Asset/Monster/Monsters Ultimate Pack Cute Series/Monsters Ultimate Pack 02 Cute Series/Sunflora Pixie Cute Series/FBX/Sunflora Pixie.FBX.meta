@@ -1,0 +1,295 @@
+fileFormatVersion: 2
+guid: ee6bbf292af9ffd4898d8804ded7f53d
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: Object001
+    100002: Object002
+    100004: Object004
+    100006: Object005
+    100008: Object006
+    100010: Object007
+    100012: Object008
+    100014: Object009
+    100016: Object017
+    100018: Object018
+    100020: Object020
+    100022: Object021
+    100024: Object022
+    100026: Sphere002
+    100028: //RootNode
+    100030: Sunflower Fairy
+    100032: Rig
+    100034: RigFeelerL1
+    100036: RigFeelerL1Gizmo
+    100038: RigFeelerL2
+    100040: RigFeelerL2Gizmo
+    100042: RigFeelerL3
+    100044: RigFeelerL3Gizmo
+    100046: RigFeelerL4
+    100048: RigFeelerL4Gizmo
+    100050: RigFeelerR1
+    100052: RigFeelerR1Gizmo
+    100054: RigFeelerR2
+    100056: RigFeelerR2Gizmo
+    100058: RigFeelerR3
+    100060: RigFeelerR3Gizmo
+    100062: RigFeelerR4
+    100064: RigFeelerR4Gizmo
+    100066: RigHead
+    100068: RigHead 1
+    100070: RigLArm1
+    100072: RigLArm1Gizmo
+    100074: RigLArm2
+    100076: RigLArm2Gizmo
+    100078: RigLArmFinger1
+    100080: RigLArmPalm
+    100082: RigLArmPalmGizmo
+    100084: RigLLeg1
+    100086: RigLLeg2
+    100088: RigLLegAnkle
+    100090: RigLLegPlatform
+    100092: RigNeck
+    100094: RigPelvis
+    100096: RigPelvisGizmo
+    100098: RigRArm1
+    100100: RigRArm1Gizmo
+    100102: RigRArm2
+    100104: RigRArm2Gizmo
+    100106: RigRArmFinger1
+    100108: RigRArmPalm
+    100110: RigRArmPalmGizmo
+    100112: RigRibcage
+    100114: RigRibcageGizmo
+    100116: RigRLeg1
+    100118: RigRLeg2
+    100120: RigRLegAnkle
+    100122: RigRLegPlatform
+    100124: RigSpine1
+    100126: RigSpine2
+    100128: RigWingL
+    100130: RigWingLGizmo
+    100132: RigWingR
+    100134: RigWingRGizmo
+    100136: Sunflora Pixie
+    100138: RigSkirtB
+    100140: RigSkirtBGizmo
+    100142: RigSkirtL
+    100144: RigSkirtLGizmo
+    100146: RigSkirtR
+    100148: RigSkirtRGizmo
+    100150: Dummy001
+    400000: Object001
+    400002: Object002
+    400004: Object004
+    400006: Object005
+    400008: Object006
+    400010: Object007
+    400012: Object008
+    400014: Object009
+    400016: Object017
+    400018: Object018
+    400020: Object020
+    400022: Object021
+    400024: Object022
+    400026: Sphere002
+    400028: //RootNode
+    400030: Sunflower Fairy
+    400032: Rig
+    400034: RigFeelerL1
+    400036: RigFeelerL1Gizmo
+    400038: RigFeelerL2
+    400040: RigFeelerL2Gizmo
+    400042: RigFeelerL3
+    400044: RigFeelerL3Gizmo
+    400046: RigFeelerL4
+    400048: RigFeelerL4Gizmo
+    400050: RigFeelerR1
+    400052: RigFeelerR1Gizmo
+    400054: RigFeelerR2
+    400056: RigFeelerR2Gizmo
+    400058: RigFeelerR3
+    400060: RigFeelerR3Gizmo
+    400062: RigFeelerR4
+    400064: RigFeelerR4Gizmo
+    400066: RigHead
+    400068: RigHead 1
+    400070: RigLArm1
+    400072: RigLArm1Gizmo
+    400074: RigLArm2
+    400076: RigLArm2Gizmo
+    400078: RigLArmFinger1
+    400080: RigLArmPalm
+    400082: RigLArmPalmGizmo
+    400084: RigLLeg1
+    400086: RigLLeg2
+    400088: RigLLegAnkle
+    400090: RigLLegPlatform
+    400092: RigNeck
+    400094: RigPelvis
+    400096: RigPelvisGizmo
+    400098: RigRArm1
+    400100: RigRArm1Gizmo
+    400102: RigRArm2
+    400104: RigRArm2Gizmo
+    400106: RigRArmFinger1
+    400108: RigRArmPalm
+    400110: RigRArmPalmGizmo
+    400112: RigRibcage
+    400114: RigRibcageGizmo
+    400116: RigRLeg1
+    400118: RigRLeg2
+    400120: RigRLegAnkle
+    400122: RigRLegPlatform
+    400124: RigSpine1
+    400126: RigSpine2
+    400128: RigWingL
+    400130: RigWingLGizmo
+    400132: RigWingR
+    400134: RigWingRGizmo
+    400136: Sunflora Pixie
+    400138: RigSkirtB
+    400140: RigSkirtBGizmo
+    400142: RigSkirtL
+    400144: RigSkirtLGizmo
+    400146: RigSkirtR
+    400148: RigSkirtRGizmo
+    400150: Dummy001
+    2100000: 'Material #27'
+    2100002: No Name
+    2300000: Object001
+    2300002: Object002
+    2300004: Object004
+    2300006: Object005
+    2300008: Object006
+    2300010: Object007
+    2300012: Object008
+    2300014: Object009
+    2300016: Object017
+    2300018: Object018
+    2300020: Object020
+    2300022: Object021
+    2300024: Object022
+    2300026: Sphere002
+    2300028: Sunflower Fairy
+    2300030: Sunflora Pixie
+    3300000: Object001
+    3300002: Object002
+    3300004: Object004
+    3300006: Object005
+    3300008: Object006
+    3300010: Object007
+    3300012: Object008
+    3300014: Object009
+    3300016: Object017
+    3300018: Object018
+    3300020: Object020
+    3300022: Object021
+    3300024: Object022
+    3300026: Sphere002
+    3300028: Sunflower Fairy
+    3300030: Sunflora Pixie
+    4300000: Sunflower Fairy
+    4300002: Object001
+    4300004: Object002
+    4300006: Object004
+    4300008: Object005
+    4300010: Object006
+    4300012: Object007
+    4300014: Object008
+    4300016: Object009
+    4300018: Object017
+    4300020: Object018
+    4300022: Object020
+    4300024: Object021
+    4300026: Object022
+    4300028: Sphere002
+    4300030: Sunflora Pixie
+    9500000: //RootNode
+    13700000: Sunflora Pixie
+  externalObjects: {}
+  materials:
+    importMaterials: 0
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 3
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 0.01
+    hasPreviousCalculatedGlobalScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,20 @@
+{
+  "name": "MidnightChaos.Editor",
+  "rootNamespace": "MidnightChaos.Editor",
+  "references": [
+    "MidnightChaos.Runtime",
+    "Unity.Netcode.Runtime",
+    "Unity.Networking.Transport"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

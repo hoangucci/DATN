@@ -1,0 +1,427 @@
+fileFormatVersion: 2
+guid: 56dd1c59a27e08a48b52d25989c46eaf
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: Object001
+    100002: Object002
+    100004: Object003
+    100006: Object004
+    100008: Snake
+    100010: //RootNode
+    100012: Object005
+    100014: IK Chain L
+    100016: IK Chain Mid
+    100018: IK Chain R
+    100020: Rig
+    100022: RigHeadL
+    100024: RigHeadMid
+    100026: RigHeadR
+    100028: RigJawL
+    100030: RigJawMid
+    100032: RigJawR
+    100034: RigLArm1
+    100036: RigLArm2
+    100038: RigLArmFingerA1
+    100040: RigLArmFingerA2
+    100042: RigLArmFingerA3
+    100044: RigLArmFingerB1
+    100046: RigLArmFingerB2
+    100048: RigLArmFingerB3
+    100050: RigLArmFingerC1
+    100052: RigLArmFingerC2
+    100054: RigLArmFingerC3
+    100056: RigLArmPalm
+    100058: RigNeckL1
+    100060: RigNeckL1IKPt
+    100062: RigNeckL2
+    100064: RigNeckL2IKPt
+    100066: RigNeckL3
+    100068: RigNeckL3IKPt
+    100070: RigNeckL4
+    100072: RigNeckL4IKPt
+    100074: RigNeckL5
+    100076: RigNeckL5IKPt
+    100078: RigNeckL7
+    100080: RigNeckL7IKPt
+    100082: RigNeckL7Nub
+    100084: RigNeckMid1
+    100086: RigNeckMid1IKPt
+    100088: RigNeckMid2
+    100090: RigNeckMid2IKPt
+    100092: RigNeckMid3
+    100094: RigNeckMid3IKPt
+    100096: RigNeckMid4
+    100098: RigNeckMid4IKPt
+    100100: RigNeckMid5
+    100102: RigNeckMid5IKPt
+    100104: RigNeckMid6
+    100106: RigNeckMid6IKPt
+    100108: RigNeckMid7
+    100110: RigNeckMid7IKPt
+    100112: RigNeckMid7Nub
+    100114: RigNeckR1
+    100116: RigNeckR1IKPt
+    100118: RigNeckR2
+    100120: RigNeckR2IKPt
+    100122: RigNeckR3
+    100124: RigNeckR3IKPt
+    100126: RigNeckR4
+    100128: RigNeckR4IKPt
+    100130: RigNeckR5
+    100132: RigNeckR5IKPt
+    100134: RigNeckR7
+    100136: RigNeckR7IKPt
+    100138: RigNeckR7Nub
+    100140: RigPelvis
+    100142: RigRArm1
+    100144: RigRArm2
+    100146: RigRArmFingerA1
+    100148: RigRArmFingerA2
+    100150: RigRArmFingerA3
+    100152: RigRArmFingerB1
+    100154: RigRArmFingerB2
+    100156: RigRArmFingerB3
+    100158: RigRArmFingerC1
+    100160: RigRArmFingerC2
+    100162: RigRArmFingerC3
+    100164: RigRArmPalm
+    100166: RigRibcage
+    100168: RigSpine1
+    100170: RigSpine2
+    100172: RigSpine3
+    100174: RigSpine4
+    100176: RigTail1
+    100178: RigTail10
+    100180: RigTail11
+    100182: RigTail12
+    100184: RigTail2
+    100186: RigTail3
+    100188: RigTail4
+    100190: RigTail5
+    100192: RigTail6
+    100194: RigTail7
+    100196: RigTail8
+    100198: RigTail9
+    100200: RigTongueL01
+    100202: RigTongueL02
+    100204: RigTongueL03
+    100206: RigTongueL04
+    100208: RigTongueMid01
+    100210: RigTongueMid02
+    100212: RigTongueMid03
+    100214: RigTongueMid04
+    100216: RigTongueR01
+    100218: RigTongueR02
+    100220: RigTongueR03
+    100222: RigTongueR04
+    100224: Snake Naga
+    100226: RigHeadLGizmo
+    100228: RigHeadMidGizmo
+    100230: RigHeadRGizmo
+    100232: RigJawLGizmo
+    100234: RigJawMidGizmo
+    100236: RigJawRGizmo
+    100238: RigLArm1Gizmo
+    100240: RigLArm2Gizmo
+    100242: RigLArmPalmGizmo
+    100244: RigPelvisGizmo
+    100246: RigRArm1Gizmo
+    100248: RigRArm2Gizmo
+    100250: RigRArmPalmGizmo
+    100252: RigTail10Gizmo
+    100254: RigTail11Gizmo
+    100256: RigTail12Gizmo
+    100258: RigTail1Gizmo
+    100260: RigTail2Gizmo
+    100262: RigTail3Gizmo
+    100264: RigTail4Gizmo
+    100266: RigTail5Gizmo
+    100268: RigTail6Gizmo
+    100270: RigTail7Gizmo
+    100272: RigTail8Gizmo
+    100274: RigTail9Gizmo
+    100276: RigTongueL01Gizmo
+    100278: RigTongueL02Gizmo
+    100280: RigTongueL03Gizmo
+    100282: RigTongueL04Gizmo
+    100284: RigTongueMid01Gizmo
+    100286: RigTongueMid02Gizmo
+    100288: RigTongueMid03Gizmo
+    100290: RigTongueMid04Gizmo
+    100292: RigTongueR01Gizmo
+    100294: RigTongueR02Gizmo
+    100296: RigTongueR03Gizmo
+    100298: RigTongueR04Gizmo
+    100300: IK Chain001
+    100302: IK Chain002
+    100304: IK Chain003
+    100306: RigNeckMid7IKPt 1
+    100308: RigRibcageGizmo
+    400000: Object001
+    400002: Object002
+    400004: Object003
+    400006: Object004
+    400008: Snake
+    400010: //RootNode
+    400012: Object005
+    400014: IK Chain L
+    400016: IK Chain Mid
+    400018: IK Chain R
+    400020: Rig
+    400022: RigHeadL
+    400024: RigHeadMid
+    400026: RigHeadR
+    400028: RigJawL
+    400030: RigJawMid
+    400032: RigJawR
+    400034: RigLArm1
+    400036: RigLArm2
+    400038: RigLArmFingerA1
+    400040: RigLArmFingerA2
+    400042: RigLArmFingerA3
+    400044: RigLArmFingerB1
+    400046: RigLArmFingerB2
+    400048: RigLArmFingerB3
+    400050: RigLArmFingerC1
+    400052: RigLArmFingerC2
+    400054: RigLArmFingerC3
+    400056: RigLArmPalm
+    400058: RigNeckL1
+    400060: RigNeckL1IKPt
+    400062: RigNeckL2
+    400064: RigNeckL2IKPt
+    400066: RigNeckL3
+    400068: RigNeckL3IKPt
+    400070: RigNeckL4
+    400072: RigNeckL4IKPt
+    400074: RigNeckL5
+    400076: RigNeckL5IKPt
+    400078: RigNeckL7
+    400080: RigNeckL7IKPt
+    400082: RigNeckL7Nub
+    400084: RigNeckMid1
+    400086: RigNeckMid1IKPt
+    400088: RigNeckMid2
+    400090: RigNeckMid2IKPt
+    400092: RigNeckMid3
+    400094: RigNeckMid3IKPt
+    400096: RigNeckMid4
+    400098: RigNeckMid4IKPt
+    400100: RigNeckMid5
+    400102: RigNeckMid5IKPt
+    400104: RigNeckMid6
+    400106: RigNeckMid6IKPt
+    400108: RigNeckMid7
+    400110: RigNeckMid7IKPt
+    400112: RigNeckMid7Nub
+    400114: RigNeckR1
+    400116: RigNeckR1IKPt
+    400118: RigNeckR2
+    400120: RigNeckR2IKPt
+    400122: RigNeckR3
+    400124: RigNeckR3IKPt
+    400126: RigNeckR4
+    400128: RigNeckR4IKPt
+    400130: RigNeckR5
+    400132: RigNeckR5IKPt
+    400134: RigNeckR7
+    400136: RigNeckR7IKPt
+    400138: RigNeckR7Nub
+    400140: RigPelvis
+    400142: RigRArm1
+    400144: RigRArm2
+    400146: RigRArmFingerA1
+    400148: RigRArmFingerA2
+    400150: RigRArmFingerA3
+    400152: RigRArmFingerB1
+    400154: RigRArmFingerB2
+    400156: RigRArmFingerB3
+    400158: RigRArmFingerC1
+    400160: RigRArmFingerC2
+    400162: RigRArmFingerC3
+    400164: RigRArmPalm
+    400166: RigRibcage
+    400168: RigSpine1
+    400170: RigSpine2
+    400172: RigSpine3
+    400174: RigSpine4
+    400176: RigTail1
+    400178: RigTail10
+    400180: RigTail11
+    400182: RigTail12
+    400184: RigTail2
+    400186: RigTail3
+    400188: RigTail4
+    400190: RigTail5
+    400192: RigTail6
+    400194: RigTail7
+    400196: RigTail8
+    400198: RigTail9
+    400200: RigTongueL01
+    400202: RigTongueL02
+    400204: RigTongueL03
+    400206: RigTongueL04
+    400208: RigTongueMid01
+    400210: RigTongueMid02
+    400212: RigTongueMid03
+    400214: RigTongueMid04
+    400216: RigTongueR01
+    400218: RigTongueR02
+    400220: RigTongueR03
+    400222: RigTongueR04
+    400224: Snake Naga
+    400226: RigHeadLGizmo
+    400228: RigHeadMidGizmo
+    400230: RigHeadRGizmo
+    400232: RigJawLGizmo
+    400234: RigJawMidGizmo
+    400236: RigJawRGizmo
+    400238: RigLArm1Gizmo
+    400240: RigLArm2Gizmo
+    400242: RigLArmPalmGizmo
+    400244: RigPelvisGizmo
+    400246: RigRArm1Gizmo
+    400248: RigRArm2Gizmo
+    400250: RigRArmPalmGizmo
+    400252: RigTail10Gizmo
+    400254: RigTail11Gizmo
+    400256: RigTail12Gizmo
+    400258: RigTail1Gizmo
+    400260: RigTail2Gizmo
+    400262: RigTail3Gizmo
+    400264: RigTail4Gizmo
+    400266: RigTail5Gizmo
+    400268: RigTail6Gizmo
+    400270: RigTail7Gizmo
+    400272: RigTail8Gizmo
+    400274: RigTail9Gizmo
+    400276: RigTongueL01Gizmo
+    400278: RigTongueL02Gizmo
+    400280: RigTongueL03Gizmo
+    400282: RigTongueL04Gizmo
+    400284: RigTongueMid01Gizmo
+    400286: RigTongueMid02Gizmo
+    400288: RigTongueMid03Gizmo
+    400290: RigTongueMid04Gizmo
+    400292: RigTongueR01Gizmo
+    400294: RigTongueR02Gizmo
+    400296: RigTongueR03Gizmo
+    400298: RigTongueR04Gizmo
+    400300: IK Chain001
+    400302: IK Chain002
+    400304: IK Chain003
+    400306: RigNeckMid7IKPt 1
+    400308: RigRibcageGizmo
+    2100000: 'Material #3'
+    2300000: Object001
+    2300002: Object002
+    2300004: Object003
+    2300006: Object004
+    2300008: Snake
+    2300010: //RootNode
+    2300012: Object005
+    2300014: Snake Naga
+    3300000: Object001
+    3300002: Object002
+    3300004: Object003
+    3300006: Object004
+    3300008: Snake
+    3300010: //RootNode
+    3300012: Object005
+    3300014: Snake Naga
+    4300000: Snake
+    4300002: Object001
+    4300004: Object002
+    4300006: Object003
+    4300008: Object004
+    4300010: Object005
+    4300012: Snake Naga
+    9500000: //RootNode
+    13700000: Snake Naga
+  externalObjects: {}
+  materials:
+    importMaterials: 0
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 3
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 0.01
+    hasPreviousCalculatedGlobalScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
