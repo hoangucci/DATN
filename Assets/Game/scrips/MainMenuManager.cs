@@ -75,17 +75,16 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    private void OnPlayClicked()
+    public void OnPlayClicked()
     {
+        // Nếu Inspector cũ còn lưu giá trị "SampleScene", tự động sửa thành "Map"
+        if (string.IsNullOrEmpty(gameSceneName) || gameSceneName.Equals("SampleScene", System.StringComparison.OrdinalIgnoreCase))
+        {
+            gameSceneName = "Map";
+        }
+
         Debug.Log($"[MainMenuManager] Đang tải Scene game: {gameSceneName}...");
-        if (!string.IsNullOrEmpty(gameSceneName))
-        {
-            SceneManager.LoadScene(gameSceneName);
-        }
-        else
-        {
-            Debug.LogWarning("[MainMenuManager] Chưa đặt tên gameSceneName trong Inspector!");
-        }
+        SceneManager.LoadScene(gameSceneName);
     }
 
     public void OpenSettings()
