@@ -15,10 +15,10 @@ namespace MidnightChaos.Resources
         [SerializeField, Min(100f)] private float mapSize = 1350f;
         [SerializeField, Min(0f)] private float safeCenterRadius = 10f;
 
-        [Header("Density Settings (Tối ưu tốc độ nạp ván)")]
-        [SerializeField, Range(0, 5000)] private int treeCount = 700;
-        [SerializeField, Range(0, 3000)] private int rockCount = 350;
-        [SerializeField, Range(0, 5000)] private int vegetationCount = 800;
+        [Header("Density Settings (Đa dạng màu sắc & Đồi núi hùng vĩ)")]
+        [SerializeField, Range(0, 5000)] private int treeCount = 950;
+        [SerializeField, Range(0, 3000)] private int rockCount = 500;
+        [SerializeField, Range(0, 5000)] private int vegetationCount = 1200;
 
         [Header("Prefab Collections (StylizedNatureBundle)")]
         [SerializeField] private GameObject[] treePrefabs = new GameObject[0];
@@ -47,15 +47,8 @@ namespace MidnightChaos.Resources
 
         private void EnsurePrefabsLoaded()
         {
-            if (treePrefabs != null && treePrefabs.Length > 0 &&
-                rockPrefabs != null && rockPrefabs.Length > 0 &&
-                vegetationPrefabs != null && vegetationPrefabs.Length > 0)
-            {
-                return;
-            }
-
 #if UNITY_EDITOR
-            string bundleRoot = "Assets/Asset/Environments/StylizedNatureBundle";
+            string bundleRoot = "Assets/Asset/StylizedNatureBundle";
             string[] guids = UnityEditor.AssetDatabase.FindAssets("StylizedNatureBundle t:Folder");
             if (guids.Length > 0)
             {
@@ -63,12 +56,31 @@ namespace MidnightChaos.Resources
             }
 
             string prefabsPath = bundleRoot + "/Prefabs";
-            if (treePrefabs == null || treePrefabs.Length == 0)
-                treePrefabs = LoadPrefabsInEditor($"{prefabsPath}/Trees");
-            if (rockPrefabs == null || rockPrefabs.Length == 0)
-                rockPrefabs = LoadPrefabsInEditor($"{prefabsPath}/Rocks");
-            if (vegetationPrefabs == null || vegetationPrefabs.Length == 0)
-                vegetationPrefabs = LoadPrefabsInEditor($"{prefabsPath}/GrassFlower");
+
+            // Cưỡng chế nạp đầy đủ 100% tất cả mẫu Cây, Đá và 122+ mẫu Hoa, Bụi Cây
+            if (treePrefabs == null || treePrefabs.Length < 10)
+            {
+                List<GameObject> allTrees = new List<GameObject>();
+                allTrees.AddRange(LoadPrefabsInEditor($"{prefabsPath}/Trees"));
+                allTrees.AddRange(LoadPrefabsInEditor($"{prefabsPath}/DeadTrees"));
+                treePrefabs = allTrees.ToArray();
+            }
+
+            if (rockPrefabs == null || rockPrefabs.Length < 5)
+            {
+                List<GameObject> allRocks = new List<GameObject>();
+                allRocks.AddRange(LoadPrefabsInEditor($"{prefabsPath}/Rocks"));
+                allRocks.AddRange(LoadPrefabsInEditor($"{prefabsPath}/Rocks/noLODs"));
+                rockPrefabs = allRocks.ToArray();
+            }
+
+            if (vegetationPrefabs == null || vegetationPrefabs.Length < 30)
+            {
+                List<GameObject> allVeg = new List<GameObject>();
+                allVeg.AddRange(LoadPrefabsInEditor($"{prefabsPath}/GrassFlower"));
+                allVeg.AddRange(LoadPrefabsInEditor($"{prefabsPath}/Vegetation"));
+                vegetationPrefabs = allVeg.ToArray();
+            }
 #endif
         }
 
@@ -80,8 +92,13 @@ namespace MidnightChaos.Resources
             List<GameObject> list = new List<GameObject>();
             foreach (string g in guids)
             {
-                GameObject obj = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(UnityEditor.AssetDatabase.GUIDToAssetPath(g));
-                if (obj != null) list.Add(obj);
+                string assetPath = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                // Ưu tiên nạp các mẫu Prefab noLODs để có màu sắc đẹp và không bị lặp lại cấp độ LOD
+                if (assetPath.Contains("noLODs") || (!assetPath.Contains("LOD1") && !assetPath.Contains("LOD2")))
+                {
+                    GameObject obj = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+                    if (obj != null && !list.Contains(obj)) list.Add(obj);
+                }
             }
             return list.ToArray();
         }
@@ -109,30 +126,105 @@ namespace MidnightChaos.Resources
             // 0. Biến đổi địa hình đồi núi & bờ biển Hòn đảo ngẫu nhiên mới 100% theo Seed
             GenerateProceduralTerrainMesh(currentActiveSeed);
 
+            // Đồng bộ hiệu ứng Ánh sáng nắng ấm & Sương mù Atmospheric Fog núi cao chuẩn 100% DemoScene_07
+            ApplyDemoSceneLighting();
+
             // Cập nhật lại collider vật lý để raycast chính xác
             Physics.SyncTransforms();
 
             List<Vector3> placedPositions = new List<Vector3>();
+            List<Vector3> treePositions = new List<Vector3>();
+            List<Vector3> rockPositions = new List<Vector3>();
 
-            // 1. Rải Cây (Trees) đồng đều
+            // 1. Rải Cây (Trees)
             if (treePrefabs != null && treePrefabs.Length > 0)
             {
-                SpawnCategoryGrid(rng, treePrefabs, treeCount, 3.5f, 0.85f, 1.25f, placedPositions, true);
+                SpawnCategoryGrid(rng, treePrefabs, treeCount, 3.5f, 0.85f, 1.25f, placedPositions, true, treePositions);
             }
 
-            // 2. Rải Đá (Rocks) đồng đều
+            // 2. Rải Đá (Rocks)
             if (rockPrefabs != null && rockPrefabs.Length > 0)
             {
-                SpawnCategoryGrid(rng, rockPrefabs, rockCount, 2.0f, 0.7f, 1.4f, placedPositions, false);
+                SpawnCategoryGrid(rng, rockPrefabs, rockCount, 2.0f, 0.7f, 1.4f, placedPositions, false, rockPositions);
             }
 
-            // 3. Rải Cỏ / Hoa (Vegetation) đồng đều
+            // 3. Rải Cụm Hoa, Bụi Cây & Cỏ ôm sát theo Gốc Cây và Chân Đá chuẩn 100% DemoScene_01
             if (vegetationPrefabs != null && vegetationPrefabs.Length > 0)
             {
-                SpawnCategoryGrid(rng, vegetationPrefabs, vegetationCount, 0.8f, 0.9f, 1.3f, placedPositions, false);
+                SpawnVegetationClusters(rng, vegetationPrefabs, treePositions, rockPositions, placedPositions);
+                // Rải phần cỏ & hoa còn lại phủ đều toàn bộ thung lũng
+                SpawnCategoryGrid(rng, vegetationPrefabs, vegetationCount, 0.6f, 0.8f, 1.3f, placedPositions, false, null);
             }
 
             Debug.Log($"[Stylized Map Generator] Hoàn thành rải phủ đều map với {generatedContainer.childCount} vật thể.");
+        }
+
+        private void SpawnVegetationClusters(
+            System.Random rng,
+            GameObject[] prefabs,
+            List<Vector3> treePositions,
+            List<Vector3> rockPositions,
+            List<Vector3> placedPositions)
+        {
+            if (prefabs == null || prefabs.Length == 0) return;
+
+            // 1. Sinh 3 - 6 hoa/bụi cây ôm sát gốc mỗi Cây (như DemoScene_01)
+            foreach (Vector3 treePos in treePositions)
+            {
+                int count = rng.Next(3, 7);
+                for (int i = 0; i < count; i++)
+                {
+                    float angle = (float)(rng.NextDouble() * Math.PI * 2.0);
+                    float dist = Mathf.Lerp(1.2f, 4.0f, (float)rng.NextDouble());
+                    Vector3 pos = treePos + new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
+
+                    if (Vector3.Distance(Vector3.zero, pos) < safeCenterRadius) continue;
+                    if (IsTooClose(pos, placedPositions, 0.4f)) continue;
+
+                    pos.y = GetGroundHeight(pos);
+                    if (pos.y < 0.6f) continue;
+
+                    GameObject selectedPrefab = prefabs[rng.Next(prefabs.Length)];
+                    if (selectedPrefab == null) continue;
+
+                    Quaternion rotation = Quaternion.Euler((float)(rng.NextDouble() * 10.0 - 5.0), (float)(rng.NextDouble() * 360.0), (float)(rng.NextDouble() * 10.0 - 5.0));
+                    float scaleMult = Mathf.Lerp(0.7f, 1.3f, (float)rng.NextDouble());
+
+                    GameObject instance = Instantiate(selectedPrefab, pos, rotation, generatedContainer);
+                    instance.transform.localScale = selectedPrefab.transform.localScale * scaleMult;
+
+                    placedPositions.Add(pos);
+                }
+            }
+
+            // 2. Sinh 2 - 4 hoa/bụi cây ôm sát chân mỗi Khối Đá
+            foreach (Vector3 rockPos in rockPositions)
+            {
+                int count = rng.Next(2, 5);
+                for (int i = 0; i < count; i++)
+                {
+                    float angle = (float)(rng.NextDouble() * Math.PI * 2.0);
+                    float dist = Mathf.Lerp(0.8f, 2.5f, (float)rng.NextDouble());
+                    Vector3 pos = rockPos + new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
+
+                    if (Vector3.Distance(Vector3.zero, pos) < safeCenterRadius) continue;
+                    if (IsTooClose(pos, placedPositions, 0.4f)) continue;
+
+                    pos.y = GetGroundHeight(pos);
+                    if (pos.y < 0.6f) continue;
+
+                    GameObject selectedPrefab = prefabs[rng.Next(prefabs.Length)];
+                    if (selectedPrefab == null) continue;
+
+                    Quaternion rotation = Quaternion.Euler((float)(rng.NextDouble() * 10.0 - 5.0), (float)(rng.NextDouble() * 360.0), (float)(rng.NextDouble() * 10.0 - 5.0));
+                    float scaleMult = Mathf.Lerp(0.7f, 1.3f, (float)rng.NextDouble());
+
+                    GameObject instance = Instantiate(selectedPrefab, pos, rotation, generatedContainer);
+                    instance.transform.localScale = selectedPrefab.transform.localScale * scaleMult;
+
+                    placedPositions.Add(pos);
+                }
+            }
         }
 
         [ContextMenu("Clear Map")]
@@ -163,7 +255,8 @@ namespace MidnightChaos.Resources
             float minScale,
             float maxScale,
             List<Vector3> placedPositions,
-            bool alignUpright)
+            bool alignUpright,
+            List<Vector3> outPositions = null)
         {
             int spawned = 0;
             int attempts = 0;
@@ -232,6 +325,7 @@ namespace MidnightChaos.Resources
                 instance.transform.localScale = selectedPrefab.transform.localScale * scaleMult;
 
                 placedPositions.Add(pos);
+                if (outPositions != null) outPositions.Add(pos);
                 spawned++;
             }
         }
@@ -260,6 +354,30 @@ namespace MidnightChaos.Resources
             return false;
         }
 
+        private void ApplyDemoSceneLighting()
+        {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.035f, 0.133f, 0.255f);
+            RenderSettings.ambientEquatorColor = new Color(0.314f, 0.377f, 0.300f);
+            RenderSettings.ambientGroundColor = new Color(0.185f, 0.254f, 0.128f);
+
+            // Cấu hình Sương Mù Cyan Atmospheric Fog mộng mơ phủ xa chuẩn 100% DemoScene_01
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = new Color(0.485f, 0.855f, 0.943f);
+            RenderSettings.fogStartDistance = 15f;
+            RenderSettings.fogEndDistance = 220f;
+
+            Light mainLight = FindFirstObjectByType<Light>();
+            if (mainLight != null && mainLight.type == LightType.Directional)
+            {
+                mainLight.color = new Color(1.0f, 0.93f, 0.82f);
+                mainLight.intensity = 1.3f;
+                mainLight.shadows = LightShadows.Soft;
+                mainLight.transform.rotation = Quaternion.Euler(45f, 130f, 0f);
+            }
+        }
+
         private float CalculateHeightAt(float xPos, float zPos, int seed)
         {
             float distFromCenter = Mathf.Sqrt(xPos * xPos + zPos * zPos);
@@ -268,19 +386,20 @@ namespace MidnightChaos.Resources
             float seedX = (float)(rng.NextDouble() * 10000.0 + 1000.0);
             float seedZ = (float)(rng.NextDouble() * 10000.0 + 1000.0);
 
+            // Biến thiên đường viền bờ biển hòn đảo
             float coastlineNoise = (Mathf.PerlinNoise((xPos + seedX + 4000f) * 0.003f, (zPos + seedZ + 4000f) * 0.003f) - 0.5f) * 200f;
             float maxIslandRadius = 550f + coastlineNoise;
 
             float islandFalloff = 1.0f - Mathf.Clamp01((distFromCenter - maxIslandRadius * 0.55f) / (maxIslandRadius * 0.45f));
             islandFalloff = islandFalloff * islandFalloff * (3f - 2f * islandFalloff);
 
-            float baseHills = (Mathf.PerlinNoise((xPos + seedX) * 0.004f, (zPos + seedZ) * 0.004f) * 14.0f)
-                             + (Mathf.PerlinNoise((xPos + seedX + 500f) * 0.015f, (zPos + seedZ + 500f) * 0.015f) * 4.0f) + 2.0f;
+            // Địa hình đồi núi & bình nguyên tự nhiên mượt mà (không bị hố ở giữa)
+            float mountainPeaks = Mathf.PerlinNoise((xPos + seedX) * 0.0025f, (zPos + seedZ) * 0.0025f) * 22.0f;
+            float rollingHills = Mathf.PerlinNoise((xPos + seedX + 500f) * 0.012f, (zPos + seedZ + 500f) * 0.012f) * 6.0f + 4.0f;
+
+            float baseHills = mountainPeaks + rollingHills;
 
             float height = (baseHills * islandFalloff) - ((1.0f - islandFalloff) * 15.0f);
-
-            float flattenFactor = Mathf.Clamp01((distFromCenter - 8f) / 12f);
-            height = Mathf.Lerp(2.5f, height, flattenFactor);
 
             return height;
         }

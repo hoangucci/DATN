@@ -51,15 +51,29 @@ namespace MidnightChaos.Editor
             GameObject lightObject = new GameObject("Directional Light", typeof(Light));
             Light light = lightObject.GetComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 1.25f;
-            lightObject.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            light.color = new Color(1.0f, 0.93f, 0.82f); // Ánh nắng ấm cúng chuẩn DemoScene_01
+            light.intensity = 1.3f;
+            light.shadows = LightShadows.Soft;
+            lightObject.transform.rotation = Quaternion.Euler(45f, 130f, 0f);
 
-            // Gán Material M_SNB_Skybox làm Skybox & Ánh sáng Lighting chính cho Scene
-            Material skyboxMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Asset/StylizedNatureBundle/Materials/M_SNB_Skybox.mat");
+            // Gán Material M_SNB_Skybox & cấu hình Lighting, Fog chuẩn 100% DemoScene_01
+            Material skyboxMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Asset/StylizedNatureBundle/Materials/M_SNB_Skybox.mat")
+                                   ?? AssetDatabase.LoadAssetAtPath<Material>("Assets/Asset/Environments/StylizedNatureBundle/Materials/M_SNB_Skybox.mat");
             if (skyboxMaterial != null)
             {
                 RenderSettings.skybox = skyboxMaterial;
-                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = new Color(0.035f, 0.133f, 0.255f);
+                RenderSettings.ambientEquatorColor = new Color(0.314f, 0.377f, 0.300f);
+                RenderSettings.ambientGroundColor = new Color(0.185f, 0.254f, 0.128f);
+
+                // Cấu hình sương mù Stylized Fog chuẩn DemoScene_01
+                RenderSettings.fog = true;
+                RenderSettings.fogMode = FogMode.Linear;
+                RenderSettings.fogColor = new Color(0.485f, 0.855f, 0.943f);
+                RenderSettings.fogStartDistance = 50f;
+                RenderSettings.fogEndDistance = 700f;
+
                 DynamicGI.UpdateEnvironment();
             }
 
