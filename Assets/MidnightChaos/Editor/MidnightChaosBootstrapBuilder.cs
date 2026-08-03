@@ -26,6 +26,7 @@ namespace MidnightChaos.Editor
         private const string PrefabFolder = GeneratedRoot + "/Prefabs";
         private const string SceneFolder = GeneratedRoot + "/Scenes";
         private const string MaterialFolder = GeneratedRoot + "/Materials";
+        private const string SettingsFolder = GeneratedRoot + "/Settings";
         private const string PlayerPrefabPath = PrefabFolder + "/DiagnosticNetworkPlayer.prefab";
         private const string ResourcePrefabPath = PrefabFolder + "/DiagnosticResourceNode.prefab";
         private const string EnemyPrefabPath = PrefabFolder + "/DiagnosticMeleeEnemy.prefab";
@@ -37,7 +38,28 @@ namespace MidnightChaos.Editor
         private const string WorkbenchMaterialPath = MaterialFolder + "/DiagnosticWorkbench.mat";
         private const string EnemyMaterialPath = MaterialFolder + "/DiagnosticMeleeEnemy.mat";
         private const string ChaosShardMaterialPath = MaterialFolder + "/DiagnosticChaosShard.mat";
+        private const string CombatSettingsPath =
+            SettingsFolder + "/DiagnosticMeleeCombatSettings.asset";
+        private const string LegacyFirstPersonMotionSetPath =
+            SettingsFolder + "/DiagnosticFirstPersonAttackMotionSet.asset";
+        private const string UnarmedFirstPersonMotionSetPath =
+            SettingsFolder + "/UnarmedFirstPersonAttackMotionSet.asset";
+        private const string SwordFirstPersonMotionSetPath =
+            SettingsFolder + "/SwordFirstPersonAttackMotionSet.asset";
+        private const string UnarmedAttackProfilePath =
+            SettingsFolder + "/UnarmedAttackProfile.asset";
+        private const string SwordAttackProfilePath =
+            SettingsFolder + "/SwordAttackProfile.asset";
         private const string ScenePath = SceneFolder + "/LAN_Bootstrap.unity";
+
+        private sealed class CombatAssetBundle
+        {
+            public DiagnosticMeleeCombatSettings Settings;
+            public DiagnosticFirstPersonAttackMotionSet UnarmedMotionSet;
+            public DiagnosticFirstPersonAttackMotionSet SwordMotionSet;
+            public DiagnosticMeleeAttackProfile UnarmedProfile;
+            public DiagnosticMeleeAttackProfile SwordProfile;
+        }
 
         [MenuItem("Midnight Chaos/Bootstrap/Create or Refresh LAN Test Scene")]
         public static void Build()
@@ -46,6 +68,9 @@ namespace MidnightChaos.Editor
             EnsureFolder(GeneratedRoot, "Prefabs");
             EnsureFolder(GeneratedRoot, "Scenes");
             EnsureFolder(GeneratedRoot, "Materials");
+            EnsureFolder(GeneratedRoot, "Settings");
+
+            CombatAssetBundle combatAssets = CreateOrLoadCombatAssets();
 
             Material attackMaterial = CreateOrRefreshAttackMaterial();
             Material trunkMaterial = CreateOrRefreshUnlitMaterial(
@@ -75,7 +100,8 @@ namespace MidnightChaos.Editor
 
             GameObject playerPrefab = CreatePlayerPrefab(
                 attackMaterial,
-                swordMaterial);
+                swordMaterial,
+                combatAssets);
             GameObject resourcePrefab = CreateResourcePrefab(
                 trunkMaterial,
                 leavesMaterial);
@@ -95,24 +121,104 @@ namespace MidnightChaos.Editor
             AssetDatabase.Refresh();
             EditorUtility.DisplayDialog(
                 "Midnight Chaos",
-                "Đã tạo scene và prefab thử nghiệm cho Gate F.\n" +
-                "Giết quái gần nhau để test Small → Mature → Alpha → Chaos Shard.",
+                "Đã tạo scene và prefab thử nghiệm cho Gate H3.\n" +
+                "Gắn model + Animator Controller vào PlayerVisual. " +
+                "Nhấn F8 để hiện/ẩn model local khi debug.",
+                "OK");
+        }
+
+        [MenuItem("Midnight Chaos/Bootstrap/Upgrade Melee Feel to v0.8.3")]
+        public static void UpgradeMeleeFeelV083()
+        {
+            EnsureFolder(Root, "Generated");
+            EnsureFolder(GeneratedRoot, "Settings");
+
+            GameObject existingPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+            if (existingPrefab == null)
+            {
+                EditorUtility.DisplayDialog(
+                    "Midnight Chaos",
+                    "Không tìm thấy DiagnosticNetworkPlayer.prefab tại:\n" +
+                    PlayerPrefabPath,
+                    "OK");
+                return;
+            }
+
+            GameObject prefabRoot =
+                PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
+
+            try
+            {
+                DiagnosticMeleeCombat combat =
+                    prefabRoot.GetComponent<DiagnosticMeleeCombat>();
+                DiagnosticPlayerAnimation playerAnimation =
+                    prefabRoot.GetComponent<DiagnosticPlayerAnimation>();
+                DiagnosticPlayerEquipment equipment =
+                    prefabRoot.GetComponent<DiagnosticPlayerEquipment>();
+
+                if (combat == null || playerAnimation == null || equipment == null)
+                {
+                    EditorUtility.DisplayDialog(
+                        "Midnight Chaos",
+                        "Prefab thiếu DiagnosticMeleeCombat, " +
+                        "DiagnosticPlayerAnimation hoặc " +
+                        "DiagnosticPlayerEquipment. Migration đã dừng mà " +
+                        "không lưu prefab.",
+                        "OK");
+                    return;
+                }
+
+                CombatAssetBundle combatAssets = CreateOrLoadCombatAssets(
+                    combat,
+                    playerAnimation,
+                    equipment);
+                combatAssets.UnarmedProfile.SetFirstPersonMotionSetForMigration(
+                    combatAssets.UnarmedMotionSet);
+                combatAssets.SwordProfile.SetFirstPersonMotionSetForMigration(
+                    combatAssets.SwordMotionSet);
+                combat.Configure(
+                    combatAssets.Settings,
+                    combatAssets.UnarmedProfile,
+                    combatAssets.SwordProfile);
+
+                if (prefabRoot.GetComponent<
+                        DiagnosticFirstPersonAttackAnimator>() == null)
+                {
+                    prefabRoot.AddComponent<
+                        DiagnosticFirstPersonAttackAnimator>();
+                }
+
+                EditorUtility.SetDirty(combat);
+                EditorUtility.SetDirty(equipment);
+                EditorUtility.SetDirty(playerAnimation);
+                EditorUtility.SetDirty(combatAssets.UnarmedProfile);
+                EditorUtility.SetDirty(combatAssets.SwordProfile);
+                PrefabUtility.SaveAsPrefabAsset(prefabRoot, PlayerPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(prefabRoot);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog(
+                "Midnight Chaos",
+                "Đã nâng cấp melee feel và hit timing lên v0.8.3 mà " +
+                "không dựng lại " +
+                "PlayerVisual.\n" +
+                "Endpoint đã chỉnh của Unarmed/Sword được giữ nguyên.",
                 "OK");
         }
 
         private static GameObject CreatePlayerPrefab(
             Material attackMaterial,
-            Material swordMaterial)
+            Material swordMaterial,
+            CombatAssetBundle combatAssets)
         {
-            GameObject root = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            root.name = "DiagnosticNetworkPlayer";
+            GameObject root = new GameObject("DiagnosticNetworkPlayer");
             root.transform.position = Vector3.up;
-
-            Collider primitiveCollider = root.GetComponent<Collider>();
-            if (primitiveCollider != null)
-            {
-                Object.DestroyImmediate(primitiveCollider);
-            }
 
             CharacterController controller = root.AddComponent<CharacterController>();
             controller.height = 2f;
@@ -126,21 +232,81 @@ namespace MidnightChaos.Editor
             networkTransform.AuthorityMode = NetworkTransform.AuthorityModes.Owner;
             networkTransform.Interpolate = true;
 
+            CreateCameraAnchor(root.transform);
+            CreateOrPreservePlayerVisual(root.transform);
             CreateAttackIndicator(root.transform, attackMaterial);
-            CreateSwordVisual(root.transform, swordMaterial);
+            GameObject swordVisual = FindDescendantByName(
+                root.transform.Find("PlayerVisual"),
+                "SwordVisual");
+            if (swordVisual == null)
+            {
+                swordVisual = CreateSwordVisual(root.transform, swordMaterial);
+            }
+
             NetworkHealth playerHealth = root.AddComponent<NetworkHealth>();
             playerHealth.ConfigureForDiagnostics(100, "Player");
             root.AddComponent<DiagnosticNetworkInventory>();
-            root.AddComponent<DiagnosticPlayerEquipment>();
+            DiagnosticPlayerEquipment playerEquipment =
+                root.AddComponent<DiagnosticPlayerEquipment>();
+            playerEquipment.ConfigureWorldSwordVisual(swordVisual);
             root.AddComponent<DiagnosticCraftingInteractor>();
             root.AddComponent<DiagnosticResourceGatherer>();
-            root.AddComponent<DiagnosticMeleeCombat>();
+            DiagnosticMeleeCombat meleeCombat =
+                root.AddComponent<DiagnosticMeleeCombat>();
+            meleeCombat.Configure(
+                combatAssets.Settings,
+                combatAssets.UnarmedProfile,
+                combatAssets.SwordProfile);
             root.AddComponent<DiagnosticWorldHealthLabel>();
             root.AddComponent<DiagnosticNetworkPlayer>();
+            root.AddComponent<DiagnosticPlayerAnimation>();
+            root.AddComponent<DiagnosticFirstPersonAttackAnimator>();
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);
             Object.DestroyImmediate(root);
             return prefab;
+        }
+
+        private static void CreateCameraAnchor(Transform playerRoot)
+        {
+            GameObject cameraAnchor = new GameObject("CameraAnchor");
+            cameraAnchor.transform.SetParent(playerRoot, false);
+            cameraAnchor.transform.localPosition =
+                new Vector3(0f, 0.75f, 0.08f);
+        }
+
+        private static void CreateOrPreservePlayerVisual(Transform playerRoot)
+        {
+            GameObject existingPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+            Transform existingVisual = existingPrefab != null
+                ? existingPrefab.transform.Find("PlayerVisual")
+                : null;
+
+            if (existingVisual != null)
+            {
+                GameObject preservedVisual =
+                    Object.Instantiate(existingVisual.gameObject);
+                preservedVisual.name = "PlayerVisual";
+                preservedVisual.transform.SetParent(playerRoot, false);
+                return;
+            }
+
+            GameObject playerVisual = new GameObject("PlayerVisual");
+            playerVisual.transform.SetParent(playerRoot, false);
+
+            Animator animator = playerVisual.AddComponent<Animator>();
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+            GameObject armature = new GameObject("Armature");
+            armature.transform.SetParent(playerVisual.transform, false);
+
+            GameObject characterMesh = GameObject.CreatePrimitive(
+                PrimitiveType.Capsule);
+            characterMesh.name = "CharacterMesh";
+            characterMesh.transform.SetParent(playerVisual.transform, false);
+            RemoveCollider(characterMesh);
         }
 
         private static GameObject CreateEnemyPrefab(Material enemyMaterial)
@@ -237,6 +403,199 @@ namespace MidnightChaos.Editor
             return prefab;
         }
 
+        private static CombatAssetBundle CreateOrLoadCombatAssets(
+            DiagnosticMeleeCombat legacyCombat = null,
+            DiagnosticPlayerAnimation legacyAnimation = null,
+            DiagnosticPlayerEquipment legacyEquipment = null)
+        {
+            Vector3 fallbackRestPosition = legacyEquipment != null
+                ? legacyEquipment.LegacyFirstPersonLocalPosition
+                : new Vector3(0.42f, -0.38f, 0.72f);
+            Vector3 fallbackRestEulerAngles = legacyEquipment != null
+                ? legacyEquipment.LegacyFirstPersonLocalEulerAngles
+                : new Vector3(8f, 0f, -18f);
+            Vector3 fallbackRestScale = legacyEquipment != null
+                ? legacyEquipment.LegacyFirstPersonLocalScale
+                : Vector3.one;
+
+            DiagnosticMeleeAttackProfile unarmedProfile =
+                AssetDatabase.LoadAssetAtPath<
+                    DiagnosticMeleeAttackProfile>(
+                    UnarmedAttackProfilePath);
+            DiagnosticMeleeAttackProfile swordProfile =
+                AssetDatabase.LoadAssetAtPath<
+                    DiagnosticMeleeAttackProfile>(
+                    SwordAttackProfilePath);
+
+            DiagnosticFirstPersonAttackMotionSet legacySharedMotionSet =
+                AssetDatabase.LoadAssetAtPath<
+                    DiagnosticFirstPersonAttackMotionSet>(
+                    LegacyFirstPersonMotionSetPath);
+            DiagnosticFirstPersonAttackMotionSet unarmedMotionSource =
+                unarmedProfile != null &&
+                unarmedProfile.FirstPersonMotionSet != null
+                    ? unarmedProfile.FirstPersonMotionSet
+                    : legacySharedMotionSet;
+            DiagnosticFirstPersonAttackMotionSet swordMotionSource =
+                swordProfile != null &&
+                swordProfile.FirstPersonMotionSet != null
+                    ? swordProfile.FirstPersonMotionSet
+                    : legacySharedMotionSet;
+
+            DiagnosticFirstPersonAttackMotionSet unarmedMotionSet =
+                AssetDatabase.LoadAssetAtPath<
+                    DiagnosticFirstPersonAttackMotionSet>(
+                    UnarmedFirstPersonMotionSetPath);
+            if (unarmedMotionSet == null)
+            {
+                unarmedMotionSet = ScriptableObject.CreateInstance<
+                    DiagnosticFirstPersonAttackMotionSet>();
+                unarmedMotionSet.name =
+                    "UnarmedFirstPersonAttackMotionSet";
+                unarmedMotionSet.ConfigureFromExistingWithFixedMotions(
+                    unarmedMotionSource,
+                    fallbackRestPosition,
+                    fallbackRestEulerAngles,
+                    fallbackRestScale);
+                AssetDatabase.CreateAsset(
+                    unarmedMotionSet,
+                    UnarmedFirstPersonMotionSetPath);
+            }
+
+            DiagnosticFirstPersonAttackMotionSet swordMotionSet =
+                AssetDatabase.LoadAssetAtPath<
+                    DiagnosticFirstPersonAttackMotionSet>(
+                    SwordFirstPersonMotionSetPath);
+            if (swordMotionSet == null)
+            {
+                swordMotionSet = ScriptableObject.CreateInstance<
+                    DiagnosticFirstPersonAttackMotionSet>();
+                swordMotionSet.name = "SwordFirstPersonAttackMotionSet";
+                swordMotionSet.ConfigureFromExistingWithFixedMotions(
+                    swordMotionSource,
+                    fallbackRestPosition,
+                    fallbackRestEulerAngles,
+                    fallbackRestScale);
+                AssetDatabase.CreateAsset(
+                    swordMotionSet,
+                    SwordFirstPersonMotionSetPath);
+            }
+
+            if (unarmedMotionSet.UpgradeToPhasedMotionFeel())
+            {
+                EditorUtility.SetDirty(unarmedMotionSet);
+            }
+
+            if (swordMotionSet.UpgradeToPhasedMotionFeel())
+            {
+                EditorUtility.SetDirty(swordMotionSet);
+            }
+
+            DiagnosticMeleeCombatSettings settings =
+                AssetDatabase.LoadAssetAtPath<
+                    DiagnosticMeleeCombatSettings>(CombatSettingsPath);
+
+            if (settings == null)
+            {
+                settings = ScriptableObject.CreateInstance<
+                    DiagnosticMeleeCombatSettings>();
+                settings.name = "DiagnosticMeleeCombatSettings";
+                settings.ConfigureForDiagnostics(
+                    legacyCombat != null
+                        ? legacyCombat.LegacyInputBufferSeconds
+                        : 0.15f,
+                    legacyCombat != null
+                        ? legacyCombat.LegacyIndicatorDuration
+                        : 0.14f,
+                    legacyAnimation != null
+                        ? legacyAnimation.LegacyAttackBlendInSeconds
+                        : 0.08f,
+                    legacyAnimation != null
+                        ? legacyAnimation.LegacyAttackExitNormalizedTime
+                        : 0.95f,
+                    legacyAnimation != null
+                        ? legacyAnimation.LegacyAttackBlendOutSeconds
+                        : 0.1f);
+                AssetDatabase.CreateAsset(settings, CombatSettingsPath);
+            }
+
+            if (settings.UpgradeHitFeedbackToV083())
+            {
+                EditorUtility.SetDirty(settings);
+            }
+
+            float attackReach = legacyCombat != null
+                ? legacyCombat.LegacyAttackReach
+                : 2.6f;
+            float attackHalfAngle = legacyCombat != null
+                ? legacyCombat.LegacyAttackHalfAngle
+                : 65f;
+            float baseAttackInterval = legacyCombat != null
+                ? legacyCombat.LegacyCooldownSeconds
+                : 0.65f;
+
+            if (unarmedProfile == null)
+            {
+                unarmedProfile = ScriptableObject.CreateInstance<
+                    DiagnosticMeleeAttackProfile>();
+                unarmedProfile.name = "UnarmedAttackProfile";
+                unarmedProfile.ConfigureForDiagnostics(
+                    "Unarmed",
+                    legacyCombat != null
+                        ? legacyCombat.LegacyUnarmedDamage
+                        : 25,
+                    attackReach,
+                    attackHalfAngle,
+                    baseAttackInterval,
+                    unarmedMotionSet);
+                AssetDatabase.CreateAsset(
+                    unarmedProfile,
+                    UnarmedAttackProfilePath);
+            }
+
+            if (swordProfile == null)
+            {
+                swordProfile = ScriptableObject.CreateInstance<
+                    DiagnosticMeleeAttackProfile>();
+                swordProfile.name = "SwordAttackProfile";
+                swordProfile.ConfigureForDiagnostics(
+                    "Sword",
+                    legacyCombat != null
+                        ? legacyCombat.LegacySwordDamage
+                        : 40,
+                    attackReach,
+                    attackHalfAngle,
+                    baseAttackInterval,
+                    swordMotionSet);
+                AssetDatabase.CreateAsset(
+                    swordProfile,
+                    SwordAttackProfilePath);
+            }
+
+            if (unarmedProfile.FirstPersonMotionSet != unarmedMotionSet)
+            {
+                unarmedProfile.SetFirstPersonMotionSetForMigration(
+                    unarmedMotionSet);
+                EditorUtility.SetDirty(unarmedProfile);
+            }
+
+            if (swordProfile.FirstPersonMotionSet != swordMotionSet)
+            {
+                swordProfile.SetFirstPersonMotionSetForMigration(
+                    swordMotionSet);
+                EditorUtility.SetDirty(swordProfile);
+            }
+
+            return new CombatAssetBundle
+            {
+                Settings = settings,
+                UnarmedMotionSet = unarmedMotionSet,
+                SwordMotionSet = swordMotionSet,
+                UnarmedProfile = unarmedProfile,
+                SwordProfile = swordProfile
+            };
+        }
+
         private static Material CreateOrRefreshAttackMaterial()
         {
             return CreateOrRefreshUnlitMaterial(
@@ -305,7 +664,7 @@ namespace MidnightChaos.Editor
             indicatorRenderer.enabled = false;
         }
 
-        private static void CreateSwordVisual(
+        private static GameObject CreateSwordVisual(
             Transform playerRoot,
             Material swordMaterial)
         {
@@ -342,6 +701,28 @@ namespace MidnightChaos.Editor
             RemoveCollider(guard);
             RemoveCollider(grip);
             swordRoot.SetActive(false);
+            return swordRoot;
+        }
+
+        private static GameObject FindDescendantByName(
+            Transform root,
+            string objectName)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            Transform[] descendants = root.GetComponentsInChildren<Transform>(true);
+            foreach (Transform descendant in descendants)
+            {
+                if (descendant.name == objectName)
+                {
+                    return descendant.gameObject;
+                }
+            }
+
+            return null;
         }
 
         private static GameObject CreatePrimitiveChild(
@@ -423,7 +804,8 @@ namespace MidnightChaos.Editor
                 typeof(AudioListener),
                 typeof(DiagnosticCameraFollow));
             cameraObject.tag = "MainCamera";
-            cameraObject.transform.position = new Vector3(0f, 8f, -9f);
+            Camera gameplayCamera = cameraObject.GetComponent<Camera>();
+            gameplayCamera.nearClipPlane = 0.05f;
 
             GameObject lightObject = new GameObject("Directional Light", typeof(Light));
             Light light = lightObject.GetComponent<Light>();
@@ -460,9 +842,10 @@ namespace MidnightChaos.Editor
             manager.NetworkConfig.EnableSceneManagement = false;
             manager.NetworkConfig.ForceSamePrefabs = true;
             manager.NetworkConfig.TickRate = 30;
-            // Gate F adds replicated evolution state and a network shard prefab.
-            // Reject stale builds instead of risking prefab/config mismatch.
-            manager.NetworkConfig.ProtocolVersion = 4;
+            // Gate H3 adds owner-only confirmed-hit feedback RPC. Reject older
+            // clients before they use a different generated RPC table.
+            manager.NetworkConfig.ProtocolVersion =
+                LanSessionController.CurrentProtocolVersion;
 
             // NetworkConfig contains serialized references. Explicitly mark the
             // configured components and scene dirty so Unity preserves every

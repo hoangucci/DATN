@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 
 namespace MidnightChaos.Player
 {
+    [DefaultExecutionOrder(-100)]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(NetworkObject))]
@@ -16,46 +17,62 @@ namespace MidnightChaos.Player
         [Header("Diagnostic Movement")]
         [SerializeField, Min(0f)] private float walkSpeed = 4.5f;
         [SerializeField, Min(0f)] private float sprintSpeed = 7f;
-        [SerializeField, Min(0f)] private float rotationSpeed = 14f;
         [SerializeField, Min(0f)] private float jumpHeight = 1.2f;
         [SerializeField] private float gravity = -24f;
 
         private CharacterController characterController;
         private NetworkHealth health;
-        private Renderer cachedRenderer;
+        private DiagnosticCameraFollow localCamera;
+        private Transform cameraAnchor;
         private float verticalVelocity;
+
+        public float PlanarSpeed { get; private set; }
+        public bool IsSprinting { get; private set; }
+        public bool IsGrounded =>
+            characterController != null && characterController.isGrounded;
+        public float VerticalVelocity => verticalVelocity;
+        public bool IsAlive => health != null && !health.IsDead;
 
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
             health = GetComponent<NetworkHealth>();
-            cachedRenderer = GetComponentInChildren<Renderer>();
+            cameraAnchor = transform.Find("CameraAnchor");
             characterController.enabled = false;
         }
 
         public override void OnNetworkSpawn()
         {
             characterController.enabled = IsOwner;
-            health.HealthChanged += HandleHealthChanged;
-            RefreshBodyColor();
 
             if (!IsOwner)
             {
                 return;
             }
 
-            DiagnosticCameraFollow cameraFollow =
+            localCamera =
                 FindFirstObjectByType<DiagnosticCameraFollow>();
 
-            if (cameraFollow != null)
+            if (localCamera == null)
             {
-                cameraFollow.SetTarget(transform);
+                Debug.LogError(
+                    "[Gate G] Local first-person camera is missing.");
+                return;
             }
+
+            localCamera.SetTarget(transform, cameraAnchor);
         }
 
         public override void OnNetworkDespawn()
         {
-            health.HealthChanged -= HandleHealthChanged;
+            if (localCamera != null)
+            {
+                localCamera.ClearTarget(transform);
+                localCamera = null;
+            }
+
+            PlanarSpeed = 0f;
+            IsSprinting = false;
         }
 
         private void Update()
@@ -65,6 +82,8 @@ namespace MidnightChaos.Player
                 !characterController.enabled ||
                 health.IsDead)
             {
+                PlanarSpeed = 0f;
+                IsSprinting = false;
                 return;
             }
 
@@ -79,8 +98,22 @@ namespace MidnightChaos.Player
             input.y = ReadAxis(keyboard.sKey.isPressed, keyboard.wKey.isPressed);
             input = Vector2.ClampMagnitude(input, 1f);
 
-            Vector3 planarDirection = new Vector3(input.x, 0f, input.y);
-            float speed = keyboard.leftShiftKey.isPressed ? sprintSpeed : walkSpeed;
+            Vector3 planarDirection =
+                transform.right * input.x + transform.forward * input.y;
+            planarDirection = Vector3.ProjectOnPlane(
+                planarDirection,
+                Vector3.up);
+
+            if (planarDirection.sqrMagnitude > 1f)
+            {
+                planarDirection.Normalize();
+            }
+
+            IsSprinting =
+                input.sqrMagnitude > 0.0001f &&
+                keyboard.leftShiftKey.isPressed;
+            float speed = IsSprinting ? sprintSpeed : walkSpeed;
+            PlanarSpeed = planarDirection.magnitude * speed;
 
             if (characterController.isGrounded && verticalVelocity < 0f)
             {
@@ -95,15 +128,6 @@ namespace MidnightChaos.Player
             verticalVelocity += gravity * Time.deltaTime;
             Vector3 velocity = planarDirection * speed + Vector3.up * verticalVelocity;
             characterController.Move(velocity * Time.deltaTime);
-
-            if (planarDirection.sqrMagnitude > 0.001f)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(planarDirection);
-                transform.rotation = Quaternion.Slerp(
-                    transform.rotation,
-                    targetRotation,
-                    rotationSpeed * Time.deltaTime);
-            }
         }
 
         private static float ReadAxis(bool negative, bool positive)
@@ -111,23 +135,5 @@ namespace MidnightChaos.Player
             return (positive ? 1f : 0f) - (negative ? 1f : 0f);
         }
 
-        private void HandleHealthChanged(int previousHealth, int newHealth)
-        {
-            RefreshBodyColor();
-        }
-
-        private void RefreshBodyColor()
-        {
-            if (cachedRenderer == null)
-            {
-                return;
-            }
-
-            cachedRenderer.material.color = health.IsDead
-                ? new Color(0.75f, 0.12f, 0.12f)
-                : IsOwner
-                    ? new Color(0.15f, 0.85f, 0.95f)
-                    : new Color(0.65f, 0.68f, 0.72f);
-        }
     }
 }

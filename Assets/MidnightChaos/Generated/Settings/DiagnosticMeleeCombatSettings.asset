@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bedf38ddeb84894b84ac203b666c3e9, type: 3}
+  m_Name: DiagnosticMeleeCombatSettings
+  m_EditorClassIdentifier: 
+  inputBufferSeconds: 1
+  minimumAttackInterval: 0.08
+  minimumAttackSpeedMultiplier: 0.1
+  maximumAttackSpeedMultiplier: 8
+  indicatorDuration: 0.14
+  attackAnimationCycleRatio: 0.9
+  attackBlendInSeconds: 0
+  attackExitNormalizedTime: 1
+  attackBlendOutSeconds: 0
+  hitShakeDuration: 0.09
+  hitShakePositionAmplitude: 0.018
+  hitShakeRotationAmplitude: 0.65
+  hitShakeFrequency: 28
+  hitFeedbackVersion: 1

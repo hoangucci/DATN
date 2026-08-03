@@ -1,89 +1,172 @@
-MIDNIGHT CHAOS - LAN BOOTSTRAP v0.3.2
+MIDNIGHT CHAOS - MELEE MOTION FEEL & HIT TIMING v0.8.3
 
-Purpose
--------
-Gate A Host/Join LAN, Gate B combat and Gate C resource transactions remain
-intact.
-
-Gate C.1 unifies combat and harvesting into one Host-validated attack:
-
-attack input -> Host validates one shared cooldown -> Host finds the nearest
-valid Player or Tree -> Host commits exactly one damage or harvest result
--> state replicates to every peer.
-
-The client sends no target, damage, resource ID, item ID or quantity. E no
-longer sends a gathering request and remains free for future interactions.
-
-Changes in v0.3.2
------------------
-- F or left mouse button attacks Players and harvests Trees.
-- Combat and harvesting share one RPC and one 0.65 second Host cooldown.
-- Host compares all valid Player and Tree candidates and chooses the nearest.
-- One accepted attack commits at most one gameplay consequence.
-- Tree labels and diagnostic UI no longer instruct the player to press E.
-- Keeps the v0.3.1 UnityTransport self-repair.
-
-Required baseline
------------------
-1. Unity 6000.0.69f1.
-2. Universal 3D template (URP 17).
-3. Netcode for GameObjects 2.7.0.
-4. Input System 1.14.2 with Active Input Handling set to Input System Package.
-
-Install or update
------------------
-1. Copy Assets/MidnightChaos into the Unity project's Assets folder.
-2. Replace the existing files when prompted.
-3. Wait until Unity finishes compiling with zero Console errors.
-4. Run:
-   Midnight Chaos > Bootstrap > Create or Refresh LAN Test Scene
-5. Open:
-   Assets/MidnightChaos/Generated/Scenes/LAN_Bootstrap.unity
-6. Rebuild the Windows client because the prefabs and scripts changed.
-
-Two-machine test
-----------------
-1. Start Host LAN on one machine.
-2. Join using the Host IPv4 and the same UDP port from the second machine.
-3. Move a player close to a green Tree and face it.
-4. Press F or left mouse button once.
-5. Confirm the Tree changes from 3/3 to 2/3 and that player's Wood changes
-   from 0 to 1 on both peers.
-6. Move the other Player beside the Tree and verify one attack affects only
-   the nearest valid target.
-7. Alternate both players while attacking the same Tree.
-
-Gate C.1 pass criteria
-----------------------
-- Exactly three accepted attacks deplete one Tree.
-- Each accepted Tree hit adds exactly one Wood to only the attacking player.
-- Both peers display the same Tree hits and player Wood count.
-- Attacking outside 2.6 units does nothing.
-- Attacking while facing away does nothing.
-- Input spam cannot bypass the shared 0.65 second Host cooldown.
-- Two clients racing for the final hit cannot receive Wood twice.
-- A depleted Tree cannot grant more Wood.
-- Dead players cannot attack or harvest.
-- One attack never damages a Player and harvests a Tree together.
-- Pressing E alone does not damage or harvest anything.
-- Gate A disconnect/reconnect still works.
-
-Controls
+Mục tiêu
 --------
-- Move: WASD
-- Sprint: Left Shift
-- Jump: Space
-- Attack / Harvest: F or left mouse button
-- Interact: E is reserved and has no action in this bootstrap
+- Giữ ScriptableObject làm nơi chỉnh first-person attack.
+- Thay motion Rest -> Start -> End -> Rest bằng bốn pha độc lập:
 
-Important limits
-----------------
-- DiagnosticLanUI and world labels use OnGUI and are not production UI.
-- DiagnosticNetworkInventory stores only one integer: Wood.
-- Trees do not respawn and do not require a tool in this proof.
-- There are no dropped pickup objects, item stacks, save data or crafting yet.
-- This is a transaction/authority proof, not the final item database.
-- The bootstrap still has no Lobby Ready, scene loading, procedural
-  generation, Chaos Evolution, enemy AI, boss flow or final death flow.
-- Keep Host authority for combat, AI, inventory, loot, Chaos Evolution,
-  day/night and win/lose state.
+      Rest -> Wind-up -> Bézier Strike -> Overshoot -> Recovery -> Rest
+
+- Đường vung cong nhẹ, strike nhanh và recovery ngắn kiểu Muck.
+- Host chỉ tìm mục tiêu và áp dụng damage/harvest tại đúng mốc Impact của
+  motion, không còn commit ngay khi nhận input.
+- Camera của người đánh chỉ rung khi Host xác nhận hậu quả thành công.
+- Enemy, Player, cây, đá và mọi DiagnosticResourceNode hợp lệ đều có thể gây
+  rung camera. Đánh hụt không rung.
+
+Kiến trúc quan trọng
+--------------------
+- Host vẫn là bên duy nhất quyết định hit, damage và harvest.
+- Khi một attack được chấp nhận, Host lưu snapshot gồm damage, reach, angle và
+  thời điểm Impact. Host KHÔNG khóa mục tiêu sớm.
+- Đến Impact, Host tìm lại Health/Resource gần nhất trong cone hiện tại. Một
+  attack chỉ commit tối đa một hậu quả.
+- Chỉ khi TryApplyDamageServer hoặc TryHarvestServer trả về true, Host mới gửi
+  ConfirmHitRpc đến đúng owner để rung camera.
+- Camera shake chỉ cộng offset hình ảnh trong LateUpdate. Nó không sửa yaw,
+  pitch hay transform mạng của Player.
+- First-person motion dùng thời lượng tuyệt đối ở Attack Speed x1. Cooldown dài
+  hơn không kéo chậm motion. Attack Speed multiplier vẫn co giãn đồng bộ toàn
+  bộ bốn pha.
+
+Timing mặc định ở Attack Speed x1
+---------------------------------
+- Wind Up Duration: 0.045 giây
+- Strike Duration: 0.115 giây
+- Overshoot Duration: 0.035 giây
+- Recovery Duration: 0.105 giây
+- Tổng motion: 0.300 giây
+- Strike Impact Normalized Time: 0.55
+- Impact mặc định: 0.10825 giây sau khi Host chấp nhận attack
+
+Với Attack Speed x2, toàn bộ giá trị thời gian trên giảm còn một nửa. Phần thời
+gian cooldown còn lại giữ kiếm ở Rest Pose.
+
+Cài và migrate từ v0.8.2.1
+--------------------------
+1. Thoát Play Mode và tạo Git commit/bản sao lưu.
+2. Chép Assets/MidnightChaos vào Assets của project rồi ghi đè file cũ.
+3. Chờ Unity compile. Không tiếp tục nếu Console còn lỗi đỏ.
+4. Chạy đúng menu:
+
+      Midnight Chaos
+      -> Bootstrap
+      -> Upgrade Melee Feel to v0.8.3
+
+5. KHÔNG chạy Create or Refresh LAN Test Scene cho lần nâng cấp này. Lệnh
+   migration sửa prefab hiện có và không dựng lại PlayerVisual.
+6. Migration giữ nguyên các giá trị sau trong hai Motion Set hiện có:
+   - Rest Pose
+   - Start Local Position / Start Euler Offset
+   - End Local Position / End Euler Offset
+7. Migration tạo một lần các dữ liệu mới:
+   - Strike Control Local Position
+   - Overshoot Local Position / Overshoot Euler Offset
+   - Bốn phase duration và bốn phase curve
+   - Hit camera shake mặc định
+8. Mở prefab DiagnosticNetworkPlayer và xác nhận root vẫn có:
+   - DiagnosticMeleeCombat
+   - DiagnosticFirstPersonAttackAnimator
+   - DiagnosticPlayerEquipment
+9. Build lại Host và TOÀN BỘ Client. ProtocolVersion đã tăng từ 7 lên 8 do có
+   ConfirmHitRpc mới. Không dùng lẫn build v0.8.2.1 và v0.8.3.
+
+Vị trí chỉnh motion
+-------------------
+Mở đúng asset đang được Attack Profile tham chiếu:
+
+Assets/MidnightChaos/Generated/Settings/
+- SwordFirstPersonAttackMotionSet.asset
+- UnarmedFirstPersonAttackMotionSet.asset
+
+Phase Durations at Attack Speed x1:
+- Wind Up Duration: thời gian Rest -> Start.
+- Strike Duration: thời gian Start -> End.
+- Overshoot Duration: thời gian End -> Overshoot.
+- Recovery Duration: thời gian Overshoot -> Rest.
+- Strike Impact Normalized Time: mốc Host kiểm tra hit trong pha Strike.
+
+Phase Curves:
+- Wind Up Curve
+- Strike Curve
+- Overshoot Curve
+- Recovery Curve
+
+Mỗi Swing Motion:
+- Start Local Position / Start Euler Offset
+- Strike Control Local Position: điểm điều khiển quỹ đạo Bézier. Kéo lệch khỏi
+  đường nối Start-End để tăng độ cong.
+- End Local Position / End Euler Offset
+- Overshoot Local Position / Overshoot Euler Offset
+
+Thứ tự chỉnh nên dùng
+---------------------
+1. Chỉnh Wind Up/Strike/Recovery duration để đạt nhịp nhanh, gọn.
+2. Chỉnh Start và End để đường kiếm đi đúng vùng màn hình.
+3. Chỉnh Strike Control để tạo cung cong nhẹ. Không đẩy quá xa vì đường vung sẽ
+   giống móc câu.
+4. Chỉnh Overshoot vừa đủ để có quán tính. Overshoot quá lớn làm kiếm văng khỏi
+   màn hình.
+5. Chỉ sau đó mới chỉnh bốn AnimationCurve.
+6. Cuối cùng chỉnh camera shake.
+
+Không nên chỉnh tất cả cùng lúc; khi kết quả xấu sẽ không biết thông số nào gây
+ra lỗi. Tổng motion nên nhỏ hơn Base Attack Interval của profile để một motion
+thu kiếm xong trước attack kế tiếp.
+
+Vị trí chỉnh camera shake
+-------------------------
+Mở:
+
+Assets/MidnightChaos/Generated/Settings/
+DiagnosticMeleeCombatSettings.asset
+
+Confirmed Hit Camera Shake:
+- Hit Shake Duration: thời gian rung.
+- Hit Shake Position Amplitude: biên độ dịch chuyển camera, đơn vị world.
+- Hit Shake Rotation Amplitude: biên độ xoay, đơn vị độ.
+- Hit Shake Frequency: tần số rung mỗi giây.
+
+Mặc định được cố ý đặt nhẹ: 0.09 giây, 0.018 position, 0.65 độ, 28 Hz. Tăng quá
+mạnh sẽ gây khó chịu và làm mất khả năng đọc mục tiêu trong game góc nhìn thứ
+nhất.
+
+Chỉnh trong Play Mode
+---------------------
+- Rest, endpoint, control point, overshoot, duration và curve được first-person
+  animator đọc trực tiếp từ Motion Set.
+- Impact delay được Host snapshot khi attack được chấp nhận. Nếu sửa Impact khi
+  một attack đang chạy, attack kế tiếp mới dùng timing mới.
+- Giá trị chỉnh trong Play Mode có thể bị Unity hoàn tác khi thoát Play Mode.
+  Ghi lại số hoặc chỉnh lại ngoài Play Mode trước khi commit.
+
+Test bắt buộc
+-------------
+1. Đánh hụt: không damage, không harvest, camera không rung.
+2. Đánh Enemy: HP chỉ giảm tại Impact; camera của người đánh rung đúng một lần.
+3. Bật friendly fire và đánh Player: kết quả giống Enemy.
+4. Đánh cây/đá/resource: Remaining Hits hoặc inventory chỉ đổi tại Impact;
+   camera rung đúng một lần.
+5. Đứng trong cone lúc nhận input rồi bước ra trước Impact: không bị trúng.
+6. Bước vào cone sau lúc nhận input nhưng trước Impact: có thể bị trúng.
+7. Một attack có cả Health và Resource trong cone: chỉ mục tiêu hợp lệ gần nhất
+   nhận hậu quả.
+8. Giữ F hoặc chuột trái: không lặp motion liên tiếp; mỗi attack chỉ có tối đa
+   một damage/harvest.
+9. Chết trong Wind-up: pending hit bị hủy và camera không rung.
+10. Test riêng Host và Client đã join.
+11. Đặt Attack Speed x2 ở server: cooldown, motion và Impact đều nhanh gấp đôi.
+12. Thử kết nối Client v0.8.2.1 vào Host v0.8.3: phải bị từ chối do protocol.
+
+Giới hạn hiện tại
+-----------------
+- Hit timing đã căn theo pha kiếm, nhưng vùng trúng vẫn là cone check của hệ
+  thống hiện tại; chưa phải collider lưỡi kiếm quét chính xác theo mesh.
+- Client có thể thấy camera shake lệch vài frame khi độ trễ mạng cao. Host vẫn
+  là nguồn sự thật và damage/harvest không được client tự đoán.
+- Chưa có model bàn tay góc nhìn thứ nhất. Unarmed vẫn có gameplay và camera
+  feedback nhưng không có nắm đấm nếu chưa gắn viewmodel riêng.
+- UpperBody third-person animation vẫn dùng clip/code sampling hiện có. Không
+  đặt authority damage trong Animation Event.
+- Kiểm tra tĩnh chỉ xác nhận cấu trúc/cú pháp. Compile và runtime thật vẫn phải
+  được xác nhận trong project Unity của người dùng.

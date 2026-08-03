@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f13c6c60466396a40ae96ed89269691a, type: 3}
+  m_Name: DiagnosticFirstPersonAttackMotionSet
+  m_EditorClassIdentifier: 
+  restLocalPosition: {x: 0.42, y: -0.38, z: 0.72}
+  restLocalEulerAngles: {x: 8, y: 0, z: -18}
+  restLocalScale: {x: 1, y: 1, z: 1}
+  animationCycleRatio: 0.9
+  windUpEndNormalizedTime: 0.22
+  strikeEndNormalizedTime: 0.62
+  positionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  rotationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  motions:
+  - displayName: Top Left to Bottom Right
+    startPositionOffset: {x: -0.28, y: 0.25, z: -0.1}
+    startEulerOffset: {x: -25, y: -15, z: 55}
+    endPositionOffset: {x: 0.18, y: -0.2, z: 0.05}
+    endEulerOffset: {x: 30, y: 15, z: -75}
+  - displayName: Bottom Right to Top Left
+    startPositionOffset: {x: 0.18, y: -0.2, z: 0.05}
+    startEulerOffset: {x: 30, y: 15, z: -75}
+    endPositionOffset: {x: -0.28, y: 0.25, z: -0.1}
+    endEulerOffset: {x: -25, y: -15, z: 55}
+  - displayName: Bottom Left to Top Right
+    startPositionOffset: {x: -0.24, y: -0.22, z: 0.03}
+    startEulerOffset: {x: 28, y: -18, z: 75}
+    endPositionOffset: {x: 0.22, y: 0.26, z: -0.1}
+    endEulerOffset: {x: -28, y: 18, z: -55}
+  - displayName: Top Right to Bottom Left
+    startPositionOffset: {x: 0.22, y: 0.26, z: -0.1}
+    startEulerOffset: {x: -28, y: 18, z: -55}
+    endPositionOffset: {x: -0.24, y: -0.22, z: 0.03}
+    endEulerOffset: {x: 28, y: -18, z: 75}
