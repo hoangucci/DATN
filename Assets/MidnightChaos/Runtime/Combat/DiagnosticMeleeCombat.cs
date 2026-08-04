@@ -153,7 +153,6 @@ namespace MidnightChaos.Combat
         private bool serverAttackHeld;
         private bool hasBufferedServerAttack;
         private bool localAttackHeld;
-        private int lastServerMotionIndex = -1;
         private bool configurationValid;
         private readonly List<PendingServerHit> pendingServerHits =
             new List<PendingServerHit>();
@@ -209,7 +208,6 @@ namespace MidnightChaos.Combat
                 nextAllowedServerAttackTime = 0d;
                 serverAttackHeld = false;
                 hasBufferedServerAttack = false;
-                lastServerMotionIndex = -1;
                 pendingServerHits.Clear();
                 replicatedAttackSpeedMultiplier.Value = 1f;
             }
@@ -419,22 +417,20 @@ namespace MidnightChaos.Combat
                 now,
                 nextSequence,
                 profile,
-                effectiveAttackSpeedMultiplier,
-                attackInterval);
+                effectiveAttackSpeedMultiplier);
         }
 
         private void QueueAcceptedHitServer(
             double acceptedAt,
             uint sequence,
             DiagnosticMeleeAttackProfile profile,
-            float attackSpeedMultiplier,
-            float attackInterval)
+            float attackSpeedMultiplier)
         {
-            DiagnosticFirstPersonAttackMotionSet motionSet =
-                profile.FirstPersonMotionSet;
-            float hitDelay = motionSet != null
-                ? motionSet.GetImpactDelay(attackSpeedMultiplier)
-                : Mathf.Min(0.1f, attackInterval * 0.5f);
+            // Attack1, Attack2 and Attack3 all invoke Muck's UseHitbox event
+            // at the same clip time. Gameplay does not trust that local-only
+            // Animation Event; the Host resolves the hit on the same timeline.
+            float hitDelay = profile.GetFirstPersonImpactDelay(
+                attackSpeedMultiplier);
 
             pendingServerHits.Add(
                 new PendingServerHit(
@@ -531,33 +527,13 @@ namespace MidnightChaos.Combat
         private int SelectNextServerMotionIndex(
             DiagnosticMeleeAttackProfile profile)
         {
-            DiagnosticFirstPersonAttackMotionSet motionSet =
-                profile.FirstPersonMotionSet;
-            int motionCount = motionSet != null
-                ? Mathf.Min(motionSet.MotionCount, byte.MaxValue + 1)
-                : 0;
+            int variantCount = profile != null
+                ? profile.FirstPersonAnimationVariantCount
+                : 1;
 
-            if (motionCount <= 1)
-            {
-                lastServerMotionIndex = 0;
-                return 0;
-            }
-
-            bool previousIndexIsValid =
-                lastServerMotionIndex >= 0 &&
-                lastServerMotionIndex < motionCount;
-            int selectedIndex = previousIndexIsValid
-                ? UnityEngine.Random.Range(0, motionCount - 1)
-                : UnityEngine.Random.Range(0, motionCount);
-
-            if (previousIndexIsValid &&
-                selectedIndex >= lastServerMotionIndex)
-            {
-                selectedIndex++;
-            }
-
-            lastServerMotionIndex = selectedIndex;
-            return selectedIndex;
+            // Muck uses Random.Range(1, 4) and allows the same attack clip to
+            // repeat. Do not apply v0.8.x's no-repeat rule here.
+            return UnityEngine.Random.Range(0, variantCount);
         }
 
         private float CalculateAttackInterval(
@@ -701,9 +677,9 @@ namespace MidnightChaos.Combat
             if (logErrors)
             {
                 Debug.LogError(
-                    "[Gate H3] DiagnosticMeleeCombat thiếu Combat Settings " +
+                    "[Gate H4] DiagnosticMeleeCombat thiếu Combat Settings " +
                     "hoặc Attack Profile. Chạy Midnight Chaos/Bootstrap/" +
-                    "Upgrade Melee Feel to v0.8.3 trước khi test.",
+                    "Upgrade Rotation-Driven Melee to v0.8.4 trước khi test.",
                     this);
             }
 

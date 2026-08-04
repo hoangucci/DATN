@@ -17,4 +17,9 @@ MonoBehaviour:
   attackReach: 2.6
   attackHalfAngle: 65
   baseAttackInterval: 1.56
-  firstPersonMotionSet: {fileID: 11400000, guid: 2fa25016c4cfee244ab2f8899ef7472e, type: 2}
+  firstPersonAnimationVariantCount: 1
+  firstPersonImpactTime: 0.10825
+  firstPersonRestLocalPosition: {x: 0.45, y: -0.35, z: 0.65}
+  firstPersonRestLocalEulerAngles: {x: 0, y: 100, z: 9.5}
+  firstPersonRestLocalScale: {x: 0.6, y: 0.6, z: 0.6}
+  firstPersonRestPoseVersion: 0

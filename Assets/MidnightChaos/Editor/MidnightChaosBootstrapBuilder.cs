@@ -27,6 +27,8 @@ namespace MidnightChaos.Editor
         private const string SceneFolder = GeneratedRoot + "/Scenes";
         private const string MaterialFolder = GeneratedRoot + "/Materials";
         private const string SettingsFolder = GeneratedRoot + "/Settings";
+        private const string MuckFirstPersonControllerPath =
+            Root + "/Animation/MuckFirstPerson/Cube.controller";
         private const string PlayerPrefabPath = PrefabFolder + "/DiagnosticNetworkPlayer.prefab";
         private const string ResourcePrefabPath = PrefabFolder + "/DiagnosticResourceNode.prefab";
         private const string EnemyPrefabPath = PrefabFolder + "/DiagnosticMeleeEnemy.prefab";
@@ -40,23 +42,35 @@ namespace MidnightChaos.Editor
         private const string ChaosShardMaterialPath = MaterialFolder + "/DiagnosticChaosShard.mat";
         private const string CombatSettingsPath =
             SettingsFolder + "/DiagnosticMeleeCombatSettings.asset";
-        private const string LegacyFirstPersonMotionSetPath =
-            SettingsFolder + "/DiagnosticFirstPersonAttackMotionSet.asset";
-        private const string UnarmedFirstPersonMotionSetPath =
-            SettingsFolder + "/UnarmedFirstPersonAttackMotionSet.asset";
-        private const string SwordFirstPersonMotionSetPath =
-            SettingsFolder + "/SwordFirstPersonAttackMotionSet.asset";
         private const string UnarmedAttackProfilePath =
             SettingsFolder + "/UnarmedAttackProfile.asset";
         private const string SwordAttackProfilePath =
             SettingsFolder + "/SwordAttackProfile.asset";
         private const string ScenePath = SceneFolder + "/LAN_Bootstrap.unity";
+        private const float MuckAttackImpactTime = 0.2666667f;
+        private const float UnarmedImpactTime = 0.10825f;
+        private const int MuckAttackVariantCount = 3;
+        private static readonly Vector3 ReferenceSwordRestPosition =
+            new Vector3(0.45f, -0.35f, 0.65f);
+        private static readonly Vector3 ReferenceSwordRestEulerAngles =
+            new Vector3(0f, 100f, 9.5f);
+        private static readonly Vector3 ReferenceSwordRestScale =
+            new Vector3(0.6f, 0.6f, 0.6f);
+        private static readonly string[] RetiredMotionSetAssetPaths =
+        {
+            SettingsFolder + "/DiagnosticFirstPersonAttackMotionSet.asset",
+            SettingsFolder + "/UnarmedFirstPersonAttackMotionSet.asset",
+            SettingsFolder + "/SwordFirstPersonAttackMotionSet.asset"
+        };
+        private static readonly string[] RetiredMotionSetSourcePaths =
+        {
+            Root + "/Runtime/Combat/DiagnosticFirstPersonAttackMotionSet.cs",
+            Root + "/Editor/DiagnosticFirstPersonAttackMotionSetEditor.cs"
+        };
 
         private sealed class CombatAssetBundle
         {
             public DiagnosticMeleeCombatSettings Settings;
-            public DiagnosticFirstPersonAttackMotionSet UnarmedMotionSet;
-            public DiagnosticFirstPersonAttackMotionSet SwordMotionSet;
             public DiagnosticMeleeAttackProfile UnarmedProfile;
             public DiagnosticMeleeAttackProfile SwordProfile;
         }
@@ -70,7 +84,10 @@ namespace MidnightChaos.Editor
             EnsureFolder(GeneratedRoot, "Materials");
             EnsureFolder(GeneratedRoot, "Settings");
 
-            CombatAssetBundle combatAssets = CreateOrLoadCombatAssets();
+            CombatAssetBundle combatAssets = CreateOrLoadCombatAssets(
+                configureMuckAnimation: true);
+            RuntimeAnimatorController firstPersonController =
+                LoadMuckFirstPersonController();
 
             Material attackMaterial = CreateOrRefreshAttackMaterial();
             Material trunkMaterial = CreateOrRefreshUnlitMaterial(
@@ -101,7 +118,8 @@ namespace MidnightChaos.Editor
             GameObject playerPrefab = CreatePlayerPrefab(
                 attackMaterial,
                 swordMaterial,
-                combatAssets);
+                combatAssets,
+                firstPersonController);
             GameObject resourcePrefab = CreateResourcePrefab(
                 trunkMaterial,
                 leavesMaterial);
@@ -122,25 +140,33 @@ namespace MidnightChaos.Editor
             EditorUtility.DisplayDialog(
                 "Midnight Chaos",
                 "Đã tạo scene và prefab thử nghiệm cho Gate H3.\n" +
-                "Gắn model + Animator Controller vào PlayerVisual. " +
+                "First-person viewmodel đã dùng Cube.controller của Muck. " +
+                "Gắn model + Animator Controller third-person vào PlayerVisual. " +
                 "Nhấn F8 để hiện/ẩn model local khi debug.",
                 "OK");
         }
 
-        [MenuItem("Midnight Chaos/Bootstrap/Upgrade Melee Feel to v0.8.3")]
-        public static void UpgradeMeleeFeelV083()
+        [MenuItem(
+            "Midnight Chaos/Bootstrap/Migrate Rest Pose and Cleanup to v0.8.7")]
+        public static void MigrateRestPoseAndCleanupV087()
         {
             EnsureFolder(Root, "Generated");
             EnsureFolder(GeneratedRoot, "Settings");
 
             GameObject existingPrefab =
                 AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
-            if (existingPrefab == null)
+            RuntimeAnimatorController firstPersonController =
+                LoadMuckFirstPersonController(false);
+
+            if (existingPrefab == null || firstPersonController == null)
             {
                 EditorUtility.DisplayDialog(
                     "Midnight Chaos",
-                    "Không tìm thấy DiagnosticNetworkPlayer.prefab tại:\n" +
-                    PlayerPrefabPath,
+                    existingPrefab == null
+                        ? "Không tìm thấy DiagnosticNetworkPlayer.prefab tại:\n" +
+                          PlayerPrefabPath
+                        : "Không tìm thấy Cube.controller tại:\n" +
+                          MuckFirstPersonControllerPath,
                     "OK");
                 return;
             }
@@ -169,18 +195,31 @@ namespace MidnightChaos.Editor
                     return;
                 }
 
+                Vector3 legacyRestPosition;
+                Vector3 legacyRestEulerAngles;
+                Vector3 legacyRestScale;
+                ReadRetiredSwordRestPose(
+                    out legacyRestPosition,
+                    out legacyRestEulerAngles,
+                    out legacyRestScale);
+
                 CombatAssetBundle combatAssets = CreateOrLoadCombatAssets(
                     combat,
                     playerAnimation,
-                    equipment);
-                combatAssets.UnarmedProfile.SetFirstPersonMotionSetForMigration(
-                    combatAssets.UnarmedMotionSet);
-                combatAssets.SwordProfile.SetFirstPersonMotionSetForMigration(
-                    combatAssets.SwordMotionSet);
+                    true);
+                if (combatAssets.SwordProfile.UpgradeFirstPersonRestPoseToV087(
+                        legacyRestPosition,
+                        legacyRestEulerAngles,
+                        legacyRestScale))
+                {
+                    EditorUtility.SetDirty(combatAssets.SwordProfile);
+                }
                 combat.Configure(
                     combatAssets.Settings,
                     combatAssets.UnarmedProfile,
                     combatAssets.SwordProfile);
+                equipment.ConfigureFirstPersonViewmodelForMigration(
+                    firstPersonController);
 
                 if (prefabRoot.GetComponent<
                         DiagnosticFirstPersonAttackAnimator>() == null)
@@ -202,20 +241,56 @@ namespace MidnightChaos.Editor
             }
 
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            bool cleanupSucceeded = DeleteRetiredMotionSetFiles();
+
+            DiagnosticMeleeAttackProfile savedSwordProfile =
+                AssetDatabase.LoadAssetAtPath<DiagnosticMeleeAttackProfile>(
+                    SwordAttackProfilePath);
+            Selection.activeObject = savedSwordProfile;
+            if (savedSwordProfile != null)
+            {
+                EditorGUIUtility.PingObject(savedSwordProfile);
+            }
+
             EditorUtility.DisplayDialog(
                 "Midnight Chaos",
-                "Đã nâng cấp melee feel và hit timing lên v0.8.3 mà " +
-                "không dựng lại " +
-                "PlayerVisual.\n" +
-                "Endpoint đã chỉnh của Unarmed/Sword được giữ nguyên.",
+                "Đã nâng cấp lên v0.8.7.\n\n" +
+                "First-Person Rest Pose hiện nằm trong " +
+                "SwordAttackProfile.asset.\n" +
+                (cleanupSucceeded
+                    ? "Ba Motion Set và hai source file lỗi thời đã được xóa.\n"
+                    : "Có file lỗi thời không thể xóa; kiểm tra Console.\n") +
+                "Protocol vẫn là 10; gameplay/network không thay đổi.",
                 "OK");
+
+            AssetDatabase.Refresh();
+        }
+
+        [MenuItem("Midnight Chaos/Combat/Select Muck First-Person Controller")]
+        public static void SelectMuckFirstPersonController()
+        {
+            RuntimeAnimatorController controller =
+                LoadMuckFirstPersonController(false);
+
+            if (controller == null)
+            {
+                EditorUtility.DisplayDialog(
+                    "Midnight Chaos",
+                    "Không tìm thấy Cube.controller tại:\n" +
+                    MuckFirstPersonControllerPath,
+                    "OK");
+                return;
+            }
+
+            Selection.activeObject = controller;
+            EditorGUIUtility.PingObject(controller);
         }
 
         private static GameObject CreatePlayerPrefab(
             Material attackMaterial,
             Material swordMaterial,
-            CombatAssetBundle combatAssets)
+            CombatAssetBundle combatAssets,
+            RuntimeAnimatorController firstPersonController)
         {
             GameObject root = new GameObject("DiagnosticNetworkPlayer");
             root.transform.position = Vector3.up;
@@ -249,6 +324,8 @@ namespace MidnightChaos.Editor
             DiagnosticPlayerEquipment playerEquipment =
                 root.AddComponent<DiagnosticPlayerEquipment>();
             playerEquipment.ConfigureWorldSwordVisual(swordVisual);
+            playerEquipment.ConfigureFirstPersonViewmodelForMigration(
+                firstPersonController);
             root.AddComponent<DiagnosticCraftingInteractor>();
             root.AddComponent<DiagnosticResourceGatherer>();
             DiagnosticMeleeCombat meleeCombat =
@@ -406,18 +483,8 @@ namespace MidnightChaos.Editor
         private static CombatAssetBundle CreateOrLoadCombatAssets(
             DiagnosticMeleeCombat legacyCombat = null,
             DiagnosticPlayerAnimation legacyAnimation = null,
-            DiagnosticPlayerEquipment legacyEquipment = null)
+            bool configureMuckAnimation = false)
         {
-            Vector3 fallbackRestPosition = legacyEquipment != null
-                ? legacyEquipment.LegacyFirstPersonLocalPosition
-                : new Vector3(0.42f, -0.38f, 0.72f);
-            Vector3 fallbackRestEulerAngles = legacyEquipment != null
-                ? legacyEquipment.LegacyFirstPersonLocalEulerAngles
-                : new Vector3(8f, 0f, -18f);
-            Vector3 fallbackRestScale = legacyEquipment != null
-                ? legacyEquipment.LegacyFirstPersonLocalScale
-                : Vector3.one;
-
             DiagnosticMeleeAttackProfile unarmedProfile =
                 AssetDatabase.LoadAssetAtPath<
                     DiagnosticMeleeAttackProfile>(
@@ -426,70 +493,6 @@ namespace MidnightChaos.Editor
                 AssetDatabase.LoadAssetAtPath<
                     DiagnosticMeleeAttackProfile>(
                     SwordAttackProfilePath);
-
-            DiagnosticFirstPersonAttackMotionSet legacySharedMotionSet =
-                AssetDatabase.LoadAssetAtPath<
-                    DiagnosticFirstPersonAttackMotionSet>(
-                    LegacyFirstPersonMotionSetPath);
-            DiagnosticFirstPersonAttackMotionSet unarmedMotionSource =
-                unarmedProfile != null &&
-                unarmedProfile.FirstPersonMotionSet != null
-                    ? unarmedProfile.FirstPersonMotionSet
-                    : legacySharedMotionSet;
-            DiagnosticFirstPersonAttackMotionSet swordMotionSource =
-                swordProfile != null &&
-                swordProfile.FirstPersonMotionSet != null
-                    ? swordProfile.FirstPersonMotionSet
-                    : legacySharedMotionSet;
-
-            DiagnosticFirstPersonAttackMotionSet unarmedMotionSet =
-                AssetDatabase.LoadAssetAtPath<
-                    DiagnosticFirstPersonAttackMotionSet>(
-                    UnarmedFirstPersonMotionSetPath);
-            if (unarmedMotionSet == null)
-            {
-                unarmedMotionSet = ScriptableObject.CreateInstance<
-                    DiagnosticFirstPersonAttackMotionSet>();
-                unarmedMotionSet.name =
-                    "UnarmedFirstPersonAttackMotionSet";
-                unarmedMotionSet.ConfigureFromExistingWithFixedMotions(
-                    unarmedMotionSource,
-                    fallbackRestPosition,
-                    fallbackRestEulerAngles,
-                    fallbackRestScale);
-                AssetDatabase.CreateAsset(
-                    unarmedMotionSet,
-                    UnarmedFirstPersonMotionSetPath);
-            }
-
-            DiagnosticFirstPersonAttackMotionSet swordMotionSet =
-                AssetDatabase.LoadAssetAtPath<
-                    DiagnosticFirstPersonAttackMotionSet>(
-                    SwordFirstPersonMotionSetPath);
-            if (swordMotionSet == null)
-            {
-                swordMotionSet = ScriptableObject.CreateInstance<
-                    DiagnosticFirstPersonAttackMotionSet>();
-                swordMotionSet.name = "SwordFirstPersonAttackMotionSet";
-                swordMotionSet.ConfigureFromExistingWithFixedMotions(
-                    swordMotionSource,
-                    fallbackRestPosition,
-                    fallbackRestEulerAngles,
-                    fallbackRestScale);
-                AssetDatabase.CreateAsset(
-                    swordMotionSet,
-                    SwordFirstPersonMotionSetPath);
-            }
-
-            if (unarmedMotionSet.UpgradeToPhasedMotionFeel())
-            {
-                EditorUtility.SetDirty(unarmedMotionSet);
-            }
-
-            if (swordMotionSet.UpgradeToPhasedMotionFeel())
-            {
-                EditorUtility.SetDirty(swordMotionSet);
-            }
 
             DiagnosticMeleeCombatSettings settings =
                 AssetDatabase.LoadAssetAtPath<
@@ -546,8 +549,7 @@ namespace MidnightChaos.Editor
                         : 25,
                     attackReach,
                     attackHalfAngle,
-                    baseAttackInterval,
-                    unarmedMotionSet);
+                    baseAttackInterval);
                 AssetDatabase.CreateAsset(
                     unarmedProfile,
                     UnarmedAttackProfilePath);
@@ -565,35 +567,126 @@ namespace MidnightChaos.Editor
                         : 40,
                     attackReach,
                     attackHalfAngle,
-                    baseAttackInterval,
-                    swordMotionSet);
+                    baseAttackInterval);
+                swordProfile.UpgradeFirstPersonRestPoseToV087(
+                    ReferenceSwordRestPosition,
+                    ReferenceSwordRestEulerAngles,
+                    ReferenceSwordRestScale);
                 AssetDatabase.CreateAsset(
                     swordProfile,
                     SwordAttackProfilePath);
             }
 
-            if (unarmedProfile.FirstPersonMotionSet != unarmedMotionSet)
+            if (configureMuckAnimation)
             {
-                unarmedProfile.SetFirstPersonMotionSetForMigration(
-                    unarmedMotionSet);
+                unarmedProfile.ConfigureFirstPersonAnimationForMigration(
+                    1,
+                    UnarmedImpactTime);
+                swordProfile.ConfigureFirstPersonAnimationForMigration(
+                    MuckAttackVariantCount,
+                    MuckAttackImpactTime);
                 EditorUtility.SetDirty(unarmedProfile);
-            }
-
-            if (swordProfile.FirstPersonMotionSet != swordMotionSet)
-            {
-                swordProfile.SetFirstPersonMotionSetForMigration(
-                    swordMotionSet);
                 EditorUtility.SetDirty(swordProfile);
             }
 
             return new CombatAssetBundle
             {
                 Settings = settings,
-                UnarmedMotionSet = unarmedMotionSet,
-                SwordMotionSet = swordMotionSet,
                 UnarmedProfile = unarmedProfile,
                 SwordProfile = swordProfile
             };
+        }
+
+        private static void ReadRetiredSwordRestPose(
+            out Vector3 localPosition,
+            out Vector3 localEulerAngles,
+            out Vector3 localScale)
+        {
+            localPosition = ReferenceSwordRestPosition;
+            localEulerAngles = ReferenceSwordRestEulerAngles;
+            localScale = ReferenceSwordRestScale;
+
+            Object retiredSwordMotionSet =
+                AssetDatabase.LoadMainAssetAtPath(
+                    RetiredMotionSetAssetPaths[2]);
+            if (retiredSwordMotionSet == null)
+            {
+                return;
+            }
+
+            SerializedObject serializedMotionSet =
+                new SerializedObject(retiredSwordMotionSet);
+            SerializedProperty positionProperty =
+                serializedMotionSet.FindProperty("restLocalPosition");
+            SerializedProperty eulerProperty =
+                serializedMotionSet.FindProperty("restLocalEulerAngles");
+            SerializedProperty scaleProperty =
+                serializedMotionSet.FindProperty("restLocalScale");
+
+            if (positionProperty != null)
+            {
+                localPosition = positionProperty.vector3Value;
+            }
+            if (eulerProperty != null)
+            {
+                localEulerAngles = eulerProperty.vector3Value;
+            }
+            if (scaleProperty != null)
+            {
+                localScale = scaleProperty.vector3Value;
+            }
+        }
+
+        private static bool DeleteRetiredMotionSetFiles()
+        {
+            bool succeeded = true;
+            foreach (string assetPath in RetiredMotionSetAssetPaths)
+            {
+                succeeded &= DeleteAssetIfPresent(assetPath);
+            }
+
+            foreach (string sourcePath in RetiredMotionSetSourcePaths)
+            {
+                succeeded &= DeleteAssetIfPresent(sourcePath);
+            }
+
+            return succeeded;
+        }
+
+        private static bool DeleteAssetIfPresent(string assetPath)
+        {
+            if (AssetDatabase.LoadMainAssetAtPath(assetPath) == null &&
+                !File.Exists(assetPath))
+            {
+                return true;
+            }
+
+            bool deleted = AssetDatabase.DeleteAsset(assetPath);
+            if (!deleted)
+            {
+                Debug.LogError(
+                    "[Migration v0.8.7] Không thể xóa file lỗi thời: " +
+                    assetPath);
+            }
+
+            return deleted;
+        }
+
+        private static RuntimeAnimatorController LoadMuckFirstPersonController(
+            bool throwWhenMissing = true)
+        {
+            RuntimeAnimatorController controller =
+                AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
+                    MuckFirstPersonControllerPath);
+
+            if (controller == null && throwWhenMissing)
+            {
+                throw new System.InvalidOperationException(
+                    "Không tìm thấy Muck first-person Animator Controller tại: " +
+                    MuckFirstPersonControllerPath);
+            }
+
+            return controller;
         }
 
         private static Material CreateOrRefreshAttackMaterial()
@@ -842,8 +935,10 @@ namespace MidnightChaos.Editor
             manager.NetworkConfig.EnableSceneManagement = false;
             manager.NetworkConfig.ForceSamePrefabs = true;
             manager.NetworkConfig.TickRate = 30;
-            // Gate H3 adds owner-only confirmed-hit feedback RPC. Reject older
-            // clients before they use a different generated RPC table.
+            // v0.8.6 aligns authoritative Sword impact with Muck's Animation
+            // Event at 0.2666667 / AttackSpeed. Reject clients with the old
+            // v0.8.4 impact-delay contract even though the serialized network
+            // layout itself is unchanged.
             manager.NetworkConfig.ProtocolVersion =
                 LanSessionController.CurrentProtocolVersion;
 

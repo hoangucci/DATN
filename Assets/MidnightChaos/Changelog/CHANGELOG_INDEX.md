@@ -1,4 +1,4 @@
-# Midnight Chaos — Changelog Index V0.1 đến V0.8.2.1
+# Midnight Chaos — Changelog Index V0.1 đến V0.8.7
 
 ## Phạm vi và độ tin cậy
 
@@ -35,6 +35,10 @@ Không quan sát thấy file source nào bị xóa ở các mốc có bằng ch�
 | V0.8.1.2 | Attack restart reliability + input buffer | 6 | 3 | V0.8.2 chuyển tuning sang SO |
 | V0.8.2 | ScriptableObject, held attack, 4 motion code | 7 | 10 | V0.8.2.1 sửa endpoint/live tuning |
 | V0.8.2.1 | Đường vung tuyệt đối, motionIndex, tách motion set | 7 | 6 | Mốc cuối trong bộ file |
+| V0.8.3 | Host Impact timing + hit feedback | 8 | — | V0.8.4 thay motion tự tạo |
+| V0.8.4 | Rotation-driven first-person melee tự tạo | 9 | — | V0.8.6 thay bằng clip Muck |
+| V0.8.6 | `Cube.controller`, Attack1–3, Host Impact 0.2666667 s | 10 | — | V0.8.7 dọn Motion Set |
+| V0.8.7 | Rest Pose trong Sword Profile, xóa Motion Set cũ | 10 | — | Chờ test runtime Unity |
 
 `*` Mốc `v0.8.1` là diff tổng hợp từ `v0.7` do thiếu artifact `v0.8`.
 
@@ -51,6 +55,9 @@ Mỗi changelog riêng tính thêm chính file changelog vào “Tổng thay đ�
 | 5 | V0.7 |
 | 6 | V0.8.1 → V0.8.1.2 |
 | 7 | V0.8.2 → V0.8.2.1 |
+| 8 | V0.8.3 |
+| 9 | V0.8.4 |
+| 10 | V0.8.6 → V0.8.7 |
 
 Cùng ProtocolVersion không đảm bảo nên trộn mọi patch runtime. Ví dụ `v0.8.1.1` và `v0.8.1.2` đều Protocol 6 nhưng logic combat/animation khác; cách an toàn vẫn là Host và Client dùng cùng một build.
 

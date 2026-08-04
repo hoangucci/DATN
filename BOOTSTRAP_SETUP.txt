@@ -1,172 +1,255 @@
-MIDNIGHT CHAOS - MELEE MOTION FEEL & HIT TIMING v0.8.3
+MIDNIGHT CHAOS - ROTATION-DRIVEN FIRST-PERSON MELEE v0.8.4
+Baseline: v0.8.3 - Melee Motion Feel & Hit Timing
 
-Mục tiêu
---------
-- Giữ ScriptableObject làm nơi chỉnh first-person attack.
-- Thay motion Rest -> Start -> End -> Rest bằng bốn pha độc lập:
+============================================================
+1. MUC TIEU
+============================================================
 
-      Rest -> Wind-up -> Bézier Strike -> Overshoot -> Recovery -> Rest
+v0.8.4 thay motion "keo cay kiem qua man hinh" bang mot grip swing co
+rotation la chuyen dong chinh:
 
-- Đường vung cong nhẹ, strike nhanh và recovery ngắn kiểu Muck.
-- Host chỉ tìm mục tiêu và áp dụng damage/harvest tại đúng mốc Impact của
-  motion, không còn commit ngay khi nhận input.
-- Camera của người đánh chỉ rung khi Host xác nhận hậu quả thành công.
-- Enemy, Player, cây, đá và mọi DiagnosticResourceNode hợp lệ đều có thể gây
-  rung camera. Đánh hụt không rung.
+- Rest Pose dung dung gia tri trong video cua Hoang.
+- Swing rotation duoc tinh trong truc local cua camera.
+- Thu tu rotation la Swing * Rest, khong con Rest * Swing.
+- Position cua tung phase la offset nho tu Rest, khong phai endpoint tuyet doi.
+- Them RestPosePivot de tach huong goc cua mesh khoi rotation cua don danh.
+- Chi dung mot motion chinh de danh gia chat luong truoc khi them bien the.
+- ScriptableObject Inspector cho biet asset co dang duoc Attack Profile dung hay
+  khong.
+- Host van quyet dinh hit tai Impact; hit shake cua v0.8.3 duoc giu nguyen.
 
-Kiến trúc quan trọng
---------------------
-- Host vẫn là bên duy nhất quyết định hit, damage và harvest.
-- Khi một attack được chấp nhận, Host lưu snapshot gồm damage, reach, angle và
-  thời điểm Impact. Host KHÔNG khóa mục tiêu sớm.
-- Đến Impact, Host tìm lại Health/Resource gần nhất trong cone hiện tại. Một
-  attack chỉ commit tối đa một hậu quả.
-- Chỉ khi TryApplyDamageServer hoặc TryHarvestServer trả về true, Host mới gửi
-  ConfirmHitRpc đến đúng owner để rung camera.
-- Camera shake chỉ cộng offset hình ảnh trong LateUpdate. Nó không sửa yaw,
-  pitch hay transform mạng của Player.
-- First-person motion dùng thời lượng tuyệt đối ở Attack Speed x1. Cooldown dài
-  hơn không kéo chậm motion. Attack Speed multiplier vẫn co giãn đồng bộ toàn
-  bộ bốn pha.
+============================================================
+2. PHIEN BAN MUC TIEU
+============================================================
 
-Timing mặc định ở Attack Speed x1
----------------------------------
-- Wind Up Duration: 0.045 giây
-- Strike Duration: 0.115 giây
-- Overshoot Duration: 0.035 giây
-- Recovery Duration: 0.105 giây
-- Tổng motion: 0.300 giây
-- Strike Impact Normalized Time: 0.55
-- Impact mặc định: 0.10825 giây sau khi Host chấp nhận attack
+- Unity: 6000.0.69f1
+- URP: 17
+- Netcode for GameObjects: 2.7.0
+- Input System: 1.14.2
+- Baseline bat buoc: v0.8.3
+- ProtocolVersion: 9
 
-Với Attack Speed x2, toàn bộ giá trị thời gian trên giảm còn một nửa. Phần thời
-gian cooldown còn lại giữ kiếm ở Rest Pose.
+Chua xac nhan tren Unity hoac package version khac.
 
-Cài và migrate từ v0.8.2.1
---------------------------
-1. Thoát Play Mode và tạo Git commit/bản sao lưu.
-2. Chép Assets/MidnightChaos vào Assets của project rồi ghi đè file cũ.
-3. Chờ Unity compile. Không tiếp tục nếu Console còn lỗi đỏ.
-4. Chạy đúng menu:
+============================================================
+3. CAI DAT
+============================================================
 
-      Midnight Chaos
+1. Thoat Play Mode.
+2. Tao Git commit hoac backup project.
+3. Giai nen ZIP ra thu muc tam ben ngoai Unity Project.
+4. Mo:
+   MidnightChaos_Bootstrap_v0_8_4/Assets/MidnightChaos
+5. Copy thu muc MidnightChaos vao:
+   D:/GitHub/DATN/Assets/
+6. Chon merge va ghi de file trung ten.
+7. KHONG xoa Assets/MidnightChaos cu truoc khi copy. Generated khong nam trong
+   ZIP; xoa thu muc cu co the lam mat prefab, scene va asset hien tai.
+8. Cho Unity import va compile het.
+9. Chi khi Console khong con loi do, chay:
+   Midnight Chaos
       -> Bootstrap
-      -> Upgrade Melee Feel to v0.8.3
+      -> Upgrade Rotation-Driven Melee to v0.8.4
+10. Build lai Host va tat ca Client.
 
-5. KHÔNG chạy Create or Refresh LAN Test Scene cho lần nâng cấp này. Lệnh
-   migration sửa prefab hiện có và không dựng lại PlayerVisual.
-6. Migration giữ nguyên các giá trị sau trong hai Motion Set hiện có:
-   - Rest Pose
-   - Start Local Position / Start Euler Offset
-   - End Local Position / End Euler Offset
-7. Migration tạo một lần các dữ liệu mới:
-   - Strike Control Local Position
-   - Overshoot Local Position / Overshoot Euler Offset
-   - Bốn phase duration và bốn phase curve
-   - Hit camera shake mặc định
-8. Mở prefab DiagnosticNetworkPlayer và xác nhận root vẫn có:
-   - DiagnosticMeleeCombat
-   - DiagnosticFirstPersonAttackAnimator
-   - DiagnosticPlayerEquipment
-9. Build lại Host và TOÀN BỘ Client. ProtocolVersion đã tăng từ 7 lên 8 do có
-   ConfirmHitRpc mới. Không dùng lẫn build v0.8.2.1 và v0.8.3.
+KHONG CHAY:
 
-Vị trí chỉnh motion
--------------------
-Mở đúng asset đang được Attack Profile tham chiếu:
+Midnight Chaos
+   -> Bootstrap
+   -> Create or Refresh LAN Test Scene
+
+Cong cu tren co the dung lai scene/prefab test va ghi de thiet lap khong lien
+quan den motion.
+
+============================================================
+4. MIGRATION v0.8.4 LAM GI
+============================================================
+
+- Tai DiagnosticNetworkPlayer.prefab hien tai ma khong dung lai PlayerVisual.
+- Giu damage, reach, attack angle va base interval cua Attack Profile.
+- Gan lai dung:
+  - UnarmedAttackProfile -> UnarmedFirstPersonAttackMotionSet
+  - SwordAttackProfile -> SwordFirstPersonAttackMotionSet
+- Thay du lieu motion v0.8.3 bang motion rotation-driven v0.8.4.
+- Dat Sword Rest Pose theo video.
+- Giu nguyen Unarmed total 0.300 giay va Impact 0.10825 giay cua v0.8.3;
+  sua kiem khong duoc lam don tay khong bi tre.
+- Them/giu DiagnosticFirstPersonAttackAnimator tren player prefab.
+- Chon va ping dung SwordFirstPersonAttackMotionSet sau migration.
+- Khong sua model, Animator Controller, RightHandSocket hay SwordVisual cua
+  third-person character.
+
+Motion endpoint cu KHONG duoc giu. Do chinh la du lieu tao ra chuyen dong
+translation-dominant can thay the.
+
+============================================================
+5. ASSET DUNG DE CHINH
+============================================================
+
+Sword Attack Profile:
+Assets/MidnightChaos/Generated/Settings/SwordAttackProfile.asset
+
+Sword Motion Set:
+Assets/MidnightChaos/Generated/Settings/
+SwordFirstPersonAttackMotionSet.asset
+
+Neu khong chac dang chinh asset nao, chay:
+
+Midnight Chaos
+   -> Combat
+   -> Select Active Sword Motion Set
+
+Custom Inspector se hien:
+
+- Info: asset dang duoc profile nao su dung.
+- Warning: khong profile nao tham chieu asset; chinh asset do se khong tac dong
+  runtime.
+
+Asset cu sau day co the van ton tai de bao toan du lieu/Guid, nhung thuong khong
+con duoc runtime dung:
 
 Assets/MidnightChaos/Generated/Settings/
-- SwordFirstPersonAttackMotionSet.asset
-- UnarmedFirstPersonAttackMotionSet.asset
+DiagnosticFirstPersonAttackMotionSet.asset
 
-Phase Durations at Attack Speed x1:
-- Wind Up Duration: thời gian Rest -> Start.
-- Strike Duration: thời gian Start -> End.
-- Overshoot Duration: thời gian End -> Overshoot.
-- Recovery Duration: thời gian Overshoot -> Rest.
-- Strike Impact Normalized Time: mốc Host kiểm tra hit trong pha Strike.
+============================================================
+6. THONG SO MAC DINH PHAI KIEM TRA
+============================================================
 
-Phase Curves:
-- Wind Up Curve
-- Strike Curve
-- Overshoot Curve
-- Recovery Curve
+REST POSE - SWORD
 
-Mỗi Swing Motion:
-- Start Local Position / Start Euler Offset
-- Strike Control Local Position: điểm điều khiển quỹ đạo Bézier. Kéo lệch khỏi
-  đường nối Start-End để tăng độ cong.
-- End Local Position / End Euler Offset
-- Overshoot Local Position / Overshoot Euler Offset
+- Rest Local Position: (0.45, -0.35, 0.65)
+- Rest Local Euler Angles: (0, 100, 9.5)
+- Rest Local Scale: (0.6, 0.6, 0.6)
 
-Thứ tự chỉnh nên dùng
----------------------
-1. Chỉnh Wind Up/Strike/Recovery duration để đạt nhịp nhanh, gọn.
-2. Chỉnh Start và End để đường kiếm đi đúng vùng màn hình.
-3. Chỉnh Strike Control để tạo cung cong nhẹ. Không đẩy quá xa vì đường vung sẽ
-   giống móc câu.
-4. Chỉnh Overshoot vừa đủ để có quán tính. Overshoot quá lớn làm kiếm văng khỏi
-   màn hình.
-5. Chỉ sau đó mới chỉnh bốn AnimationCurve.
-6. Cuối cùng chỉnh camera shake.
+TIMING O ATTACK SPEED x1
 
-Không nên chỉnh tất cả cùng lúc; khi kết quả xấu sẽ không biết thông số nào gây
-ra lỗi. Tổng motion nên nhỏ hơn Base Attack Interval của profile để một motion
-thu kiếm xong trước attack kế tiếp.
+- Wind Up Duration: 0.12 giay
+- Strike Duration: 0.15 giay
+- Follow Through Duration: 0.09 giay
+- Recovery Duration: 0.20 giay
+- Tong motion: 0.56 giay
+- Impact: 0.27 giay ke tu luc Host chap nhan attack
 
-Vị trí chỉnh camera shake
--------------------------
-Mở:
+TIMING O ATTACK SPEED x2
 
-Assets/MidnightChaos/Generated/Settings/
-DiagnosticMeleeCombatSettings.asset
+- Tong motion: 0.28 giay
+- Impact: 0.135 giay
 
-Confirmed Hit Camera Shake:
-- Hit Shake Duration: thời gian rung.
-- Hit Shake Position Amplitude: biên độ dịch chuyển camera, đơn vị world.
-- Hit Shake Rotation Amplitude: biên độ xoay, đơn vị độ.
-- Hit Shake Frequency: tần số rung mỗi giây.
+UNARMED COMPATIBILITY TIMING
 
-Mặc định được cố ý đặt nhẹ: 0.09 giây, 0.018 position, 0.65 độ, 28 Hz. Tăng quá
-mạnh sẽ gây khó chịu và làm mất khả năng đọc mục tiêu trong game góc nhìn thứ
-nhất.
+- Attack Speed x1: tong 0.300 giay, Impact 0.10825 giay
+- Attack Speed x2: tong 0.150 giay, Impact 0.054125 giay
 
-Chỉnh trong Play Mode
----------------------
-- Rest, endpoint, control point, overshoot, duration và curve được first-person
-  animator đọc trực tiếp từ Motion Set.
-- Impact delay được Host snapshot khi attack được chấp nhận. Nếu sửa Impact khi
-  một attack đang chạy, attack kế tiếp mới dùng timing mới.
-- Giá trị chỉnh trong Play Mode có thể bị Unity hoàn tác khi thoát Play Mode.
-  Ghi lại số hoặc chỉnh lại ngoài Play Mode trước khi commit.
+REFERENCE RIGHT-HAND SLASH
 
-Test bắt buộc
--------------
-1. Đánh hụt: không damage, không harvest, camera không rung.
-2. Đánh Enemy: HP chỉ giảm tại Impact; camera của người đánh rung đúng một lần.
-3. Bật friendly fire và đánh Player: kết quả giống Enemy.
-4. Đánh cây/đá/resource: Remaining Hits hoặc inventory chỉ đổi tại Impact;
-   camera rung đúng một lần.
-5. Đứng trong cone lúc nhận input rồi bước ra trước Impact: không bị trúng.
-6. Bước vào cone sau lúc nhận input nhưng trước Impact: có thể bị trúng.
-7. Một attack có cả Health và Resource trong cone: chỉ mục tiêu hợp lệ gần nhất
-   nhận hậu quả.
-8. Giữ F hoặc chuột trái: không lặp motion liên tiếp; mỗi attack chỉ có tối đa
-   một damage/harvest.
-9. Chết trong Wind-up: pending hit bị hủy và camera không rung.
-10. Test riêng Host và Client đã join.
-11. Đặt Attack Speed x2 ở server: cooldown, motion và Impact đều nhanh gấp đôi.
-12. Thử kết nối Client v0.8.2.1 vào Host v0.8.3: phải bị từ chối do protocol.
+- Wind Up Position Offset: (0.07, 0.05, 0.04)
+- Wind Up Euler Offset: (-8, 12, -58)
+- Strike Arc Position Offset: (-0.015, 0.08, -0.09)
+- Impact Position Offset: (-0.06, -0.04, -0.14)
+- Impact Euler Offset: (14, -18, 38)
+- Follow Through Position Offset: (-0.17, -0.18, -0.08)
+- Follow Through Euler Offset: (25, -25, 118)
 
-Giới hạn hiện tại
------------------
-- Hit timing đã căn theo pha kiếm, nhưng vùng trúng vẫn là cone check của hệ
-  thống hiện tại; chưa phải collider lưỡi kiếm quét chính xác theo mesh.
-- Client có thể thấy camera shake lệch vài frame khi độ trễ mạng cao. Host vẫn
-  là nguồn sự thật và damage/harvest không được client tự đoán.
-- Chưa có model bàn tay góc nhìn thứ nhất. Unarmed vẫn có gameplay và camera
-  feedback nhưng không có nắm đấm nếu chưa gắn viewmodel riêng.
-- UpperBody third-person animation vẫn dùng clip/code sampling hiện có. Không
-  đặt authority damage trong Animation Event.
-- Kiểm tra tĩnh chỉ xác nhận cấu trúc/cú pháp. Compile và runtime thật vẫn phải
-  được xác nhận trong project Unity của người dùng.
+Position chi ho tro quy dao va chieu sau. Rotation Z tao cung vung thay ro;
+rotation X/Y tao pitch/twist va cam giac tien gan camera.
+
+============================================================
+7. HIERARCHY RUNTIME MONG DOI
+============================================================
+
+Main Camera
+  FirstPersonViewmodelRoot
+    AttackPivot
+      RestPosePivot
+        FirstPersonSwordVisual
+
+- AttackPivot: Rest position/scale + animated camera-local offset/rotation.
+- RestPosePivot: Rest rotation cua mesh.
+- FirstPersonSwordVisual: local position zero, rotation identity, scale one.
+
+Effective rotation = AttackPivot Swing Rotation * RestPosePivot Rest Rotation.
+
+============================================================
+8. TEST BAT BUOC
+============================================================
+
+1. Idle voi kiem:
+   - Kiem dung tai Rest Pose (0.45, -0.35, 0.65), (0, 100, 9.5), scale 0.6.
+
+2. Chinh Rest Pose trong dung Sword Motion Set khi dang Play Mode va idle:
+   - Vi tri, rotation va scale phai thay doi ngay.
+
+3. Chon DiagnosticFirstPersonAttackMotionSet asset cu:
+   - Inspector phai canh bao neu khong Attack Profile nao tham chieu.
+
+4. Chay Select Active Sword Motion Set:
+   - Unity phai chon SwordFirstPersonAttackMotionSet dang duoc
+     SwordAttackProfile tham chieu.
+
+5. Danh hut:
+   - Mot motion duy nhat lap lai on dinh.
+   - Kiem phai xoay thanh cung lon; khong con truot ngang nhu mot vat cung.
+   - Khong damage, khong harvest, khong camera shake.
+
+6. Kiem tra chieu sau:
+   - Kiem tien gan camera ro nhat gan Impact, sau do di qua Follow-through.
+   - Khong duoc clip camera qua muc chap nhan duoc.
+
+7. Danh Enemy:
+   - HP chi giam tai khoang 0.27 giay o Attack Speed x1.
+   - Camera cua nguoi danh rung dung mot lan.
+
+8. Danh Player khi friendly fire bat:
+   - Player chi mat HP tai Impact.
+   - Chi camera nguoi danh rung.
+
+9. Danh cay, da hoac resource:
+   - Harvest chi xay ra tai Impact.
+   - Camera rung dung mot lan.
+
+10. Dung ngoai cone luc bam, buoc vao truoc Impact:
+    - Muc tieu co the bi trung vi Host tim target tai Impact.
+
+11. Dung trong cone luc bam, buoc ra truoc Impact:
+    - Muc tieu khong bi trung.
+
+12. Chet/despawn trong Wind-up:
+    - Pending hit bi huy; khong damage/harvest/shake.
+
+13. Test Host va Client rieng:
+    - Ca hai deu danh duoc.
+    - Chi local owner thay first-person sword va hit shake cua minh.
+
+14. Attack Speed x2:
+    - Tong motion 0.28 giay, Impact 0.135 giay.
+    - Animation va authoritative hit van khop.
+
+15. Client v0.8.3 vao Host v0.8.4:
+    - Bi tu choi do ProtocolVersion 8 != 9.
+
+16. Danh tay khong/harvest khi chua co kiem:
+    - Total va Impact phai giu dung timing v0.8.3; khong bi tre theo Sword.
+
+============================================================
+9. GIOI HAN VA ANH HUONG BEN NGOAI
+============================================================
+
+- Vung trung van la cone check, khong phai collider luoi kiem sweep theo mesh.
+- Rotation chi xoay dung quanh grip neu origin cua FirstPersonSwordVisual nam tai
+  tay cam. Neu origin model nam giua luoi kiem, can sua prefab/model pivot.
+- v0.8.4 chi co mot motion chinh. Day la co chu dich; bon motion ngau nhien cu
+  lam kho danh gia chuyen dong nao dang sai.
+- Third-person upper-body animation khong thay doi.
+- Khong them RPC hoac NetworkVariable.
+- Protocol tang 8 -> 9 vi authoritative Impact delay thay doi.
+- Code ngoai Assets/MidnightChaos khong bi ZIP ghi de.
+- Chinh motion data giua luc mot don dang chay co the tao snap vi gia tri duoc
+  doc lai moi frame. Nen chinh khi idle, sau do bat dau don moi de danh gia.
+
+============================================================
+10. TRANG THAI XAC MINH
+============================================================
+
+Goi nay co the duoc kiem tra cau truc, cu phap va tinh nhat quan timing ben
+ngoai Unity. Tuy nhien, CHUA THE XAC NHAN compile/runtime trong Unity cho den
+khi import, chay migration, build Host/Client va hoan thanh toan bo test tren.

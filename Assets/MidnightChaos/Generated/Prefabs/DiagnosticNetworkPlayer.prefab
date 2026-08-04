@@ -2562,9 +2562,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   worldSwordVisual: {fileID: 6191186356361604325}
   firstPersonSwordPrefab: {fileID: 6191186356361604325}
-  legacyFirstPersonLocalPosition: {x: 0.42, y: -0.38, z: 0.72}
-  legacyFirstPersonLocalEulerAngles: {x: 8, y: 0, z: -18}
-  legacyFirstPersonLocalScale: {x: 1, y: 1, z: 1}
+  firstPersonAnimatorController: {fileID: 9100000, guid: f2a614981e6b4dd889c4e78da4cff5e7, type: 2}
 --- !u!114 &7242967608879962294
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -10,7 +10,7 @@ namespace MidnightChaos.Networking
     [RequireComponent(typeof(UnityTransport))]
     public sealed class LanSessionController : MonoBehaviour
     {
-        public const ushort CurrentProtocolVersion = 8;
+        public const ushort CurrentProtocolVersion = 10;
 
         [Header("LAN")]
         [SerializeField] private ushort defaultPort = LanEndpointValidator.DefaultPort;
