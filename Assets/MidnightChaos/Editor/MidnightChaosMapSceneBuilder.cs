@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MidnightChaos.Resources;
+using MidnightChaos.Runtime;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -95,10 +96,22 @@ namespace MidnightChaos.Editor
             GameObject oceanWater = CreateOceanWaterPlane(2200f);
             oceanWater.name = "OceanWater";
 
-            // 5. Tạo MapGenerator Object & Cấu hình Prefabs
+            // 5. Tạo MapGenerator Object & Cấu hình Prefabs + ScriptableObject Config
             GameObject generatorObj = new GameObject("MapGenerator");
             StylizedNatureMapGenerator generator = generatorObj.AddComponent<StylizedNatureMapGenerator>();
             generator.ConfigurePrefabs(treePrefabs, rockPrefabs, vegetationPrefabs);
+
+            MapGeneratorConfigSO configSO = MidnightChaosMapConfigCreator.GetOrCreateDefaultConfig();
+            if (configSO != null)
+            {
+                SerializedObject serializedGen = new SerializedObject(generator);
+                SerializedProperty configProp = serializedGen.FindProperty("mapConfig");
+                if (configProp != null)
+                {
+                    configProp.objectReferenceValue = configSO;
+                    serializedGen.ApplyModifiedProperties();
+                }
+            }
 
             // 6. Thực hiện rải bản đồ ngẫu nhiên
             generator.GenerateMap();
