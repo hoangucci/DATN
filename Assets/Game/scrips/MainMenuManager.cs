@@ -10,7 +10,9 @@ public class MainMenuManager : MonoBehaviour
     [Header("UI Panels")]
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject settingsPanel;
+    [SerializeField] private GameObject settingsOverlayBackdrop; // Lớp phủ tối mờ khoá màn hình phía sau khi mở Settings
     [SerializeField] private GameObject authCanvasGroup; // Hoặc Panel chứa toàn bộ Auth UI
+    [SerializeField] private GameObject gameLogoObject;   // Logo Game (tự động ẩn khi vào MainMenu)
 
     [Header("User Profile UI")]
     [SerializeField] private TMP_Text userNameText;
@@ -53,8 +55,9 @@ public class MainMenuManager : MonoBehaviour
 
     public void OpenMainMenu()
     {
-        // Thêm dòng này để ẩn khung đăng nhập đi ngay khi mở Main Menu
+        // Ẩn khung đăng nhập & Ẩn luôn Logo Game khi vào Main Menu
         if (authCanvasGroup != null) authCanvasGroup.SetActive(false);
+        if (gameLogoObject != null) gameLogoObject.SetActive(false);
 
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (settingsPanel != null) settingsPanel.SetActive(false);
@@ -89,14 +92,25 @@ public class MainMenuManager : MonoBehaviour
 
     public void OpenSettings()
     {
+        if (settingsOverlayBackdrop != null)
+        {
+            settingsOverlayBackdrop.SetActive(true);
+        }
+
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(true);
+            settingsPanel.transform.SetAsLastSibling(); // Đưa Settings Panel lên trên cùng
         }
     }
 
     public void CloseSettings()
     {
+        if (settingsOverlayBackdrop != null)
+        {
+            settingsOverlayBackdrop.SetActive(false);
+        }
+
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(false);
@@ -122,6 +136,7 @@ public class MainMenuManager : MonoBehaviour
         // Hoặc ẩn Main Menu Panel nếu chạy cùng 1 Scene
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
+        if (gameLogoObject != null) gameLogoObject.SetActive(true);
 
         if (authCanvasGroup != null)
         {

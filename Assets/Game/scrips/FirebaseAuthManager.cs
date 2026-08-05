@@ -19,17 +19,23 @@ public class FirebaseAuthManager : MonoBehaviour
     private FirebaseUser user;
 
     private bool isInitialized = false;
+    public bool IsInitialized => isInitialized;
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            // Chỉ áp dụng DontDestroyOnLoad nếu là GameObject gốc (Root) độc lập và không chứa Canvas/UI
+            if (transform.parent == null && GetComponent<Canvas>() == null && GetComponent<RectTransform>() == null)
+            {
+                DontDestroyOnLoad(gameObject);
+            }
         }
         else
         {
-            Destroy(gameObject);
+            // Chỉ xoá bớt Component trùng lặp, không xoá cả GameObject để tránh mất Canvas/UI
+            Destroy(this);
         }
     }
 

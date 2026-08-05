@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class SettingsManager : MonoBehaviour
@@ -11,6 +12,10 @@ public class SettingsManager : MonoBehaviour
     [Header("Graphics Settings")]
     [SerializeField] private TMP_Dropdown graphicsDropdown;
     [SerializeField] private Toggle fullscreenToggle;
+
+    [Header("Account / Logout")]
+    [SerializeField] private Button logoutButton;
+    [SerializeField] private string loginSceneName = "Login";
 
     private const string PREF_VOLUME = "MasterVolume";
     private const string PREF_GRAPHICS = "GraphicsQuality";
@@ -36,6 +41,11 @@ public class SettingsManager : MonoBehaviour
         {
             fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
         }
+
+        if (logoutButton != null)
+        {
+            logoutButton.onClick.AddListener(OnLogoutClicked);
+        }
     }
 
     public void LoadSettings()
@@ -45,7 +55,7 @@ public class SettingsManager : MonoBehaviour
         if (masterVolumeSlider != null) masterVolumeSlider.value = volume;
         SetMasterVolume(volume);
 
-        // 2. Đồ họa (Default: High = index 2 hoặc tùy Unity Quality level)
+        // 2. Đồ họa (Default: High = index 2 hoặc tùy Quality level)
         int graphicsIndex = PlayerPrefs.GetInt(PREF_GRAPHICS, QualitySettings.GetQualityLevel());
         if (graphicsDropdown != null) graphicsDropdown.value = graphicsIndex;
         SetGraphicsQuality(graphicsIndex);
@@ -79,5 +89,19 @@ public class SettingsManager : MonoBehaviour
         Screen.fullScreen = isFullscreen;
         PlayerPrefs.SetInt(PREF_FULLSCREEN, isFullscreen ? 1 : 0);
         PlayerPrefs.Save();
+    }
+
+    public void OnLogoutClicked()
+    {
+        Debug.Log("[SettingsManager] Thực hiện Đăng xuất từ Settings...");
+        if (FirebaseAuthManager.Instance != null)
+        {
+            FirebaseAuthManager.Instance.SignOut();
+        }
+
+        if (!string.IsNullOrEmpty(loginSceneName))
+        {
+            SceneManager.LoadScene(loginSceneName);
+        }
     }
 }

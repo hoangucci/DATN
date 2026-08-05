@@ -19,6 +19,7 @@ public class AuthUIManager : MonoBehaviour
     [SerializeField] private GameObject registerPanel;
     [SerializeField] private GameObject forgotPasswordPanel;
     [SerializeField] private GameObject mainMenuPanel;
+    [SerializeField] private GameObject gameLogoObject; // Object Logo Game (sẽ ẩn đi khi đăng nhập)
 
     [Header("Scene Transition")]
     [SerializeField] private bool loadSceneOnLogin = true;
@@ -77,6 +78,7 @@ public class AuthUIManager : MonoBehaviour
         SetPanelActive(loginPanel, true);
         SetPanelActive(registerPanel, false);
         SetPanelActive(forgotPasswordPanel, false);
+        if (gameLogoObject != null) gameLogoObject.SetActive(true);
         ClearStatus();
     }
 
@@ -143,15 +145,23 @@ public class AuthUIManager : MonoBehaviour
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene(mainMenuSceneName);
             }
-            else if (mainMenuPanel != null)
+            else
             {
-                // Ẩn tất cả các panel đăng nhập
+                // Ẩn tất cả các panel đăng nhập & Ẩn luôn Logo Game
                 SetPanelActive(loginPanel, false);
                 SetPanelActive(registerPanel, false);
                 SetPanelActive(forgotPasswordPanel, false);
 
+                if (gameLogoObject != null)
+                {
+                    gameLogoObject.SetActive(false);
+                }
+
                 // Hiển thị Main Menu Panel
-                mainMenuPanel.SetActive(true);
+                if (mainMenuPanel != null)
+                {
+                    mainMenuPanel.SetActive(true);
+                }
 
                 // Cập nhật thông tin trên MainMenuManager nếu có
                 if (MainMenuManager.Instance != null)
