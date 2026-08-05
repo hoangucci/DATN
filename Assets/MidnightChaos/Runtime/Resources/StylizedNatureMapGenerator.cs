@@ -82,11 +82,24 @@ namespace MidnightChaos.Resources
             }
         }
 
+        private void EnsureDayNightComponentsAttached()
+        {
+            if (GetComponent<DayNightCycleController>() == null)
+            {
+                gameObject.AddComponent<DayNightCycleController>();
+            }
+            if (GetComponent<MidnightChaos.UI.DayNightUIController>() == null)
+            {
+                gameObject.AddComponent<MidnightChaos.UI.DayNightUIController>();
+            }
+        }
+
         private void Start()
         {
-            // Tự động sinh map ngẫu nhiên khi vào chơi game (Runtime)
+            // Tự động gắn các component Ngày/Đêm & UI và sinh map ngẫu nhiên khi vào chơi game (Runtime)
             if (Application.isPlaying)
             {
+                EnsureDayNightComponentsAttached();
                 EnsurePrefabsLoaded();
                 GenerateMap();
             }
@@ -162,6 +175,7 @@ namespace MidnightChaos.Resources
         [ContextMenu("Generate Map")]
         public void GenerateMap()
         {
+            EnsureDayNightComponentsAttached();
             EnsurePrefabsLoaded();
             ClearMap();
 
