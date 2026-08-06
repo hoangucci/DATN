@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bedf38ddeb84894b84ac203b666c3e9, type: 3}
   m_Name: DiagnosticMeleeCombatSettings
   m_EditorClassIdentifier: 
-  inputBufferSeconds: 1
+  inputBufferSeconds: 0.7
   minimumAttackInterval: 0.08
   minimumAttackSpeedMultiplier: 0.1
   maximumAttackSpeedMultiplier: 8

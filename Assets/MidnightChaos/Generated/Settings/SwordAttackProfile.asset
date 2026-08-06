@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Sword
   damage: 40
-  attackReach: 2.6
+  attackReach: 3
   attackHalfAngle: 65
   baseAttackInterval: 1.56
   firstPersonAnimationVariantCount: 3
   firstPersonImpactTime: 0.25
   firstPersonRestLocalPosition: {x: 0.7, y: -0.5, z: 0.95}
-  firstPersonRestLocalEulerAngles: {x: 0, y: 100, z: 9.5}
-  firstPersonRestLocalScale: {x: 0.7, y: 0.7, z: 0.7}
+  firstPersonRestLocalEulerAngles: {x: -90, y: 0, z: 9.5}
+  firstPersonRestLocalScale: {x: 0.5, y: 0.5, z: 0.5}
   firstPersonRestPoseVersion: 1
