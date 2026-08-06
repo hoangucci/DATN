@@ -1,3 +1,4 @@
+using MidnightChaos.Procedural;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -8,6 +9,9 @@ namespace MidnightChaos.Player
     [RequireComponent(typeof(Camera))]
     public sealed class DiagnosticCameraFollow : MonoBehaviour
     {
+        private const string ProceduralSettingsResourcePath =
+            "Procedural/ProceduralWorldSettings";
+
         [Header("Gate G - Local First Person Camera")]
         [SerializeField] private Vector3 eyeOffset =
             new Vector3(0f, 0.75f, 0.08f);
@@ -28,6 +32,8 @@ namespace MidnightChaos.Player
         private float hitShakeRotationAmplitude;
         private float hitShakeFrequency;
         private int hitShakeGeneration;
+        private Camera controlledCamera;
+        private ProceduralWorldSettings proceduralSettings;
 
         public bool IsCursorCaptured =>
             rotationTarget != null && Cursor.lockState == CursorLockMode.Locked;
@@ -46,6 +52,14 @@ namespace MidnightChaos.Player
 
             rotationTarget = newRotationTarget;
             positionAnchor = newPositionAnchor;
+            controlledCamera ??= GetComponent<Camera>();
+            proceduralSettings ??=
+                UnityEngine.Resources.Load<ProceduralWorldSettings>(
+                    ProceduralSettingsResourcePath);
+            ProceduralRenderUtility.ConfigureCamera(
+                controlledCamera,
+                proceduralSettings,
+                this);
             yaw = rotationTarget.eulerAngles.y;
             pitch = 0f;
             CaptureCursor();

@@ -28,7 +28,7 @@ Transform:
   m_GameObject: {fileID: 1193813325444482653}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -125,6 +125,7 @@ GameObject:
   - component: {fileID: 3714561030594173630}
   - component: {fileID: 4914010903866155852}
   - component: {fileID: 8284075760454519828}
+  - component: {fileID: 3147277591831108880}
   m_Layer: 0
   m_Name: DiagnosticMeleeEnemy
   m_TagString: Untagged
@@ -141,7 +142,7 @@ Transform:
   m_GameObject: {fileID: 5816324686337917677}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -160,7 +161,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 0
+  GlobalObjectIdHash: 3901483599
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -268,8 +269,6 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   detectionRange: 7.5
   loseTargetRange: 12
-  moveSpeed: 2.7
-  rotationDegreesPerSecond: 540
   attackReach: 1.8
   attackDamage: 20
   attackCooldownSeconds: 1.15
@@ -286,3 +285,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beaaed90c232c1148b77175b4a78533c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!195 &3147277591831108880
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5816324686337917677}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4

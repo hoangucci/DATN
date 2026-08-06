@@ -2878,7 +2878,7 @@ MonoBehaviour:
   closeSettingsButton: {fileID: 745032493}
   logoutButton: {fileID: 1714118523}
   quitButton: {fileID: 328156569}
-  gameSceneName: SampleScene
+  gameSceneName: LAN_Bootstrap
   loginSceneName: Login
 --- !u!1 &696927741
 GameObject:

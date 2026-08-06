@@ -3,6 +3,7 @@ using MidnightChaos.Combat;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace MidnightChaos.Enemies
 {
@@ -20,13 +21,12 @@ namespace MidnightChaos.Enemies
     [RequireComponent(typeof(NetworkTransform))]
     [RequireComponent(typeof(NetworkHealth))]
     [RequireComponent(typeof(DiagnosticEnemyEvolution))]
+    [RequireComponent(typeof(NavMeshAgent))]
     public sealed class DiagnosticMeleeEnemy : NetworkBehaviour
     {
         [Header("Gate F - Stage-Aware Host Melee AI")]
         [SerializeField, Min(0.1f)] private float detectionRange = 7.5f;
         [SerializeField, Min(0.1f)] private float loseTargetRange = 12f;
-        [SerializeField, Min(0f)] private float moveSpeed = 2.7f;
-        [SerializeField, Min(0f)] private float rotationDegreesPerSecond = 540f;
         [SerializeField, Min(0.1f)] private float attackReach = 1.8f;
         [SerializeField, Min(1)] private int attackDamage = 20;
         [SerializeField, Min(0.05f)] private float attackCooldownSeconds = 1.15f;
@@ -42,17 +42,19 @@ namespace MidnightChaos.Enemies
         private DiagnosticEnemyEvolution evolution;
         private NetworkObject targetPlayer;
         private Renderer bodyRenderer;
+        private NavMeshAgent navMeshAgent;
         private Coroutine feedbackRoutine;
         private bool feedbackFlashActive;
         private double nextAllowedAttackTime;
         private double attackPoseEndsAt;
+        private float baseAgentSpeed;
 
         public DiagnosticEnemyState CurrentState =>
             (DiagnosticEnemyState)replicatedState.Value;
         public DiagnosticEnemyEvolution Evolution => evolution;
 
         private float CurrentMoveSpeed =>
-            moveSpeed * evolution.SpeedMultiplier;
+            baseAgentSpeed * evolution.SpeedMultiplier;
         private float CurrentAttackReach =>
             attackReach * evolution.AttackReachMultiplier;
         private int CurrentAttackDamage =>
@@ -66,10 +68,13 @@ namespace MidnightChaos.Enemies
             health = GetComponent<NetworkHealth>();
             evolution = GetComponent<DiagnosticEnemyEvolution>();
             bodyRenderer = GetComponentInChildren<Renderer>();
+            navMeshAgent = GetComponent<NavMeshAgent>();
+            baseAgentSpeed = navMeshAgent.speed;
         }
 
         public override void OnNetworkSpawn()
         {
+            navMeshAgent.enabled = IsServer;
             replicatedState.OnValueChanged += HandleStateChanged;
             health.HealthChanged += HandleHealthChanged;
             evolution.StageChanged += HandleStageChanged;
@@ -85,6 +90,8 @@ namespace MidnightChaos.Enemies
 
         public override void OnNetworkDespawn()
         {
+            StopMovingServer();
+            navMeshAgent.enabled = false;
             replicatedState.OnValueChanged -= HandleStateChanged;
             health.HealthChanged -= HandleHealthChanged;
             evolution.StageChanged -= HandleStageChanged;
@@ -110,6 +117,7 @@ namespace MidnightChaos.Enemies
             if (health.IsDead)
             {
                 targetPlayer = null;
+                StopMovingServer();
                 SetStateServer(DiagnosticEnemyState.Dead);
                 return;
             }
@@ -121,6 +129,7 @@ namespace MidnightChaos.Enemies
 
             if (targetPlayer == null)
             {
+                StopMovingServer();
                 SetStateServer(DiagnosticEnemyState.Idle);
                 return;
             }
@@ -129,11 +138,10 @@ namespace MidnightChaos.Enemies
                 targetPlayer.transform.position - transform.position,
                 Vector3.up);
 
-            RotateTowards(toTarget);
-
             double now = Time.realtimeSinceStartupAsDouble;
             if (now < attackPoseEndsAt)
             {
+                StopMovingServer();
                 SetStateServer(DiagnosticEnemyState.Attack);
                 return;
             }
@@ -142,6 +150,7 @@ namespace MidnightChaos.Enemies
             float currentAttackReach = CurrentAttackReach;
             if (distanceSquared <= currentAttackReach * currentAttackReach)
             {
+                StopMovingServer();
                 if (now < nextAllowedAttackTime)
                 {
                     SetStateServer(DiagnosticEnemyState.Recover);
@@ -165,12 +174,11 @@ namespace MidnightChaos.Enemies
             }
 
             SetStateServer(DiagnosticEnemyState.Chase);
-
-            if (toTarget.sqrMagnitude > 0.0001f)
+            if (navMeshAgent.enabled && navMeshAgent.isOnNavMesh)
             {
-                Vector3 movement =
-                    toTarget.normalized * CurrentMoveSpeed * Time.deltaTime;
-                transform.position += movement;
+                navMeshAgent.speed = CurrentMoveSpeed;
+                navMeshAgent.stoppingDistance = currentAttackReach;
+                navMeshAgent.SetDestination(targetPlayer.transform.position);
             }
         }
 
@@ -241,20 +249,16 @@ namespace MidnightChaos.Enemies
             return delta.sqrMagnitude <= loseTargetRange * loseTargetRange;
         }
 
-        private void RotateTowards(Vector3 planarDirection)
+        private void StopMovingServer()
         {
-            if (planarDirection.sqrMagnitude < 0.0001f)
+            if (navMeshAgent == null ||
+                !navMeshAgent.enabled ||
+                !navMeshAgent.isOnNavMesh)
             {
                 return;
             }
 
-            Quaternion targetRotation =
-                Quaternion.LookRotation(planarDirection.normalized, Vector3.up);
-
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRotation,
-                rotationDegreesPerSecond * Time.deltaTime);
+            navMeshAgent.ResetPath();
         }
 
         private void SetStateServer(DiagnosticEnemyState state)

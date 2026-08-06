@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 411f26747501853458cb854ec55d09d2, type: 3}
+  m_Name: ProceduralWorldSettings
+  m_EditorClassIdentifier: 
+  generatorVersion: 3
+  initialSeed: 12345
+  mapSize: {x: 1000, y: 1000}
+  terrainSegments: 200
+  baseHeight: 2
+  heightAmplitude: 20
+  noiseScale: 0.01
+  edgeFalloffStart: 0.631
+  edgeDrop: 0
+  edgeHeightOffset: -10
+  groundMaterial: {fileID: 2100000, guid: 233e8ab6bfea1cd40b58160e9e75d760, type: 2}
+  edgePadding: 20
+  maximumSlopeDegrees: 34
+  attemptsPerObject: 40
+  trees:
+    prefabs:
+    - {fileID: 1438347082121110, guid: c54773d0841f05e40be5094aa37b5b9a, type: 3}
+    - {fileID: 1449196429482006, guid: 36669c033ae88e24c8e6343eef39cc3e, type: 3}
+    - {fileID: 1359419646011628, guid: aaf56071cfdbd4e4d82d3ba4df4b2eb3, type: 3}
+    - {fileID: 1577302910483976, guid: 0913099d17952194fbecdeb8afa49fb6, type: 3}
+    - {fileID: 1470522365600496, guid: 7a1fcf7ba769b5144bd75b7cc0b7a111, type: 3}
+    - {fileID: 1688814860002676, guid: de9e26d7534940e4597c3b53d792962d, type: 3}
+    - {fileID: 1021115874806502, guid: 9128bb9e4e4c95d46a59f3c3421c2d8d, type: 3}
+    - {fileID: 1797056804139010, guid: abe6acfd8c78d37478e62b696008d531, type: 3}
+    - {fileID: 1299492422557334, guid: f81980cdcf399f041bc4604ca4d9fa0c, type: 3}
+    - {fileID: 1898812822631594, guid: f367a9d41f635ba4082345f8424eb923, type: 3}
+    - {fileID: 1961949589279082, guid: 622527ef01865fd4cafc4bcc2a8d0f2c, type: 3}
+    - {fileID: 1525626513045074, guid: 1c8020e7da311444185573c1ec61d02a, type: 3}
+    count: 2000
+    clearanceRadius: 3.2
+    uniformScaleRange: {x: 0.85, y: 1.2}
+    randomTiltDegrees: 0
+    surfaceAlignment: 0
+    navigationMode: 2
+    lodCullScreenHeightOverride: 0
+  rocks:
+    prefabs:
+    - {fileID: 1676478057443454, guid: 902f38fdd949c11418519a5e3be4b4f5, type: 3}
+    - {fileID: 1479349757945772, guid: ee13b73c592bbe14b815a39973e5e901, type: 3}
+    - {fileID: 1893001163389694, guid: 962f6f38c6b5f6148867a9c6096e5f80, type: 3}
+    - {fileID: 1515244525388084, guid: da315fb9e1e7d3d458d5d94bf1651afc, type: 3}
+    - {fileID: 1339089495214074, guid: f19d4f242ffc44a45be52247460e8428, type: 3}
+    - {fileID: 1093798535376898, guid: 4192aee2b0ade9c409f319eec5283d80, type: 3}
+    - {fileID: 1888348831187342, guid: 9420e3f08cebeb44ba9f59f4c14aa50f, type: 3}
+    - {fileID: 1636313000921928, guid: 63b80f70f61f3f54c90520a7bdcab2ac, type: 3}
+    - {fileID: 1756657291849678, guid: 3cae178380e0e314983d2fe09d85fe9e, type: 3}
+    - {fileID: 1886149423548704, guid: 473ef411ad1dd1845842562df36a32de, type: 3}
+    count: 200
+    clearanceRadius: 2.4
+    uniformScaleRange: {x: 0.75, y: 1.25}
+    randomTiltDegrees: 0
+    surfaceAlignment: 1
+    navigationMode: 2
+    lodCullScreenHeightOverride: 0
+  ores:
+    prefabs:
+    - {fileID: 1030055904786736, guid: dd1ba1bfa4038d248a1a91cf51aa2bc5, type: 3}
+    - {fileID: 1698211186731696, guid: 40daba6416b44ed4e918fe94b7459547, type: 3}
+    - {fileID: 1057587617881084, guid: cc8f9cc2b91213a469bb521f1daa0c5e, type: 3}
+    count: 200
+    clearanceRadius: 2.8
+    uniformScaleRange: {x: 0.7, y: 1.05}
+    randomTiltDegrees: 6.9
+    surfaceAlignment: 1
+    navigationMode: 2
+    lodCullScreenHeightOverride: 0
+  vegetation:
+    prefabs:
+    - {fileID: 1009855401127604, guid: 54b386aef10027c4e9ab17a8a9b49d77, type: 3}
+    - {fileID: 1567072493174220, guid: d46fe0b683966bb498b91421b9a63660, type: 3}
+    - {fileID: 1567072493174220, guid: 802ddb91053708c40b6ce84c5c72d9af, type: 3}
+    - {fileID: 1567072493174220, guid: 8ad63b08e05c5d245a4759d38d779623, type: 3}
+    - {fileID: 1567072493174220, guid: f5739f17eaa1c1c41b3811eaf80ff9cf, type: 3}
+    - {fileID: 1567072493174220, guid: 56324a8fcdb22774a89d8967761916d8, type: 3}
+    - {fileID: 1567072493174220, guid: 56324a8fcdb22774a89d8967761916d8, type: 3}
+    - {fileID: 1567072493174220, guid: f093273ef797e5540b8987202b916089, type: 3}
+    - {fileID: 1009855401127604, guid: 54b386aef10027c4e9ab17a8a9b49d77, type: 3}
+    - {fileID: 1759620887728780, guid: 42fe3de60b7c5c7459dfcb25809f2fa5, type: 3}
+    count: 10000
+    clearanceRadius: 0.7
+    uniformScaleRange: {x: 0.8, y: 1.25}
+    randomTiltDegrees: 0
+    surfaceAlignment: 1
+    navigationMode: 0
+    lodCullScreenHeightOverride: 0.001
+  playerSpawnPointCount: 8
+  enemySpawnPointCount: 12
+  playerSpawnClearance: 4
+  enemySpawnClearance: 3
+  enemyDistanceFromPlayerSpawns: 18
+  navMeshSampleRadius: 2.5
+  showSpawnMarkers: 1
+  spawnMarkerScale: 0.65
+  useLayerDistanceCulling: 1
+  cameraFarClipPlane: 1000
+  vegetationCullDistance: 60
+  vegetationLodSwitchDistance: 6
+  treeCullDistance: 400
+  smallPropCullDistance: 90
+  resourceCullDistance: 200
+  useInstancedVegetation: 1
+  vegetationChunkSize: 24
+  disableVegetationShadows: 1
+  enableTreeParticles: 1
+  navMeshAgentTypeId: 0
+  navMeshVolumeHeight: 40
+  navMeshCarvingSettleSeconds: 0.65
+  enemyPrefab: {fileID: 5816324686337917677, guid: f6f3505d3c0b4f844849d8d0a2e5572e, type: 3}
+  maximumActiveEnemies: 5
+  defaultPort: 7777
