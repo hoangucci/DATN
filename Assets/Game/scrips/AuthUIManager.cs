@@ -77,7 +77,34 @@ public class AuthUIManager : MonoBehaviour
         SetPanelActive(loginPanel, true);
         SetPanelActive(registerPanel, false);
         SetPanelActive(forgotPasswordPanel, false);
+<<<<<<< Updated upstream
+=======
+        SetLogoActive(true);
+>>>>>>> Stashed changes
         ClearStatus();
+    }
+
+    public void SetLogoActive(bool active)
+    {
+        if (gameLogoObject != null)
+        {
+            gameLogoObject.SetActive(active);
+        }
+
+        // Quét toàn bộ Canvas để tìm LogoGame, Fire, logo_purple_glow ngay cả khi đang lồng trong AuthManager
+        Canvas canvas = GetComponentInParent<Canvas>() ?? FindFirstObjectByType<Canvas>();
+        if (canvas != null)
+        {
+            Transform[] allTransforms = canvas.GetComponentsInChildren<Transform>(true);
+            foreach (Transform t in allTransforms)
+            {
+                string tName = t.name.ToLower();
+                if (tName.Equals("logogame") || tName.Equals("logo game") || tName.Equals("logo") || tName.Equals("logo_purple_glow") || tName.Equals("fire"))
+                {
+                    t.gameObject.SetActive(active);
+                }
+            }
+        }
     }
 
     public void ShowRegisterPanel()
@@ -149,6 +176,10 @@ public class AuthUIManager : MonoBehaviour
                 SetPanelActive(loginPanel, false);
                 SetPanelActive(registerPanel, false);
                 SetPanelActive(forgotPasswordPanel, false);
+<<<<<<< Updated upstream
+=======
+                SetLogoActive(false);
+>>>>>>> Stashed changes
 
                 // Hiển thị Main Menu Panel
                 mainMenuPanel.SetActive(true);
@@ -243,22 +274,46 @@ public class AuthUIManager : MonoBehaviour
 
         if (isLoading)
         {
-            ShowStatus(statusMsg, Color.yellow);
+            ShowStatus(statusMsg, Color.yellow, 0f);
         }
     }
 
-    private void ShowStatus(string msg, Color color)
+    private Coroutine statusCoroutine;
+
+    private void ShowStatus(string msg, Color color, float autoHideDelay = 2.5f)
     {
         if (statusText != null)
         {
             statusText.text = msg;
             statusText.color = color;
             statusText.gameObject.SetActive(true);
+
+            if (statusCoroutine != null)
+            {
+                StopCoroutine(statusCoroutine);
+            }
+
+            if (autoHideDelay > 0f)
+            {
+                statusCoroutine = StartCoroutine(AutoClearStatusRoutine(autoHideDelay));
+            }
         }
+    }
+
+    private IEnumerator AutoClearStatusRoutine(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        ClearStatus();
     }
 
     private void ClearStatus()
     {
+        if (statusCoroutine != null)
+        {
+            StopCoroutine(statusCoroutine);
+            statusCoroutine = null;
+        }
+
         if (statusText != null)
         {
             statusText.text = "";

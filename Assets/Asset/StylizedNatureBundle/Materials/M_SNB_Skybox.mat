@@ -87,6 +87,10 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+<<<<<<< Updated upstream:Assets/Asset/StylizedNatureBundle/Materials/M_SNB_Skybox.mat
     - _Tint: {r: 0.17451721, g: 0.27501756, b: 0.46751228, a: 1}
+=======
+    - _Tint: {r: 0.63976634, g: 0.7497616, b: 0.7998331, a: 1}
+>>>>>>> Stashed changes:Assets/Asset/Environments/StylizedNatureBundle/Materials/M_SNB_Skybox.mat
   m_BuildTextureStacks: []
   m_AllowLocking: 1

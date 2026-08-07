@@ -55,12 +55,39 @@ public class MainMenuManager : MonoBehaviour
     {
         // Thêm dòng này để ẩn khung đăng nhập đi ngay khi mở Main Menu
         if (authCanvasGroup != null) authCanvasGroup.SetActive(false);
+<<<<<<< Updated upstream
+=======
+        SetLogoActive(false);
+>>>>>>> Stashed changes
 
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (settingsPanel != null) settingsPanel.SetActive(false);
 
         // Nạp tên & email người dùng từ Firebase
         UpdateUserProfileUI();
+    }
+
+    public void SetLogoActive(bool active)
+    {
+        if (gameLogoObject != null)
+        {
+            gameLogoObject.SetActive(active);
+        }
+
+        // Quét toàn bộ Canvas để tìm LogoGame, Fire, logo_purple_glow ngay cả khi đang lồng trong AuthManager
+        Canvas canvas = GetComponentInParent<Canvas>() ?? FindFirstObjectByType<Canvas>();
+        if (canvas != null)
+        {
+            Transform[] allTransforms = canvas.GetComponentsInChildren<Transform>(true);
+            foreach (Transform t in allTransforms)
+            {
+                string tName = t.name.ToLower();
+                if (tName.Equals("logogame") || tName.Equals("logo game") || tName.Equals("logo") || tName.Equals("logo_purple_glow") || tName.Equals("fire"))
+                {
+                    t.gameObject.SetActive(active);
+                }
+            }
+        }
     }
 
     public void UpdateUserProfileUI()
@@ -123,6 +150,10 @@ public class MainMenuManager : MonoBehaviour
         // Hoặc ẩn Main Menu Panel nếu chạy cùng 1 Scene
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
+<<<<<<< Updated upstream
+=======
+        SetLogoActive(true);
+>>>>>>> Stashed changes
 
         if (authCanvasGroup != null)
         {

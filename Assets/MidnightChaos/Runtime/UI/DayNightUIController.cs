@@ -40,8 +40,10 @@ namespace MidnightChaos.UI
                 currentDay = cycleController.CurrentDayNumber;
                 isDaytime = cycleController.IsDaytime;
             }
+        }
 
-            // Tự động hiển thị ngay chữ "DAY 1" to đùng giữa màn hình khi mới vào game (Chuẩn Muck)
+        public void TriggerDayOneBanner()
+        {
             if (isDaytime)
             {
                 string msg = useEnglishText ? $"DAY {currentDay}" : $"NGÀY {currentDay}";
