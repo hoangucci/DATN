@@ -1,17 +1,10 @@
 using System;
 using System.Collections.Generic;
+using MidnightChaos.World;
 using UnityEngine;
 
 namespace MidnightChaos.Procedural
 {
-    public enum ProceduralObjectCategory : byte
-    {
-        Tree = 0,
-        Rock = 1,
-        Ore = 2,
-        Vegetation = 3
-    }
-
     public static class ProceduralPrefabContract
     {
         public const string DefaultAnchorName = "BottomPoint";
@@ -61,29 +54,24 @@ namespace MidnightChaos.Procedural
     public readonly struct ProceduralObjectPlacement
     {
         public ProceduralObjectPlacement(
-            ProceduralObjectCategory category,
-            int prefabIndex,
-            Vector3 position,
+            WorldObjectInstance instance,
             Vector3 surfaceNormal,
-            Vector3 eulerAngles,
-            float uniformScale,
             ProceduralNavigationMode navigationMode)
         {
-            Category = category;
-            PrefabIndex = prefabIndex;
-            Position = position;
+            Instance = instance;
             SurfaceNormal = surfaceNormal;
-            EulerAngles = eulerAngles;
-            UniformScale = uniformScale;
             NavigationMode = navigationMode;
         }
 
-        public ProceduralObjectCategory Category { get; }
-        public int PrefabIndex { get; }
-        public Vector3 Position { get; }
+        public WorldObjectInstance Instance { get; }
+        public WorldObjectDefinition Definition => Instance.Definition;
+        public string StableDefinitionId => Instance.StableDefinitionId;
+        public WorldObjectCategory Category => Instance.Category;
+        public int LayoutIndex => Instance.LayoutIndex;
+        public Vector3 Position => Instance.Position;
         public Vector3 SurfaceNormal { get; }
-        public Vector3 EulerAngles { get; }
-        public float UniformScale { get; }
+        public Vector3 EulerAngles => Instance.EulerAngles;
+        public float UniformScale => Instance.UniformScale;
         public ProceduralNavigationMode NavigationMode { get; }
     }
 
@@ -94,6 +82,8 @@ namespace MidnightChaos.Procedural
         private readonly List<Vector3> playerSpawnPoints = new List<Vector3>();
         private readonly List<Vector3> enemySpawnPoints = new List<Vector3>();
         private readonly List<string> warnings = new List<string>();
+        private readonly Dictionary<string, int> grassClusterCountsByStableId =
+            new Dictionary<string, int>(StringComparer.Ordinal);
 
         internal ProceduralWorldLayout(
             int seed,
@@ -118,12 +108,33 @@ namespace MidnightChaos.Procedural
         public IReadOnlyList<Vector3> PlayerSpawnPoints => playerSpawnPoints;
         public IReadOnlyList<Vector3> EnemySpawnPoints => enemySpawnPoints;
         public IReadOnlyList<string> Warnings => warnings;
+        public int GrassTargetCount { get; internal set; }
+        public int GrassSuccessfullyPlacedCount { get; internal set; }
+        public int GrassRejectedPlacementCount { get; internal set; }
+        public int GrassClusterCount { get; internal set; }
+        public IReadOnlyDictionary<string, int> GrassClusterCountsByStableId =>
+            grassClusterCountsByStableId;
         public ulong LayoutHash { get; internal set; }
 
         internal List<ProceduralObjectPlacement> MutableObjects => objects;
         internal List<Vector3> MutablePlayerSpawnPoints => playerSpawnPoints;
         internal List<Vector3> MutableEnemySpawnPoints => enemySpawnPoints;
         internal List<string> MutableWarnings => warnings;
+
+        internal void RecordGrassCluster(string stableId)
+        {
+            GrassClusterCount++;
+            if (grassClusterCountsByStableId.TryGetValue(
+                    stableId,
+                    out int current))
+            {
+                grassClusterCountsByStableId[stableId] = current + 1;
+            }
+            else
+            {
+                grassClusterCountsByStableId.Add(stableId, 1);
+            }
+        }
     }
 
     public static class ProceduralWorldLayoutBuilder
@@ -134,6 +145,7 @@ namespace MidnightChaos.Procedural
         private const uint RockStream = 0xB82C47E5u;
         private const uint OreStream = 0xC9745A17u;
         private const uint VegetationStream = 0xD5E80B49u;
+        private const uint GrassStream = 0xE6F91C5Bu;
         private const ulong FnvOffset = 14695981039346656037UL;
         private const ulong FnvPrime = 1099511628211UL;
 
@@ -218,6 +230,8 @@ namespace MidnightChaos.Procedural
                 throw new ArgumentNullException(nameof(settings));
             }
 
+            settings.ValidateDefinitionsOrThrow();
+
             Vector2 mapSize = settings.MapSize;
             int segments = settings.TerrainSegments;
             float[] heights = BuildTerrainHeights(settings, seed);
@@ -234,7 +248,8 @@ namespace MidnightChaos.Procedural
                 settings.Trees.ClearanceRadius,
                 settings.Rocks.ClearanceRadius,
                 settings.Ores.ClearanceRadius,
-                settings.Vegetation.ClearanceRadius);
+                settings.Vegetation.ClearanceRadius,
+                settings.Grass.ClearanceRadius);
             SpatialReservationGrid reservations =
                 new SpatialReservationGrid(maximumRadius);
 
@@ -248,6 +263,7 @@ namespace MidnightChaos.Procedural
                 reservations,
                 null,
                 0f,
+                settings.PlayerSpawnGroupRadius,
                 "player spawn",
                 layout.MutableWarnings);
 
@@ -261,12 +277,13 @@ namespace MidnightChaos.Procedural
                 reservations,
                 layout.PlayerSpawnPoints,
                 settings.EnemyDistanceFromPlayerSpawns,
+                0f,
                 "enemy spawn",
                 layout.MutableWarnings);
 
             PlaceCategory(
                 layout,
-                ProceduralObjectCategory.Tree,
+                WorldObjectCategory.Tree,
                 settings.Trees,
                 TreeStream,
                 settings,
@@ -274,7 +291,7 @@ namespace MidnightChaos.Procedural
                 reservations);
             PlaceCategory(
                 layout,
-                ProceduralObjectCategory.Rock,
+                WorldObjectCategory.Rock,
                 settings.Rocks,
                 RockStream,
                 settings,
@@ -282,7 +299,7 @@ namespace MidnightChaos.Procedural
                 reservations);
             PlaceCategory(
                 layout,
-                ProceduralObjectCategory.Ore,
+                WorldObjectCategory.Ore,
                 settings.Ores,
                 OreStream,
                 settings,
@@ -290,12 +307,18 @@ namespace MidnightChaos.Procedural
                 reservations);
             PlaceCategory(
                 layout,
-                ProceduralObjectCategory.Vegetation,
+                WorldObjectCategory.Vegetation,
                 settings.Vegetation,
                 VegetationStream,
                 settings,
                 seed,
                 reservations);
+            PlaceGrassClusters(layout, settings, seed, reservations);
+
+            foreach (string warning in settings.CollectDefinitionWarnings())
+            {
+                layout.MutableWarnings.Add(warning);
+            }
 
             layout.LayoutHash = CalculateHash(layout, settings);
             return layout;
@@ -480,6 +503,7 @@ namespace MidnightChaos.Procedural
             SpatialReservationGrid reservations,
             IReadOnlyList<Vector3> avoidPoints,
             float avoidDistance,
+            float groupRadius,
             string label,
             List<string> warnings)
         {
@@ -489,13 +513,26 @@ namespace MidnightChaos.Procedural
 
             for (int attempt = 0; attempt < maximumAttempts && destination.Count < targetCount; attempt++)
             {
-                if (!TryCreateCandidate(
+                bool hasGroupAnchor =
+                    groupRadius > 0f && destination.Count > 0;
+                bool created = hasGroupAnchor
+                    ? TryCreateCandidateNear(
                         ref random,
                         settings,
                         seed,
                         clearance,
+                        destination[0],
+                        groupRadius,
                         out Vector3 candidate,
-                        out _))
+                        out _)
+                    : TryCreateCandidate(
+                        ref random,
+                        settings,
+                        seed,
+                        clearance,
+                        out candidate,
+                        out _);
+                if (!created)
                 {
                     continue;
                 }
@@ -521,19 +558,20 @@ namespace MidnightChaos.Procedural
 
         private static void PlaceCategory(
             ProceduralWorldLayout layout,
-            ProceduralObjectCategory category,
+            WorldObjectCategory category,
             ProceduralCategorySettings categorySettings,
             uint stream,
             ProceduralWorldSettings settings,
             int seed,
             SpatialReservationGrid reservations)
         {
-            if (categorySettings.Count <= 0 || categorySettings.Prefabs.Length == 0)
+            if (categorySettings.Count <= 0 ||
+                categorySettings.Definitions.Length == 0)
             {
                 if (categorySettings.Count > 0)
                 {
                     layout.MutableWarnings.Add(
-                        $"{category} count is {categorySettings.Count}, but its prefab list is empty.");
+                        $"{category} count is {categorySettings.Count}, but its definition list is empty.");
                 }
                 return;
             }
@@ -569,14 +607,23 @@ namespace MidnightChaos.Procedural
                     random.Range(0f, 360f),
                     random.Range(-tilt, tilt));
 
+                int definitionIndex = random.Range(
+                    0,
+                    categorySettings.Definitions.Length);
+                float uniformScale = random.Range(
+                    scaleRange.x,
+                    scaleRange.y);
+                int layoutIndex = layout.MutableObjects.Count;
+                WorldObjectInstance instance = new WorldObjectInstance(
+                    categorySettings.Definitions[definitionIndex],
+                    layoutIndex,
+                    candidate,
+                    euler,
+                    uniformScale);
                 layout.MutableObjects.Add(
                     new ProceduralObjectPlacement(
-                        category,
-                        random.Range(0, categorySettings.Prefabs.Length),
-                        candidate,
+                        instance,
                         surfaceNormal,
-                        euler,
-                        random.Range(scaleRange.x, scaleRange.y),
                         categorySettings.NavigationMode));
                 reservations.Add(planar, categorySettings.ClearanceRadius);
                 placed++;
@@ -588,6 +635,179 @@ namespace MidnightChaos.Procedural
                     $"Placed {placed}/{categorySettings.Count} {category} objects. " +
                     "Increase map area, attempts, or reduce clearance.");
             }
+        }
+
+        private static void PlaceGrassClusters(
+            ProceduralWorldLayout layout,
+            ProceduralWorldSettings settings,
+            int seed,
+            SpatialReservationGrid globalReservations)
+        {
+            ProceduralCategorySettings grass = settings.Grass;
+            layout.GrassTargetCount = grass.Count;
+            if (grass.Count <= 0 || grass.Definitions.Length == 0)
+            {
+                if (grass.Count > 0)
+                {
+                    layout.MutableWarnings.Add(
+                        "Grass count is greater than zero, but its definition catalog is empty.");
+                }
+                return;
+            }
+
+            DeterministicRandom random = new DeterministicRandom(
+                DeterministicRandom.DeriveSeed(seed, GrassStream));
+            Vector2Int perCluster =
+                settings.GrassClusters.InstancesPerClusterRange;
+            Vector2 radiusRange = settings.GrassClusters.RadiusRange;
+            Vector2 spacingRange = settings.GrassClusters.MinimumSpacingRange;
+            SpatialReservationGrid grassReservations =
+                new SpatialReservationGrid(spacingRange.y * 0.5f);
+            int maximumAttempts = grass.Count * settings.AttemptsPerObject;
+            int consumedAttempts = 0;
+
+            while (layout.GrassSuccessfullyPlacedCount < grass.Count &&
+                   consumedAttempts < maximumAttempts)
+            {
+                int definitionIndex = random.Range(
+                    0,
+                    grass.Definitions.Length);
+                WorldObjectDefinition definition =
+                    grass.Definitions[definitionIndex];
+                int desiredCount = random.Range(
+                    perCluster.x,
+                    perCluster.y + 1);
+                desiredCount = Mathf.Min(
+                    desiredCount,
+                    grass.Count - layout.GrassSuccessfullyPlacedCount);
+                float clusterRadius = random.Range(
+                    radiusRange.x,
+                    radiusRange.y);
+                float minimumSpacing = random.Range(
+                    spacingRange.x,
+                    spacingRange.y);
+
+                consumedAttempts++;
+                if (!TryCreateCandidate(
+                        ref random,
+                        settings,
+                        seed,
+                        grass.ClearanceRadius,
+                        out Vector3 clusterCenter,
+                        out _))
+                {
+                    continue;
+                }
+
+                int placedInCluster = 0;
+                int clusterAttemptLimit = desiredCount *
+                                          settings.AttemptsPerObject;
+                for (int clusterAttempt = 0;
+                     clusterAttempt < clusterAttemptLimit &&
+                     placedInCluster < desiredCount &&
+                     consumedAttempts < maximumAttempts;
+                     clusterAttempt++)
+                {
+                    consumedAttempts++;
+                    float radialDistance = Mathf.Sqrt(
+                        random.NextFloat01()) * clusterRadius;
+                    float radialAngle = random.Range(0f, Mathf.PI * 2f);
+                    float x = clusterCenter.x +
+                              Mathf.Cos(radialAngle) * radialDistance;
+                    float z = clusterCenter.z +
+                              Mathf.Sin(radialAngle) * radialDistance;
+                    if (!TryCreateCandidateAtPosition(
+                            settings,
+                            seed,
+                            grass.ClearanceRadius,
+                            x,
+                            z,
+                            out Vector3 candidate,
+                            out Vector3 surfaceNormal))
+                    {
+                        layout.GrassRejectedPlacementCount++;
+                        continue;
+                    }
+
+                    Vector2 planar = new Vector2(candidate.x, candidate.z);
+                    if (!globalReservations.IsFree(
+                            planar,
+                            grass.ClearanceRadius) ||
+                        !grassReservations.IsFree(
+                            planar,
+                            minimumSpacing * 0.5f))
+                    {
+                        layout.GrassRejectedPlacementCount++;
+                        continue;
+                    }
+
+                    Vector2 scaleRange = grass.UniformScaleRange;
+                    float tilt = grass.RandomTiltDegrees;
+                    Vector3 euler = new Vector3(
+                        random.Range(-tilt, tilt),
+                        random.Range(0f, 360f),
+                        random.Range(-tilt, tilt));
+                    float uniformScale = random.Range(
+                        scaleRange.x,
+                        scaleRange.y);
+                    int layoutIndex = layout.MutableObjects.Count;
+                    WorldObjectInstance instance = new WorldObjectInstance(
+                        definition,
+                        layoutIndex,
+                        candidate,
+                        euler,
+                        uniformScale);
+                    layout.MutableObjects.Add(
+                        new ProceduralObjectPlacement(
+                            instance,
+                            surfaceNormal,
+                            grass.NavigationMode));
+                    grassReservations.Add(
+                        planar,
+                        minimumSpacing * 0.5f);
+                    placedInCluster++;
+                    layout.GrassSuccessfullyPlacedCount++;
+                }
+
+                if (placedInCluster > 0)
+                {
+                    layout.RecordGrassCluster(definition.StableId);
+                }
+            }
+
+            if (layout.GrassSuccessfullyPlacedCount < grass.Count)
+            {
+                layout.MutableWarnings.Add(
+                    $"Placed {layout.GrassSuccessfullyPlacedCount}/{grass.Count} Grass objects in {layout.GrassClusterCount} clusters. Increase attempts/radius or reduce clearance/spacing.");
+            }
+        }
+
+        private static bool TryCreateCandidateAtPosition(
+            ProceduralWorldSettings settings,
+            int seed,
+            float clearance,
+            float x,
+            float z,
+            out Vector3 candidate,
+            out Vector3 surfaceNormal)
+        {
+            Vector2 mapSize = settings.MapSize;
+            float padding = settings.EdgePadding + clearance;
+            float halfX = mapSize.x * 0.5f - padding;
+            float halfZ = mapSize.y * 0.5f - padding;
+            if (halfX <= 0f || halfZ <= 0f ||
+                Mathf.Abs(x) > halfX || Mathf.Abs(z) > halfZ)
+            {
+                candidate = default;
+                surfaceNormal = Vector3.up;
+                return false;
+            }
+
+            float height = EvaluateTerrainSurfaceHeight(settings, seed, x, z);
+            candidate = new Vector3(x, height, z);
+            surfaceNormal = EvaluateTerrainSurfaceNormal(settings, seed, x, z);
+            return Vector3.Angle(surfaceNormal, Vector3.up) <=
+                   settings.MaximumSlopeDegrees;
         }
 
         private static bool TryCreateCandidate(
@@ -612,6 +832,45 @@ namespace MidnightChaos.Procedural
 
             float x = random.Range(-halfX, halfX);
             float z = random.Range(-halfZ, halfZ);
+            float height = EvaluateTerrainSurfaceHeight(settings, seed, x, z);
+            candidate = new Vector3(x, height, z);
+            surfaceNormal = EvaluateTerrainSurfaceNormal(settings, seed, x, z);
+            float slope = Vector3.Angle(surfaceNormal, Vector3.up);
+            return slope <= settings.MaximumSlopeDegrees;
+        }
+
+        private static bool TryCreateCandidateNear(
+            ref DeterministicRandom random,
+            ProceduralWorldSettings settings,
+            int seed,
+            float clearance,
+            Vector3 anchor,
+            float groupRadius,
+            out Vector3 candidate,
+            out Vector3 surfaceNormal)
+        {
+            Vector2 mapSize = settings.MapSize;
+            float padding = settings.EdgePadding + clearance;
+            float halfX = mapSize.x * 0.5f - padding;
+            float halfZ = mapSize.y * 0.5f - padding;
+            float minimumRadius = Mathf.Min(clearance * 2f, groupRadius);
+            float radius = Mathf.Sqrt(
+                Mathf.Lerp(
+                    minimumRadius * minimumRadius,
+                    groupRadius * groupRadius,
+                    random.NextFloat01()));
+            float angle = random.Range(0f, Mathf.PI * 2f);
+            float x = anchor.x + Mathf.Cos(angle) * radius;
+            float z = anchor.z + Mathf.Sin(angle) * radius;
+
+            if (halfX <= 0f || halfZ <= 0f ||
+                Mathf.Abs(x) > halfX || Mathf.Abs(z) > halfZ)
+            {
+                candidate = default;
+                surfaceNormal = Vector3.up;
+                return false;
+            }
+
             float height = EvaluateTerrainSurfaceHeight(settings, seed, x, z);
             candidate = new Vector3(x, height, z);
             surfaceNormal = EvaluateTerrainSurfaceNormal(settings, seed, x, z);
@@ -687,13 +946,13 @@ namespace MidnightChaos.Procedural
             AddHash(ref hash, layout.MapSize.y);
             AddHash(ref hash, layout.TerrainSegments);
 
-            // Placements store a catalog index. Hash the ordered catalog too,
-            // so Host and Client reject a world if those indices resolve to
-            // different prefab assets in their builds.
+            // Catalog order remains deterministic weighted configuration, while
+            // stable definition IDs are the authoritative object identity.
             AddCatalogHash(ref hash, settings.Trees);
             AddCatalogHash(ref hash, settings.Rocks);
             AddCatalogHash(ref hash, settings.Ores);
             AddCatalogHash(ref hash, settings.Vegetation);
+            AddCatalogHash(ref hash, settings.Grass);
 
             foreach (float height in layout.TerrainHeights)
             {
@@ -710,8 +969,9 @@ namespace MidnightChaos.Procedural
             }
             foreach (ProceduralObjectPlacement placement in layout.Objects)
             {
+                AddHash(ref hash, placement.StableDefinitionId);
                 AddHash(ref hash, (int)placement.Category);
-                AddHash(ref hash, placement.PrefabIndex);
+                AddHash(ref hash, placement.LayoutIndex);
                 AddHash(ref hash, placement.Position);
                 AddHash(ref hash, placement.SurfaceNormal);
                 AddHash(ref hash, placement.EulerAngles);
@@ -726,14 +986,27 @@ namespace MidnightChaos.Procedural
             ref ulong hash,
             ProceduralCategorySettings category)
         {
-            GameObject[] prefabs = category.Prefabs;
+            WorldObjectDefinition[] definitions = category.Definitions;
             AddHash(ref hash, (int)category.SurfaceAlignment);
             AddHash(ref hash, (int)category.NavigationMode);
             AddHash(ref hash, category.LodCullScreenHeightOverride);
-            AddHash(ref hash, prefabs.Length);
-            foreach (GameObject prefab in prefabs)
+            AddHash(ref hash, definitions.Length);
+            foreach (WorldObjectDefinition definition in definitions)
             {
-                AddHash(ref hash, prefab == null ? "<null>" : prefab.name);
+                AddHash(
+                    ref hash,
+                    definition == null
+                        ? "<null-definition>"
+                        : definition.StableId);
+                AddHash(
+                    ref hash,
+                    definition == null ? -1 : (int)definition.Category);
+                AddHash(
+                    ref hash,
+                    definition == null ? -1 : (int)definition.Flags);
+                GameObject prefab = definition == null
+                    ? null
+                    : definition.Prefab;
                 if (prefab != null &&
                     ProceduralPrefabContract.TryFindPlacementAnchor(
                         prefab.transform,

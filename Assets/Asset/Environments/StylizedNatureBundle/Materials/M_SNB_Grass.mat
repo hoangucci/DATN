@@ -2,20 +2,27 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_SNB_Grass
   m_Shader: {fileID: 4800000, guid: f7835d26e94875f47848e4600cd0ab70, type: 3}
-  m_ShaderKeywords: _ALPHATEST_ON _TRANSLUCENCY1_ON _TRANSLUCENCY_ON
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _TRANSLUCENCY_ON
+  m_InvalidKeywords:
+  - _ALPHATEST_ON
+  - _TRANSLUCENCY1_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -83,6 +90,7 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
     - _AlphaCutoff: 0.5
     - _BumpScale: 1
@@ -168,3 +176,4 @@ Material:
     - _SpecularColor: {r: 0.3921569, g: 0.3921569, b: 0.3921569, a: 1}
     - _TranslucencyTint: {r: 1, g: 0.96403116, b: 0.18396205, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1

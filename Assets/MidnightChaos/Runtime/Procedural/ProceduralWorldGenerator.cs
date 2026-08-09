@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MidnightChaos.World;
 using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
@@ -22,7 +23,9 @@ namespace MidnightChaos.Procedural
         public int GeneratedRockCount { get; private set; }
         public int GeneratedOreCount { get; private set; }
         public int GeneratedVegetationCount { get; private set; }
+        public int GeneratedGrassCount { get; private set; }
         public int GeneratedVegetationGameObjectCount { get; private set; }
+        public int GeneratedGrassGameObjectCount { get; private set; }
         public int InstancedVegetationCount =>
             vegetationRenderer != null
                 ? vegetationRenderer.LogicalInstanceCount
@@ -39,7 +42,26 @@ namespace MidnightChaos.Procedural
             vegetationRenderer != null
                 ? vegetationRenderer.SubmittedDrawCount
                 : 0;
+        public int GrassClusterCount =>
+            CurrentLayout != null ? CurrentLayout.GrassClusterCount : 0;
+        public int GrassTargetCount =>
+            CurrentLayout != null ? CurrentLayout.GrassTargetCount : 0;
+        public int GrassSuccessfullyPlacedCount =>
+            CurrentLayout != null
+                ? CurrentLayout.GrassSuccessfullyPlacedCount
+                : 0;
+        public int GrassRejectedPlacementCount =>
+            CurrentLayout != null
+                ? CurrentLayout.GrassRejectedPlacementCount
+                : 0;
+        public IReadOnlyDictionary<string, int> GrassClusterCountsByStableId =>
+            CurrentLayout != null
+                ? CurrentLayout.GrassClusterCountsByStableId
+                : EmptyGrassClusterCounts;
         public Transform GeneratedRoot => generatedRoot;
+
+        private static readonly IReadOnlyDictionary<string, int>
+            EmptyGrassClusterCounts = new Dictionary<string, int>();
 
         public ProceduralWorldLayout Generate(
             ProceduralWorldSettings settings,
@@ -73,7 +95,9 @@ namespace MidnightChaos.Procedural
 
             foreach (ProceduralObjectPlacement placement in CurrentLayout.Objects)
             {
-                GameObject prefab = ResolvePrefab(settings, placement);
+                GameObject prefab = placement.Definition == null
+                    ? null
+                    : placement.Definition.Prefab;
                 if (prefab == null)
                 {
                     continue;
@@ -81,8 +105,7 @@ namespace MidnightChaos.Procedural
 
                 ProceduralCategorySettings categorySettings =
                     ResolveCategorySettings(settings, placement.Category);
-                if (placement.Category ==
-                        ProceduralObjectCategory.Vegetation &&
+                if (IsInstancedPlantCategory(placement.Category) &&
                     vegetationRenderer != null &&
                     vegetationRenderer.TryAddPlacement(
                         prefab,
@@ -93,18 +116,28 @@ namespace MidnightChaos.Procedural
                     IncrementCategoryCount(placement.Category);
                     continue;
                 }
+                if (placement.Category == WorldObjectCategory.Grass &&
+                    vegetationRenderer != null)
+                {
+                    throw new InvalidOperationException(
+                        $"Grass '{placement.StableDefinitionId}' is not compatible with the required GPU-instanced render path.");
+                }
 
                 GameObject instance = Instantiate(prefab, generatedRoot);
                 if (placement.Category ==
-                    ProceduralObjectCategory.Vegetation)
+                    WorldObjectCategory.Vegetation)
                 {
                     GeneratedVegetationGameObjectCount++;
+                }
+                else if (placement.Category == WorldObjectCategory.Grass)
+                {
+                    GeneratedGrassGameObjectCount++;
                 }
                 // Nature bundle prefabs are authored with all static flags set.
                 // Clear inherited flags before any runtime transform changes.
                 SetStaticRecursively(instance, false);
                 instance.name =
-                    $"{placement.Category}_{placement.PrefabIndex}_{GeneratedObjectCount:000}";
+                    $"{placement.StableDefinitionId}_{placement.LayoutIndex:000}";
                 instance.transform.localScale =
                     prefab.transform.localScale * placement.UniformScale;
                 PlaceInstance(
@@ -143,7 +176,9 @@ namespace MidnightChaos.Procedural
             GeneratedRockCount = 0;
             GeneratedOreCount = 0;
             GeneratedVegetationCount = 0;
+            GeneratedGrassCount = 0;
             GeneratedVegetationGameObjectCount = 0;
+            GeneratedGrassGameObjectCount = 0;
             vegetationRenderer = null;
             missingAnchorWarnings.Clear();
 
@@ -267,35 +302,17 @@ namespace MidnightChaos.Procedural
             return fallbackGroundMaterial;
         }
 
-        private static GameObject ResolvePrefab(
-            ProceduralWorldSettings settings,
-            ProceduralObjectPlacement placement)
-        {
-            GameObject[] prefabs = placement.Category switch
-            {
-                ProceduralObjectCategory.Tree => settings.Trees.Prefabs,
-                ProceduralObjectCategory.Rock => settings.Rocks.Prefabs,
-                ProceduralObjectCategory.Ore => settings.Ores.Prefabs,
-                ProceduralObjectCategory.Vegetation => settings.Vegetation.Prefabs,
-                _ => Array.Empty<GameObject>()
-            };
-
-            return placement.PrefabIndex >= 0 &&
-                   placement.PrefabIndex < prefabs.Length
-                ? prefabs[placement.PrefabIndex]
-                : null;
-        }
-
         private static ProceduralCategorySettings ResolveCategorySettings(
             ProceduralWorldSettings settings,
-            ProceduralObjectCategory category)
+            WorldObjectCategory category)
         {
             return category switch
             {
-                ProceduralObjectCategory.Tree => settings.Trees,
-                ProceduralObjectCategory.Rock => settings.Rocks,
-                ProceduralObjectCategory.Ore => settings.Ores,
-                ProceduralObjectCategory.Vegetation => settings.Vegetation,
+                WorldObjectCategory.Tree => settings.Trees,
+                WorldObjectCategory.Rock => settings.Rocks,
+                WorldObjectCategory.Ore => settings.Ores,
+                WorldObjectCategory.Vegetation => settings.Vegetation,
+                WorldObjectCategory.Grass => settings.Grass,
                 _ => settings.Vegetation
             };
         }
@@ -311,6 +328,7 @@ namespace MidnightChaos.Procedural
                 settings.Vegetation,
                 "Vegetation",
                 errors);
+            ValidateDynamicObstacleCategory(settings.Grass, "Grass", errors);
             if (errors.Count > 0)
             {
                 throw new InvalidOperationException(
@@ -330,12 +348,21 @@ namespace MidnightChaos.Procedural
                 return;
             }
 
-            for (int index = 0; index < category.Prefabs.Length; index++)
+            for (int index = 0; index < category.Definitions.Length; index++)
             {
-                GameObject prefab = category.Prefabs[index];
-                if (prefab == null)
+                WorldObjectDefinition definition =
+                    category.Definitions[index];
+                if (definition == null)
                 {
                     errors.Add($"{label}[{index}] is null.");
+                    continue;
+                }
+
+                GameObject prefab = definition.Prefab;
+                if (prefab == null)
+                {
+                    errors.Add(
+                        $"{label}[{index}] '{definition.StableId}' has no prefab.");
                     continue;
                 }
 
@@ -420,7 +447,7 @@ namespace MidnightChaos.Procedural
             AlignBottomToGround(instance, placement.Position.y);
 
             int prefabId = prefab.GetInstanceID();
-            if (placement.Category != ProceduralObjectCategory.Vegetation &&
+            if (!IsInstancedPlantCategory(placement.Category) &&
                 missingAnchorWarnings.Add(prefabId))
             {
                 Debug.LogWarning(
@@ -493,7 +520,7 @@ namespace MidnightChaos.Procedural
 
         private void ConfigureRendering(
             GameObject instance,
-            ProceduralObjectCategory category,
+            WorldObjectCategory category,
             ProceduralWorldSettings settings)
         {
             int layer = ProceduralRenderUtility.ResolveCategoryLayer(
@@ -501,8 +528,12 @@ namespace MidnightChaos.Procedural
                 this);
             SetLayerRecursively(instance, layer);
 
-            if (category == ProceduralObjectCategory.Vegetation &&
-                settings.DisableVegetationShadows)
+            bool disablePlantShadows =
+                (category == WorldObjectCategory.Vegetation &&
+                 settings.DisableVegetationShadows) ||
+                (category == WorldObjectCategory.Grass &&
+                 settings.DisableGrassShadows);
+            if (disablePlantShadows)
             {
                 foreach (Renderer renderer in
                          instance.GetComponentsInChildren<Renderer>(true))
@@ -516,7 +547,7 @@ namespace MidnightChaos.Procedural
                 }
             }
 
-            if (category == ProceduralObjectCategory.Tree &&
+            if (category == WorldObjectCategory.Tree &&
                 !settings.EnableTreeParticles)
             {
                 foreach (ParticleSystem particles in
@@ -535,23 +566,33 @@ namespace MidnightChaos.Procedural
             }
         }
 
-        private void IncrementCategoryCount(ProceduralObjectCategory category)
+        private void IncrementCategoryCount(WorldObjectCategory category)
         {
             switch (category)
             {
-                case ProceduralObjectCategory.Tree:
+                case WorldObjectCategory.Tree:
                     GeneratedTreeCount++;
                     break;
-                case ProceduralObjectCategory.Rock:
+                case WorldObjectCategory.Rock:
                     GeneratedRockCount++;
                     break;
-                case ProceduralObjectCategory.Ore:
+                case WorldObjectCategory.Ore:
                     GeneratedOreCount++;
                     break;
-                case ProceduralObjectCategory.Vegetation:
+                case WorldObjectCategory.Vegetation:
                     GeneratedVegetationCount++;
                     break;
+                case WorldObjectCategory.Grass:
+                    GeneratedGrassCount++;
+                    break;
             }
+        }
+
+        private static bool IsInstancedPlantCategory(
+            WorldObjectCategory category)
+        {
+            return category == WorldObjectCategory.Vegetation ||
+                   category == WorldObjectCategory.Grass;
         }
 
         private static void AlignBottomToGround(GameObject instance, float groundHeight)

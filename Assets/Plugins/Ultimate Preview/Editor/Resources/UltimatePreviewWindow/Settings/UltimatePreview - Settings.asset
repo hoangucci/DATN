@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   "\u2002\L": 1
   ultimateAnimationPreviewSettings:
-    isEnable: 1
+    isEnable: 0
     disablePlayModeColorTint: 1
     isLightsEnable: 1
     ambientColor: {r: 1, g: 1, b: 1, a: 1}

@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MidnightChaos.Procedural;
+using MidnightChaos.Player;
+using MidnightChaos.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -18,10 +20,16 @@ namespace MidnightChaos.Editor
             SettingsFolder + "/ProceduralWorldSettings.asset";
         private const string ScenePath =
             "Assets/MidnightChaos/Generated/Scenes/ProceduralDemo.unity";
-        private const string EnvironmentPrefabRoot =
-            "Assets/Game/Prefab/Environments";
+        private const string CombatScenePath =
+            "Assets/MidnightChaos/Generated/Scenes/ProceduralCombatDemo.unity";
+        private const string PlayerPrefabPath =
+            "Assets/MidnightChaos/Generated/Prefabs/DiagnosticNetworkPlayer.prefab";
+        private const string ChaosShardPrefabPath =
+            "Assets/MidnightChaos/Generated/Prefabs/DiagnosticChaosShard.prefab";
         private const string NatureAssetRoot =
             "Assets/Asset/Environments/StylizedNatureBundle";
+        private const string DefinitionRoot =
+            "Assets/MidnightChaos/Definitions/World/Procedural";
 
         [MenuItem("Midnight Chaos/Procedural/Create or Refresh Procedural Demo")]
         public static void CreateOrRefreshProceduralDemo()
@@ -40,30 +48,27 @@ namespace MidnightChaos.Editor
                 ConfigureNewSettingsDefaults(settings);
             }
 
-            settings.ConfigureAssetReferencesIfEmpty(
-                LoadPrefabs(
-                    EnvironmentPrefabRoot + "/Tree",
-                    "Tree_01_a_P",
-                    "Tree_02_a_P",
-                    "Tree_03_a_P"),
-                LoadPrefabs(
-                    EnvironmentPrefabRoot + "/Rock",
-                    "Rock_01",
-                    "Rock_04"),
-                LoadPrefabs(
-                    EnvironmentPrefabRoot + "/Rock",
-                    "Rock_10",
-                    "Rock_12",
-                    "Rock_13"),
-                LoadPrefabs(
-                    NatureAssetRoot + "/Prefabs/GrassFlower",
-                    "GrassFlower_01_LOD",
-                    "GrassFlower_03_LOD"),
+            GameObject refreshedEnemyPrefab =
+                MidnightChaosBootstrapBuilder.CreateOrRefreshProceduralEnemyPrefab();
+            settings.ConfigureDefinitionReferencesIfEmpty(
+                LoadDefinitions(
+                    "Tree_01_a", "Tree_01_b", "Tree_01_d",
+                    "Tree_02_a", "Tree_02_b", "Tree_02_d",
+                    "Tree_03_a", "Tree_03_b", "Tree_03_d",
+                    "Tree_04_a", "Tree_04_b", "Tree_04_d"),
+                LoadDefinitions(
+                    "Rock_01", "Rock_02", "Rock_03", "Rock_04", "Rock_05",
+                    "Rock_06", "Rock_07", "Rock_08", "Rock_09", "Rock_11"),
+                LoadDefinitions("Ore_10", "Ore_12", "Ore_13"),
+                LoadDefinitions(
+                    "Vegetation_Flower_01", "Vegetation_Flower_02",
+                    "Vegetation_Flower_03", "Vegetation_Flower_04",
+                    "Vegetation_Flower_05"),
+                LoadDefinitions(
+                    "Vegetation_Grass_01", "Vegetation_Grass_03"),
                 AssetDatabase.LoadAssetAtPath<Material>(
                     NatureAssetRoot + "/Materials/M_SNB_Terrain_01.mat"),
-                AssetDatabase.LoadAssetAtPath<GameObject>(
-                    "Assets/MidnightChaos/Generated/Prefabs/" +
-                    "DiagnosticMeleeEnemy.prefab"));
+                refreshedEnemyPrefab);
             EditorUtility.SetDirty(settings);
 
             Scene scene = EditorSceneManager.NewScene(
@@ -74,10 +79,14 @@ namespace MidnightChaos.Editor
             GameObject networkRoot = new GameObject("NetworkManager");
             ProceduralDemoBootstrap bootstrap =
                 networkRoot.AddComponent<ProceduralDemoBootstrap>();
+            GameObject chaosShardPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(ChaosShardPrefabPath);
             SerializedObject serializedBootstrap =
                 new SerializedObject(bootstrap);
             serializedBootstrap.FindProperty("settings").objectReferenceValue =
                 settings;
+            serializedBootstrap.FindProperty("chaosShardPrefab")
+                .objectReferenceValue = chaosShardPrefab;
             serializedBootstrap.ApplyModifiedPropertiesWithoutUndo();
 
             new GameObject(
@@ -114,7 +123,7 @@ namespace MidnightChaos.Editor
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
-            AddSceneToBuildSettings();
+            AddSceneToBuildSettings(ScenePath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -123,6 +132,133 @@ namespace MidnightChaos.Editor
             Debug.Log(
                 "[Procedural] Created standalone ProceduralDemo scene. " +
                 "It contains spawn-point markers but no Player instance.");
+        }
+
+        [MenuItem(
+            "Midnight Chaos/Procedural/Create or Refresh Procedural Combat Demo")]
+        public static void CreateOrRefreshProceduralCombatDemo()
+        {
+            EnsureFolder(SettingsFolder);
+            EnsureFolder(
+                Path.GetDirectoryName(CombatScenePath)?.Replace('\\', '/'));
+
+            ProceduralWorldSettings settings =
+                AssetDatabase.LoadAssetAtPath<ProceduralWorldSettings>(
+                    SettingsPath);
+            if (settings == null)
+            {
+                Debug.LogError(
+                    "[Procedural Combat] ProceduralWorldSettings is missing. " +
+                    "Run Create or Refresh Procedural Demo first.");
+                return;
+            }
+
+            GameObject playerPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+            if (playerPrefab == null)
+            {
+                Debug.LogError(
+                    "[Procedural Combat] DiagnosticNetworkPlayer is missing. " +
+                    "Run Create or Refresh LAN Test Scene first.");
+                return;
+            }
+            GameObject chaosShardPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(ChaosShardPrefabPath);
+            if (chaosShardPrefab == null)
+            {
+                Debug.LogError(
+                    "[Procedural Combat] DiagnosticChaosShard is missing. " +
+                    "Run Create or Refresh LAN Test Scene first.");
+                return;
+            }
+
+            GameObject enemyPrefab =
+                MidnightChaosBootstrapBuilder.CreateOrRefreshProceduralEnemyPrefab();
+            settings.ConfigureDefinitionReferencesIfEmpty(
+                LoadDefinitions(
+                    "Tree_01_a", "Tree_01_b", "Tree_01_d",
+                    "Tree_02_a", "Tree_02_b", "Tree_02_d",
+                    "Tree_03_a", "Tree_03_b", "Tree_03_d",
+                    "Tree_04_a", "Tree_04_b", "Tree_04_d"),
+                LoadDefinitions(
+                    "Rock_01", "Rock_02", "Rock_03", "Rock_04", "Rock_05",
+                    "Rock_06", "Rock_07", "Rock_08", "Rock_09", "Rock_11"),
+                LoadDefinitions("Ore_10", "Ore_12", "Ore_13"),
+                LoadDefinitions(
+                    "Vegetation_Flower_01", "Vegetation_Flower_02",
+                    "Vegetation_Flower_03", "Vegetation_Flower_04",
+                    "Vegetation_Flower_05"),
+                LoadDefinitions(
+                    "Vegetation_Grass_01", "Vegetation_Grass_03"),
+                AssetDatabase.LoadAssetAtPath<Material>(
+                    NatureAssetRoot + "/Materials/M_SNB_Terrain_01.mat"),
+                enemyPrefab);
+            EditorUtility.SetDirty(settings);
+
+            Scene scene = EditorSceneManager.NewScene(
+                NewSceneSetup.EmptyScene,
+                NewSceneMode.Single);
+            scene.name = "ProceduralCombatDemo";
+
+            GameObject networkRoot = new GameObject("NetworkManager");
+            ProceduralDemoBootstrap bootstrap =
+                networkRoot.AddComponent<ProceduralDemoBootstrap>();
+            SerializedObject serializedBootstrap =
+                new SerializedObject(bootstrap);
+            serializedBootstrap.FindProperty("settings").objectReferenceValue =
+                settings;
+            serializedBootstrap.FindProperty("enablePlayers").boolValue = true;
+            serializedBootstrap.FindProperty("playerPrefab").objectReferenceValue =
+                playerPrefab;
+            serializedBootstrap.FindProperty("chaosShardPrefab")
+                .objectReferenceValue = chaosShardPrefab;
+            serializedBootstrap.ApplyModifiedPropertiesWithoutUndo();
+
+            new GameObject(
+                "ProceduralWorldGenerator",
+                typeof(ProceduralWorldGenerator));
+            GameObject navMeshObject = new GameObject(
+                "RuntimeNavMeshBuilder",
+                typeof(RuntimeNavMeshBuilder));
+            navMeshObject.GetComponent<RuntimeNavMeshBuilder>()
+                .Initialize(settings);
+            new GameObject(
+                "PlayerSpawnManager",
+                typeof(ProceduralSpawnPointRegistry),
+                typeof(ProceduralPlayerSpawnManager));
+            new GameObject(
+                "EnemySpawnManager",
+                typeof(ProceduralEnemySpawnManager));
+            new GameObject("UI Debug", typeof(ProceduralDemoUI));
+
+            GameObject cameraObject = new GameObject(
+                "Camera fallback",
+                typeof(Camera),
+                typeof(AudioListener),
+                typeof(DiagnosticCameraFollow));
+            cameraObject.tag = "MainCamera";
+            cameraObject.transform.position = new Vector3(0f, 95f, -105f);
+            cameraObject.transform.rotation = Quaternion.Euler(38f, 0f, 0f);
+
+            GameObject lightObject = new GameObject(
+                "Directional Light",
+                typeof(Light));
+            Light light = lightObject.GetComponent<Light>();
+            light.type = LightType.Directional;
+            light.intensity = 1.2f;
+            lightObject.transform.rotation = Quaternion.Euler(48f, -32f, 0f);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene, CombatScenePath);
+            AddSceneToBuildSettings(CombatScenePath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            Selection.activeObject =
+                AssetDatabase.LoadAssetAtPath<SceneAsset>(CombatScenePath);
+            Debug.Log(
+                "[Procedural Combat] Created scene with players spawned after " +
+                "Host world/NavMesh readiness. Enemy spawning remains manual.");
         }
 
         private static void ConfigureNewSettingsDefaults(
@@ -158,13 +294,30 @@ namespace MidnightChaos.Editor
                 0f);
             ConfigureCategory(
                 serialized.FindProperty("vegetation"),
-                45,
+                2000,
                 0.7f,
                 new Vector2(0.8f, 1.25f),
                 0f,
                 ProceduralSurfaceAlignment.AlignToSurfaceNormal,
                 ProceduralNavigationMode.None,
                 0.001f);
+            ConfigureCategory(
+                serialized.FindProperty("grass"),
+                8000,
+                0.7f,
+                new Vector2(0.8f, 1.25f),
+                0f,
+                ProceduralSurfaceAlignment.AlignToSurfaceNormal,
+                ProceduralNavigationMode.None,
+                0.001f);
+            SerializedProperty clusters =
+                serialized.FindProperty("grassClusters");
+            clusters.FindPropertyRelative("instancesPerClusterRange")
+                .vector2IntValue = new Vector2Int(50, 100);
+            clusters.FindPropertyRelative("radiusRange").vector2Value =
+                new Vector2(3f, 7f);
+            clusters.FindPropertyRelative("minimumSpacingRange").vector2Value =
+                new Vector2(0.15f, 0.3f);
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -193,28 +346,27 @@ namespace MidnightChaos.Editor
                 .floatValue = lodCullScreenHeightOverride;
         }
 
-        private static GameObject[] LoadPrefabs(
-            string folder,
-            params string[] names)
+        private static WorldObjectDefinition[] LoadDefinitions(
+            params string[] assetNames)
         {
-            return names
+            return assetNames
                 .Select(
-                    name => AssetDatabase.LoadAssetAtPath<GameObject>(
-                        $"{folder}/{name}.prefab"))
-                .Where(prefab => prefab != null)
+                    assetName =>
+                        AssetDatabase.LoadAssetAtPath<WorldObjectDefinition>(
+                            $"{DefinitionRoot}/{assetName}.asset"))
                 .ToArray();
         }
 
-        private static void AddSceneToBuildSettings()
+        private static void AddSceneToBuildSettings(string scenePath)
         {
             EditorBuildSettingsScene[] current = EditorBuildSettings.scenes;
-            if (current.Any(scene => scene.path == ScenePath))
+            if (current.Any(scene => scene.path == scenePath))
             {
                 return;
             }
 
             EditorBuildSettings.scenes = current
-                .Concat(new[] { new EditorBuildSettingsScene(ScenePath, true) })
+                .Concat(new[] { new EditorBuildSettingsScene(scenePath, true) })
                 .ToArray();
         }
 
@@ -272,10 +424,20 @@ namespace MidnightChaos.Editor
         private static void ValidateAndLog(ProceduralWorldSettings settings)
         {
             List<string> warnings = new List<string>();
+            try
+            {
+                settings.ValidateDefinitionsOrThrow();
+            }
+            catch (System.InvalidOperationException exception)
+            {
+                warnings.Add(exception.Message);
+            }
             ValidateCategory(settings.Trees, "Trees", true, warnings);
             ValidateCategory(settings.Rocks, "Rocks", true, warnings);
             ValidateCategory(settings.Ores, "Ores", true, warnings);
             ValidateCategory(settings.Vegetation, "Vegetation", false, warnings);
+            ValidateCategory(settings.Grass, "Grass", false, warnings);
+            warnings.AddRange(settings.CollectDefinitionWarnings());
 
             if (settings.EnemyPrefab == null)
             {
@@ -319,12 +481,20 @@ namespace MidnightChaos.Editor
             bool anchorRequired,
             List<string> warnings)
         {
-            for (int index = 0; index < category.Prefabs.Length; index++)
+            for (int index = 0; index < category.Definitions.Length; index++)
             {
-                GameObject prefab = category.Prefabs[index];
-                if (prefab == null)
+                WorldObjectDefinition definition = category.Definitions[index];
+                if (definition == null)
                 {
                     warnings.Add($"{label}[{index}] là null.");
+                    continue;
+                }
+
+                GameObject prefab = definition.Prefab;
+                if (prefab == null)
+                {
+                    warnings.Add(
+                        $"{label}[{index}] '{definition.StableId}' thiếu prefab.");
                     continue;
                 }
 
@@ -382,6 +552,9 @@ namespace MidnightChaos.Editor
             createdCount += MigrateCategory(
                 settings.Vegetation,
                 visitedPaths);
+            createdCount += MigrateCategory(
+                settings.Grass,
+                visitedPaths);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -404,8 +577,11 @@ namespace MidnightChaos.Editor
             }
 
             int createdCount = 0;
-            foreach (GameObject prefab in category.Prefabs)
+            foreach (WorldObjectDefinition definition in category.Definitions)
             {
+                GameObject prefab = definition == null
+                    ? null
+                    : definition.Prefab;
                 if (prefab == null)
                 {
                     continue;

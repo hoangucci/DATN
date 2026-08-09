@@ -17,9 +17,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Game/Scenes/Map.unity
     guid: 6a13787220fef3845b8ee82533e3fb8a
-  - enabled: 1
+  - enabled: 0
     path: Assets/MidnightChaos/Generated/Scenes/ProceduralDemo.unity
     guid: 109ad59a2dda40758886c43db82edbae
+  - enabled: 1
+    path: Assets/MidnightChaos/Generated/Scenes/ProceduralCombatDemo.unity
+    guid: 6cbd3e256243468e88b4817183e041bd
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

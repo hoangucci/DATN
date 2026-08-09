@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using MidnightChaos.World;
 using UnityEngine;
 
 namespace MidnightChaos.Procedural
@@ -6,6 +7,7 @@ namespace MidnightChaos.Procedural
     internal static class ProceduralRenderUtility
     {
         public const string VegetationLayerName = "Vegetation";
+        public const string GrassLayerName = "Grass";
         public const string TreeLayerName = "Tree";
         public const string SmallPropLayerName = "SmallProp";
         public const string ResourceLayerName = "Resource";
@@ -49,6 +51,11 @@ namespace MidnightChaos.Procedural
                 context);
             SetLayerDistance(
                 distances,
+                GrassLayerName,
+                settings.GrassCullDistance,
+                context);
+            SetLayerDistance(
+                distances,
                 TreeLayerName,
                 settings.TreeCullDistance,
                 context);
@@ -68,18 +75,20 @@ namespace MidnightChaos.Procedural
         }
 
         public static int ResolveCategoryLayer(
-            ProceduralObjectCategory category,
+            WorldObjectCategory category,
             Object context)
         {
             return category switch
             {
-                ProceduralObjectCategory.Vegetation =>
+                WorldObjectCategory.Vegetation =>
                     ResolveLayer(VegetationLayerName, 2, context),
-                ProceduralObjectCategory.Tree =>
+                WorldObjectCategory.Grass =>
+                    ResolveLayer(GrassLayerName, 2, context),
+                WorldObjectCategory.Tree =>
                     ResolveLayer(TreeLayerName, 0, context),
-                ProceduralObjectCategory.Rock =>
+                WorldObjectCategory.Rock =>
                     ResolveLayer(ResourceLayerName, 0, context),
-                ProceduralObjectCategory.Ore =>
+                WorldObjectCategory.Ore =>
                     ResolveLayer(ResourceLayerName, 0, context),
                 _ => 0
             };

@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using MidnightChaos.Combat;
 using Unity.Netcode;
 using Unity.Netcode.Components;
@@ -9,7 +9,7 @@ namespace MidnightChaos.Enemies
 {
     public enum DiagnosticEnemyState : byte
     {
-        Idle = 0,
+        Patrol = 0,
         Chase = 1,
         Attack = 2,
         Recover = 3,
@@ -24,187 +24,397 @@ namespace MidnightChaos.Enemies
     [RequireComponent(typeof(NavMeshAgent))]
     public sealed class DiagnosticMeleeEnemy : NetworkBehaviour
     {
-        [Header("Gate F - Stage-Aware Host Melee AI")]
-        [SerializeField, Min(0.1f)] private float detectionRange = 7.5f;
-        [SerializeField, Min(0.1f)] private float loseTargetRange = 12f;
-        [SerializeField, Min(0.1f)] private float attackReach = 1.8f;
-        [SerializeField, Min(1)] private int attackDamage = 20;
-        [SerializeField, Min(0.05f)] private float attackCooldownSeconds = 1.15f;
-        [SerializeField, Min(0.02f)] private float attackPoseSeconds = 0.18f;
+        private const int PatrolSampleAttempts = 8;
+        private const float PatrolArrivalTolerance = 0.2f;
+        private const int LineOfSightHitCapacity = 16;
 
-        private NetworkVariable<byte> replicatedState =
+        [Header("Enemy Content")]
+        [SerializeField, Tooltip(
+            "Single source for patrol, detection, chase, combat, visual, and animation tuning.")]
+        private EnemyDefinition definition;
+
+        private readonly RaycastHit[] lineOfSightHits =
+            new RaycastHit[LineOfSightHitCapacity];
+
+        private readonly NetworkVariable<byte> replicatedState =
             new NetworkVariable<byte>(
-                (byte)DiagnosticEnemyState.Idle,
+                (byte)DiagnosticEnemyState.Patrol,
+                NetworkVariableReadPermission.Everyone,
+                NetworkVariableWritePermission.Server);
+
+        private readonly NetworkVariable<uint> replicatedAttackSequence =
+            new NetworkVariable<uint>(
+                0,
+                NetworkVariableReadPermission.Everyone,
+                NetworkVariableWritePermission.Server);
+
+        private readonly NetworkVariable<uint> replicatedHitSequence =
+            new NetworkVariable<uint>(
+                0,
+                NetworkVariableReadPermission.Everyone,
+                NetworkVariableWritePermission.Server);
+
+        private readonly NetworkVariable<double> replicatedDeathEndsAt =
+            new NetworkVariable<double>(
+                0d,
+                NetworkVariableReadPermission.Everyone,
+                NetworkVariableWritePermission.Server);
+
+        private readonly NetworkVariable<double> replicatedSpawnEndsAt =
+            new NetworkVariable<double>(
+                0d,
                 NetworkVariableReadPermission.Everyone,
                 NetworkVariableWritePermission.Server);
 
         private NetworkHealth health;
         private DiagnosticEnemyEvolution evolution;
-        private NetworkObject targetPlayer;
-        private Renderer bodyRenderer;
         private NavMeshAgent navMeshAgent;
-        private Coroutine feedbackRoutine;
-        private bool feedbackFlashActive;
+        private NetworkObject targetPlayer;
+        private NetworkObject lastRetargetCandidate;
         private double nextAllowedAttackTime;
         private double attackPoseEndsAt;
-        private float baseAgentSpeed;
+        private double attackImpactAt;
+        private double hitReactionEndsAt;
+        private double nextAllowedHitVisualTime;
+        private double nextTargetEvaluationTime;
+        private double nextRepathTime;
+        private double nextPatrolDecisionTime;
+        private double lastTargetVisibleTime;
+        private bool waitingAtPatrolPoint;
+        private bool serverNavigationReady;
+        private bool serverMovementEnabled = true;
+        private bool navigationFailureLogged;
+        private Vector3 patrolCenter;
+        private Vector3 currentDestination;
+        private bool hasCurrentDestination;
+        private Vector3 lastLineOfSightStart;
+        private Vector3 lastLineOfSightEnd;
+        private Vector3 lastLineOfSightHitPoint;
+        private bool hasLineOfSightSample;
+        private bool lastLineOfSightVisible;
+        private NetworkObject pendingAttackTarget;
+        private Vector3 lockedAttackDirection;
+        private Vector3 lockedAttackTargetPosition;
+        private bool attackImpactPending;
+        private bool hasLockedAttackSample;
+        private bool lastAttackImpactHit;
+        private Collider[] gameplayColliders;
+        private bool deathCommittedServer;
+        private bool despawnCommittedServer;
+
+        public event Action<DiagnosticEnemyState, DiagnosticEnemyState>
+            StateChanged;
+        public event Action<uint, uint> AttackSequenceChanged;
+        public event Action<uint, uint> HitSequenceChanged;
 
         public DiagnosticEnemyState CurrentState =>
             (DiagnosticEnemyState)replicatedState.Value;
+        public uint AttackSequence => replicatedAttackSequence.Value;
+        public uint HitSequence => replicatedHitSequence.Value;
         public DiagnosticEnemyEvolution Evolution => evolution;
+        public EnemyDefinition Definition => definition;
+        public NetworkObject TargetPlayer => targetPlayer;
+        public NetworkObject LastRetargetCandidate => lastRetargetCandidate;
+        public Vector3 PatrolCenter => patrolCenter;
+        public Vector3 CurrentDestination => currentDestination;
+        public bool HasCurrentDestination => hasCurrentDestination;
+        public bool ServerNavigationReady => serverNavigationReady;
+        public bool ServerMovementEnabled => serverMovementEnabled;
+        public Vector3 LastLineOfSightStart => lastLineOfSightStart;
+        public Vector3 LastLineOfSightEnd => lastLineOfSightEnd;
+        public Vector3 LastLineOfSightHitPoint => lastLineOfSightHitPoint;
+        public bool HasLineOfSightSample => hasLineOfSightSample;
+        public bool LastLineOfSightVisible => lastLineOfSightVisible;
+        public Vector3 LockedAttackDirection => lockedAttackDirection;
+        public Vector3 LockedAttackTargetPosition => lockedAttackTargetPosition;
+        public bool HasLockedAttackSample => hasLockedAttackSample;
+        public bool LastAttackImpactHit => lastAttackImpactHit;
+        public double DeathEndsAt => replicatedDeathEndsAt.Value;
+        public double SpawnEndsAt => replicatedSpawnEndsAt.Value;
+        public double SynchronizedNetworkTime =>
+            NetworkManager != null && NetworkManager.IsListening
+                ? NetworkManager.ServerTime.Time
+                : Time.realtimeSinceStartupAsDouble;
+        public NavMeshAgent Agent => navMeshAgent;
 
-        private float CurrentMoveSpeed =>
-            baseAgentSpeed * evolution.SpeedMultiplier;
         private float CurrentAttackReach =>
-            attackReach * evolution.AttackReachMultiplier;
+            definition.AttackReach * evolution.AttackReachMultiplier;
         private int CurrentAttackDamage =>
             Mathf.Max(
                 1,
                 Mathf.RoundToInt(
-                    attackDamage * evolution.DamageMultiplier));
+                    definition.AttackDamage * evolution.DamageMultiplier));
 
         private void Awake()
         {
             health = GetComponent<NetworkHealth>();
             evolution = GetComponent<DiagnosticEnemyEvolution>();
-            bodyRenderer = GetComponentInChildren<Renderer>();
             navMeshAgent = GetComponent<NavMeshAgent>();
-            baseAgentSpeed = navMeshAgent.speed;
+            definition ??= GetComponent<DiagnosticEnemyVisual>()?.Definition;
+            CacheGameplayColliders();
         }
 
         public override void OnNetworkSpawn()
         {
-            navMeshAgent.enabled = IsServer;
             replicatedState.OnValueChanged += HandleStateChanged;
+            replicatedAttackSequence.OnValueChanged +=
+                HandleAttackSequenceChanged;
+            replicatedHitSequence.OnValueChanged += HandleHitSequenceChanged;
             health.HealthChanged += HandleHealthChanged;
-            evolution.StageChanged += HandleStageChanged;
-            evolution.FeedbackRequested += HandleFeedbackRequested;
 
-            if (IsServer)
+            if (CurrentState == DiagnosticEnemyState.Dead)
             {
-                SetStateServer(DiagnosticEnemyState.Idle);
+                ApplyDeadGameplayState();
             }
 
-            RefreshVisuals();
+            if (!IsServer)
+            {
+                navMeshAgent.enabled = false;
+                return;
+            }
+
+            if (!ValidateServerConfiguration())
+            {
+                return;
+            }
+
+            patrolCenter = transform.position;
+            currentDestination = patrolCenter;
+            hasCurrentDestination = false;
+            waitingAtPatrolPoint = false;
+            double now = Time.realtimeSinceStartupAsDouble;
+            nextTargetEvaluationTime = now;
+            nextPatrolDecisionTime = now;
+            lastTargetVisibleTime = now;
+            replicatedSpawnEndsAt.Value = SynchronizedNetworkTime +
+                                          definition.SpawnPresentationSeconds;
+            serverNavigationReady = true;
+            navMeshAgent.isStopped = !serverMovementEnabled;
+            SetStateServer(DiagnosticEnemyState.Patrol);
         }
 
         public override void OnNetworkDespawn()
         {
             StopMovingServer();
-            navMeshAgent.enabled = false;
-            replicatedState.OnValueChanged -= HandleStateChanged;
-            health.HealthChanged -= HandleHealthChanged;
-            evolution.StageChanged -= HandleStageChanged;
-            evolution.FeedbackRequested -= HandleFeedbackRequested;
-            targetPlayer = null;
-
-            if (feedbackRoutine != null)
+            if (navMeshAgent != null)
             {
-                StopCoroutine(feedbackRoutine);
-                feedbackRoutine = null;
+                navMeshAgent.enabled = false;
             }
 
-            feedbackFlashActive = false;
+            replicatedState.OnValueChanged -= HandleStateChanged;
+            replicatedAttackSequence.OnValueChanged -=
+                HandleAttackSequenceChanged;
+            replicatedHitSequence.OnValueChanged -= HandleHitSequenceChanged;
+            health.HealthChanged -= HandleHealthChanged;
+            targetPlayer = null;
+            lastRetargetCandidate = null;
+            pendingAttackTarget = null;
+            attackImpactPending = false;
+            serverNavigationReady = false;
+            hasCurrentDestination = false;
         }
 
         private void Update()
         {
-            if (!IsServer || !IsSpawned)
+            if (!IsServer || !IsSpawned || !serverNavigationReady)
             {
                 return;
             }
 
             if (health.IsDead)
             {
-                targetPlayer = null;
-                StopMovingServer();
-                SetStateServer(DiagnosticEnemyState.Dead);
+                UpdateDeathServer();
                 return;
             }
 
-            if (!IsTargetValidServer(targetPlayer))
+            if (!navMeshAgent.enabled || !navMeshAgent.isOnNavMesh)
             {
-                targetPlayer = FindNearestLivingPlayerServer();
+                FailNavigationOnce(
+                    "NavMeshAgent left the NavMesh; server AI has been disabled.");
+                return;
+            }
+
+            if (SynchronizedNetworkTime < replicatedSpawnEndsAt.Value)
+            {
+                StopMovingServer();
+                return;
+            }
+
+            double now = Time.realtimeSinceStartupAsDouble;
+            if (now < hitReactionEndsAt)
+            {
+                StopMovingServer();
+                return;
+            }
+
+            if (UpdatePendingAttackServer(now))
+            {
+                return;
+            }
+
+            if (now >= nextTargetEvaluationTime)
+            {
+                EvaluateTargetServer(now);
+                nextTargetEvaluationTime = now + definition.RetargetInterval;
             }
 
             if (targetPlayer == null)
             {
-                StopMovingServer();
-                SetStateServer(DiagnosticEnemyState.Idle);
+                UpdatePatrolServer(now);
                 return;
             }
 
-            Vector3 toTarget = Vector3.ProjectOnPlane(
-                targetPlayer.transform.position - transform.position,
-                Vector3.up);
+            UpdateCombatAndChaseServer(now);
+        }
 
-            double now = Time.realtimeSinceStartupAsDouble;
-            if (now < attackPoseEndsAt)
+        public bool SetServerMovementEnabled(
+            bool movementEnabled,
+            out string error)
+        {
+            if (!IsServer || !IsSpawned)
             {
-                StopMovingServer();
-                SetStateServer(DiagnosticEnemyState.Attack);
-                return;
+                error = "Enemy movement can only be changed by the active server.";
+                return false;
+            }
+            if (health == null || health.IsDead)
+            {
+                error = "Dead enemy movement cannot be changed.";
+                return false;
+            }
+            if (navMeshAgent == null ||
+                !navMeshAgent.enabled ||
+                !navMeshAgent.isOnNavMesh)
+            {
+                error = "Enemy NavMeshAgent is not ready.";
+                return false;
             }
 
-            float distanceSquared = toTarget.sqrMagnitude;
-            float currentAttackReach = CurrentAttackReach;
-            if (distanceSquared <= currentAttackReach * currentAttackReach)
+            serverMovementEnabled = movementEnabled;
+            if (!movementEnabled)
             {
-                StopMovingServer();
-                if (now < nextAllowedAttackTime)
+                navMeshAgent.ResetPath();
+                hasCurrentDestination = false;
+            }
+            navMeshAgent.isStopped = !movementEnabled;
+
+            error = string.Empty;
+            return true;
+        }
+
+        private bool ValidateServerConfiguration()
+        {
+            if (definition == null)
+            {
+                FailNavigationOnce(
+                    "EnemyDefinition is missing; server AI cannot start.");
+                return false;
+            }
+            if (!navMeshAgent.enabled)
+            {
+                FailNavigationOnce(
+                    "Host NavMeshAgent was not enabled by the spawn manager.");
+                return false;
+            }
+            if (!navMeshAgent.isOnNavMesh)
+            {
+                FailNavigationOnce(
+                    "Host NavMeshAgent is not placed on a NavMesh.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void EvaluateTargetServer(double now)
+        {
+            NetworkObject previousTarget = targetPlayer;
+            bool currentValid = IsLivingSpawnedPlayer(targetPlayer);
+            float currentDistance = currentValid
+                ? HorizontalDistance(transform.position, targetPlayer.transform.position)
+                : float.PositiveInfinity;
+
+            bool currentVisible = false;
+            if (currentValid && currentDistance <= definition.LoseTargetRange)
+            {
+                currentVisible = HasLineOfSight(targetPlayer, true);
+                if (currentVisible)
                 {
-                    SetStateServer(DiagnosticEnemyState.Recover);
-                    return;
+                    lastTargetVisibleTime = now;
                 }
-
-                NetworkHealth targetHealth =
-                    targetPlayer.GetComponent<NetworkHealth>();
-
-                if (targetHealth != null &&
-                    targetHealth.TryApplyDamageServer(
-                        CurrentAttackDamage,
-                        NetworkObject))
+                else if (now - lastTargetVisibleTime >
+                         definition.LoseSightGraceSeconds)
                 {
-                    nextAllowedAttackTime = now + attackCooldownSeconds;
-                    attackPoseEndsAt = now + attackPoseSeconds;
-                    SetStateServer(DiagnosticEnemyState.Attack);
+                    currentValid = false;
                 }
-
-                return;
+            }
+            else
+            {
+                currentValid = false;
             }
 
-            SetStateServer(DiagnosticEnemyState.Chase);
-            if (navMeshAgent.enabled && navMeshAgent.isOnNavMesh)
+            NetworkObject nearestVisible =
+                FindNearestVisibleLivingPlayerServer(out float nearestDistance);
+            lastRetargetCandidate = nearestVisible;
+
+            if (!currentValid)
             {
-                navMeshAgent.speed = CurrentMoveSpeed;
-                navMeshAgent.stoppingDistance = currentAttackReach;
-                navMeshAgent.SetDestination(targetPlayer.transform.position);
+                targetPlayer = nearestVisible;
+                if (targetPlayer != null)
+                {
+                    lastTargetVisibleTime = now;
+                    ResetForChaseServer(now);
+                }
+            }
+            else if (nearestVisible != null && nearestVisible != targetPlayer)
+            {
+                bool substantiallyCloser = nearestDistance +
+                    definition.TargetSwitchAdvantage < currentDistance;
+                bool tiedButStableWinner = Mathf.Approximately(
+                        nearestDistance + definition.TargetSwitchAdvantage,
+                        currentDistance) &&
+                    nearestVisible.NetworkObjectId < targetPlayer.NetworkObjectId;
+
+                if (substantiallyCloser || tiedButStableWinner)
+                {
+                    targetPlayer = nearestVisible;
+                    lastTargetVisibleTime = now;
+                    ResetForChaseServer(now);
+                }
+            }
+
+            if (previousTarget != null && targetPlayer == null)
+            {
+                StopMovingServer();
+                waitingAtPatrolPoint = false;
+                nextPatrolDecisionTime = now;
+            }
+
+            if (targetPlayer != null && !currentVisible &&
+                targetPlayer == previousTarget)
+            {
+                // Keep the current target during the configured LOS grace.
+                HasLineOfSight(targetPlayer, true);
             }
         }
 
-        private NetworkObject FindNearestLivingPlayerServer()
+        private NetworkObject FindNearestVisibleLivingPlayerServer(
+            out float bestDistance)
         {
-            if (!IsServer || NetworkManager == null)
+            bestDistance = float.PositiveInfinity;
+            if (NetworkManager == null)
             {
                 return null;
             }
 
-            float maximumDistanceSquared = detectionRange * detectionRange;
+            float maximumDistanceSquared =
+                definition.DetectionRange * definition.DetectionRange;
             float bestDistanceSquared = float.PositiveInfinity;
             NetworkObject bestTarget = null;
 
             foreach (NetworkClient client in NetworkManager.ConnectedClientsList)
             {
                 NetworkObject candidate = client.PlayerObject;
-                if (candidate == null || !candidate.IsSpawned)
-                {
-                    continue;
-                }
-
-                NetworkHealth candidateHealth =
-                    candidate.GetComponent<NetworkHealth>();
-
-                if (candidateHealth == null || candidateHealth.IsDead)
+                if (!IsLivingSpawnedPlayer(candidate))
                 {
                     continue;
                 }
@@ -212,10 +422,20 @@ namespace MidnightChaos.Enemies
                 Vector3 delta = Vector3.ProjectOnPlane(
                     candidate.transform.position - transform.position,
                     Vector3.up);
-
                 float distanceSquared = delta.sqrMagnitude;
-                if (distanceSquared > maximumDistanceSquared ||
-                    distanceSquared >= bestDistanceSquared)
+                if (distanceSquared > maximumDistanceSquared)
+                {
+                    continue;
+                }
+
+                bool farther = distanceSquared > bestDistanceSquared;
+                bool sameDistanceHigherId = Mathf.Approximately(
+                        distanceSquared,
+                        bestDistanceSquared) &&
+                    bestTarget != null &&
+                    candidate.NetworkObjectId > bestTarget.NetworkObjectId;
+                if (farther || sameDistanceHigherId ||
+                    !HasLineOfSight(candidate, candidate == targetPlayer))
                 {
                     continue;
                 }
@@ -224,33 +444,306 @@ namespace MidnightChaos.Enemies
                 bestTarget = candidate;
             }
 
+            if (bestTarget != null)
+            {
+                bestDistance = Mathf.Sqrt(bestDistanceSquared);
+            }
+
             return bestTarget;
         }
 
-        private bool IsTargetValidServer(NetworkObject candidate)
+        private bool HasLineOfSight(
+            NetworkObject candidate,
+            bool storeDebugSample)
         {
-            if (!IsServer || candidate == null || !candidate.IsSpawned)
+            Vector3 start = transform.TransformPoint(definition.EyeOffset);
+            Vector3 end = candidate.transform.TransformPoint(
+                definition.TargetEyeOffset);
+            Vector3 delta = end - start;
+            float distance = delta.magnitude;
+            if (distance <= Mathf.Epsilon)
+            {
+                StoreLineOfSightDebug(start, end, end, true, storeDebugSample);
+                return true;
+            }
+
+            int hitCount = Physics.RaycastNonAlloc(
+                start,
+                delta / distance,
+                lineOfSightHits,
+                distance,
+                definition.LineOfSightMask,
+                QueryTriggerInteraction.Ignore);
+
+            float closestDistance = float.PositiveInfinity;
+            Collider closestCollider = null;
+            Vector3 closestPoint = end;
+            for (int index = 0; index < hitCount; index++)
+            {
+                RaycastHit hit = lineOfSightHits[index];
+                if (hit.collider == null ||
+                    hit.collider.transform.IsChildOf(transform))
+                {
+                    continue;
+                }
+                if (hit.distance >= closestDistance)
+                {
+                    continue;
+                }
+
+                closestDistance = hit.distance;
+                closestCollider = hit.collider;
+                closestPoint = hit.point;
+            }
+
+            bool visible = closestCollider == null ||
+                           closestCollider.transform.IsChildOf(
+                               candidate.transform);
+            StoreLineOfSightDebug(
+                start,
+                end,
+                visible ? end : closestPoint,
+                visible,
+                storeDebugSample);
+            return visible;
+        }
+
+        private void StoreLineOfSightDebug(
+            Vector3 start,
+            Vector3 end,
+            Vector3 hitPoint,
+            bool visible,
+            bool shouldStore)
+        {
+            if (!shouldStore)
+            {
+                return;
+            }
+
+            lastLineOfSightStart = start;
+            lastLineOfSightEnd = end;
+            lastLineOfSightHitPoint = hitPoint;
+            lastLineOfSightVisible = visible;
+            hasLineOfSightSample = true;
+        }
+
+        private void UpdatePatrolServer(double now)
+        {
+            SetStateServer(DiagnosticEnemyState.Patrol);
+            navMeshAgent.speed =
+                definition.PatrolSpeed * evolution.SpeedMultiplier;
+            navMeshAgent.stoppingDistance = 0f;
+
+            if (navMeshAgent.pathPending)
+            {
+                return;
+            }
+
+            bool moving = navMeshAgent.hasPath &&
+                          navMeshAgent.remainingDistance >
+                          navMeshAgent.stoppingDistance + PatrolArrivalTolerance;
+            if (moving)
+            {
+                return;
+            }
+
+            if (!waitingAtPatrolPoint)
+            {
+                navMeshAgent.ResetPath();
+                hasCurrentDestination = false;
+                waitingAtPatrolPoint = true;
+                nextPatrolDecisionTime = now + UnityEngine.Random.Range(
+                    definition.MinimumPatrolWait,
+                    definition.MaximumPatrolWait);
+                return;
+            }
+            if (now < nextPatrolDecisionTime)
+            {
+                return;
+            }
+
+            if (TryChoosePatrolDestinationServer(out Vector3 destination))
+            {
+                currentDestination = destination;
+                hasCurrentDestination = true;
+                waitingAtPatrolPoint = false;
+                navMeshAgent.SetDestination(destination);
+                return;
+            }
+
+            nextPatrolDecisionTime = now + definition.MinimumPatrolWait;
+        }
+
+        private bool TryChoosePatrolDestinationServer(out Vector3 destination)
+        {
+            float sampleRadius = Mathf.Max(1f, navMeshAgent.radius * 4f);
+            for (int attempt = 0; attempt < PatrolSampleAttempts; attempt++)
+            {
+                Vector2 offset = UnityEngine.Random.insideUnitCircle *
+                                 definition.PatrolRadius;
+                Vector3 candidate = patrolCenter +
+                    new Vector3(offset.x, 0f, offset.y);
+                if (!NavMesh.SamplePosition(
+                        candidate,
+                        out NavMeshHit hit,
+                        sampleRadius,
+                        navMeshAgent.areaMask))
+                {
+                    continue;
+                }
+
+                destination = hit.position;
+                return true;
+            }
+
+            destination = patrolCenter;
+            return false;
+        }
+
+        private void UpdateCombatAndChaseServer(double now)
+        {
+            Vector3 toTarget = Vector3.ProjectOnPlane(
+                targetPlayer.transform.position - transform.position,
+                Vector3.up);
+
+            float attackReach = CurrentAttackReach;
+            if (toTarget.sqrMagnitude <= attackReach * attackReach)
+            {
+                StopMovingServer();
+                if (now < nextAllowedAttackTime)
+                {
+                    SetStateServer(DiagnosticEnemyState.Recover);
+                    return;
+                }
+
+                BeginAttackServer(now, toTarget);
+
+                return;
+            }
+
+            SetStateServer(DiagnosticEnemyState.Chase);
+            navMeshAgent.speed =
+                definition.ChaseSpeed * evolution.SpeedMultiplier;
+            navMeshAgent.stoppingDistance = attackReach;
+            if (now < nextRepathTime)
+            {
+                return;
+            }
+
+            currentDestination = targetPlayer.transform.position;
+            hasCurrentDestination = true;
+            navMeshAgent.SetDestination(currentDestination);
+            nextRepathTime = now + definition.RepathInterval;
+        }
+
+        private void BeginAttackServer(double now, Vector3 toTarget)
+        {
+            if (toTarget.sqrMagnitude <= Mathf.Epsilon)
+            {
+                toTarget = transform.forward;
+            }
+
+            lockedAttackDirection = toTarget.normalized;
+            lockedAttackTargetPosition = targetPlayer.transform.position;
+            hasLockedAttackSample = true;
+            lastAttackImpactHit = false;
+            transform.rotation = Quaternion.LookRotation(
+                lockedAttackDirection,
+                Vector3.up);
+
+            pendingAttackTarget = targetPlayer;
+            attackImpactPending = true;
+            attackImpactAt = now + definition.AttackImpactDelaySeconds;
+            attackPoseEndsAt = now + Mathf.Max(
+                definition.AttackPoseSeconds,
+                definition.AttackImpactDelaySeconds);
+            nextAllowedAttackTime = now + definition.AttackCooldownSeconds;
+            replicatedAttackSequence.Value++;
+            SetStateServer(DiagnosticEnemyState.Attack);
+        }
+
+        private bool UpdatePendingAttackServer(double now)
+        {
+            if (!attackImpactPending && now >= attackPoseEndsAt)
+            {
+                return false;
+            }
+
+            StopMovingServer();
+            SetStateServer(DiagnosticEnemyState.Attack);
+            if (attackImpactPending && now >= attackImpactAt)
+            {
+                attackImpactPending = false;
+                lastAttackImpactHit = TryResolveAttackImpactServer();
+                pendingAttackTarget = null;
+            }
+
+            return now < attackPoseEndsAt;
+        }
+
+        private bool TryResolveAttackImpactServer()
+        {
+            NetworkObject impactTarget = pendingAttackTarget;
+            if (!IsLivingSpawnedPlayer(impactTarget))
+            {
+                return false;
+            }
+
+            Vector3 toTarget = Vector3.ProjectOnPlane(
+                impactTarget.transform.position - transform.position,
+                Vector3.up);
+            float attackReach = CurrentAttackReach;
+            if (toTarget.sqrMagnitude > attackReach * attackReach)
+            {
+                return false;
+            }
+
+            if (toTarget.sqrMagnitude > Mathf.Epsilon)
+            {
+                float minimumDot = Mathf.Cos(
+                    definition.AttackConeHalfAngleDegrees * Mathf.Deg2Rad);
+                if (Vector3.Dot(
+                        lockedAttackDirection,
+                        toTarget.normalized) < minimumDot)
+                {
+                    return false;
+                }
+            }
+
+            if (!HasLineOfSight(impactTarget, true))
+            {
+                return false;
+            }
+
+            NetworkHealth targetHealth =
+                impactTarget.GetComponent<NetworkHealth>();
+            return targetHealth != null &&
+                   targetHealth.TryApplyDamageServer(
+                       CurrentAttackDamage,
+                       NetworkObject);
+        }
+
+        private void ResetForChaseServer(double now)
+        {
+            waitingAtPatrolPoint = false;
+            nextRepathTime = now;
+        }
+
+        private bool IsLivingSpawnedPlayer(NetworkObject candidate)
+        {
+            if (candidate == null || !candidate.IsSpawned)
             {
                 return false;
             }
 
             NetworkHealth candidateHealth =
                 candidate.GetComponent<NetworkHealth>();
-
-            if (candidateHealth == null || candidateHealth.IsDead)
-            {
-                return false;
-            }
-
-            Vector3 delta = Vector3.ProjectOnPlane(
-                candidate.transform.position - transform.position,
-                Vector3.up);
-
-            return delta.sqrMagnitude <= loseTargetRange * loseTargetRange;
+            return candidateHealth != null && !candidateHealth.IsDead;
         }
 
         private void StopMovingServer()
         {
+            hasCurrentDestination = false;
             if (navMeshAgent == null ||
                 !navMeshAgent.enabled ||
                 !navMeshAgent.isOnNavMesh)
@@ -269,90 +762,190 @@ namespace MidnightChaos.Enemies
             }
 
             replicatedState.Value = (byte)state;
-            RefreshVisuals();
         }
 
         private void HandleStateChanged(byte previous, byte current)
         {
-            RefreshVisuals();
+            if ((DiagnosticEnemyState)current == DiagnosticEnemyState.Dead)
+            {
+                ApplyDeadGameplayState();
+            }
+
+            StateChanged?.Invoke(
+                (DiagnosticEnemyState)previous,
+                (DiagnosticEnemyState)current);
+        }
+
+        private void HandleAttackSequenceChanged(uint previous, uint current)
+        {
+            if (previous != current)
+            {
+                AttackSequenceChanged?.Invoke(previous, current);
+            }
+        }
+
+        private void HandleHitSequenceChanged(uint previous, uint current)
+        {
+            if (previous != current)
+            {
+                HitSequenceChanged?.Invoke(previous, current);
+            }
         }
 
         private void HandleHealthChanged(int previousHealth, int currentHealth)
         {
-            if (IsServer && currentHealth <= 0)
-            {
-                targetPlayer = null;
-                SetStateServer(DiagnosticEnemyState.Dead);
-            }
-
-            RefreshVisuals();
-        }
-
-        private void HandleStageChanged(
-            DiagnosticEnemyStage previousStage,
-            DiagnosticEnemyStage currentStage)
-        {
-            RefreshVisuals();
-        }
-
-        private void HandleFeedbackRequested(uint previous, uint current)
-        {
-            if (feedbackRoutine != null)
-            {
-                StopCoroutine(feedbackRoutine);
-            }
-
-            feedbackRoutine = StartCoroutine(ShowEvolutionFeedback());
-        }
-
-        private IEnumerator ShowEvolutionFeedback()
-        {
-            feedbackFlashActive = true;
-            RefreshVisuals();
-            yield return new WaitForSecondsRealtime(0.24f);
-            feedbackFlashActive = false;
-            RefreshVisuals();
-            feedbackRoutine = null;
-        }
-
-        private void RefreshVisuals()
-        {
-            if (bodyRenderer == null)
+            if (!IsServer || currentHealth >= previousHealth)
             {
                 return;
             }
 
-            if (feedbackFlashActive)
+            if (currentHealth > 0)
             {
-                bodyRenderer.material.color =
-                    new Color(0.95f, 0.62f, 1f);
+                double now = Time.realtimeSinceStartupAsDouble;
+                if (now < attackPoseEndsAt ||
+                    SynchronizedNetworkTime < replicatedSpawnEndsAt.Value)
+                {
+                    return;
+                }
+
+                hitReactionEndsAt = Math.Max(
+                    hitReactionEndsAt,
+                    now + definition.HitReactionSeconds);
+                StopMovingServer();
+                if (now >= nextAllowedHitVisualTime)
+                {
+                    nextAllowedHitVisualTime = now +
+                                               definition.HitVisualCooldownSeconds;
+                    replicatedHitSequence.Value++;
+                }
+
                 return;
             }
 
-            Color stageColor = evolution.CurrentStage switch
-            {
-                DiagnosticEnemyStage.Small =>
-                    new Color(0.48f, 0.26f, 0.78f),
-                DiagnosticEnemyStage.Mature =>
-                    new Color(0.72f, 0.20f, 0.86f),
-                DiagnosticEnemyStage.Alpha =>
-                    new Color(0.94f, 0.18f, 1f),
-                _ => Color.magenta
-            };
-
-            bodyRenderer.material.color = CurrentState switch
-            {
-                DiagnosticEnemyState.Idle => stageColor,
-                DiagnosticEnemyState.Chase =>
-                    Color.Lerp(
-                        stageColor,
-                        new Color(1f, 0.48f, 0.08f),
-                        0.48f),
-                DiagnosticEnemyState.Attack => new Color(1f, 0.08f, 0.08f),
-                DiagnosticEnemyState.Recover => new Color(0.95f, 0.78f, 0.16f),
-                DiagnosticEnemyState.Dead => new Color(0.22f, 0.05f, 0.05f),
-                _ => Color.magenta
-            };
+            targetPlayer = null;
+            pendingAttackTarget = null;
+            attackImpactPending = false;
+            BeginDeathServer();
         }
+
+        private void BeginDeathServer()
+        {
+            if (!IsServer || deathCommittedServer)
+            {
+                return;
+            }
+
+            deathCommittedServer = true;
+            targetPlayer = null;
+            pendingAttackTarget = null;
+            attackImpactPending = false;
+            hitReactionEndsAt = 0d;
+            StopMovingServer();
+            replicatedDeathEndsAt.Value = SynchronizedNetworkTime +
+                                          definition.DeathPresentationSeconds;
+            SetStateServer(DiagnosticEnemyState.Dead);
+            ApplyDeadGameplayState();
+        }
+
+        private void UpdateDeathServer()
+        {
+            if (!deathCommittedServer)
+            {
+                BeginDeathServer();
+            }
+
+            if (despawnCommittedServer ||
+                SynchronizedNetworkTime < replicatedDeathEndsAt.Value)
+            {
+                return;
+            }
+
+            despawnCommittedServer = true;
+            NetworkObject.Despawn(true);
+        }
+
+        private void CacheGameplayColliders()
+        {
+            Collider[] colliders = GetComponentsInChildren<Collider>(true);
+            Transform visualRoot =
+                GetComponent<DiagnosticEnemyVisual>()?.VisualRoot;
+            if (visualRoot == null)
+            {
+                gameplayColliders = colliders;
+                return;
+            }
+
+            int gameplayCount = 0;
+            foreach (Collider candidate in colliders)
+            {
+                if (candidate != null &&
+                    !candidate.transform.IsChildOf(visualRoot))
+                {
+                    gameplayCount++;
+                }
+            }
+
+            gameplayColliders = new Collider[gameplayCount];
+            int index = 0;
+            foreach (Collider candidate in colliders)
+            {
+                if (candidate != null &&
+                    !candidate.transform.IsChildOf(visualRoot))
+                {
+                    gameplayColliders[index++] = candidate;
+                }
+            }
+        }
+
+        private void ApplyDeadGameplayState()
+        {
+            if (gameplayColliders != null)
+            {
+                foreach (Collider gameplayCollider in gameplayColliders)
+                {
+                    if (gameplayCollider != null)
+                    {
+                        gameplayCollider.enabled = false;
+                    }
+                }
+            }
+
+            if (navMeshAgent == null || !navMeshAgent.enabled)
+            {
+                return;
+            }
+
+            if (navMeshAgent.isOnNavMesh)
+            {
+                navMeshAgent.ResetPath();
+            }
+            navMeshAgent.enabled = false;
+        }
+
+        private void FailNavigationOnce(string reason)
+        {
+            serverNavigationReady = false;
+            if (navigationFailureLogged)
+            {
+                return;
+            }
+
+            navigationFailureLogged = true;
+            Debug.LogError(
+                $"[Enemy AI] {name}: {reason}",
+                this);
+        }
+
+        private static float HorizontalDistance(Vector3 first, Vector3 second)
+        {
+            return Vector3.ProjectOnPlane(second - first, Vector3.up).magnitude;
+        }
+
+#if UNITY_EDITOR
+        public void ConfigureForDiagnostics(EnemyDefinition configuredDefinition)
+        {
+            definition = configuredDefinition;
+        }
+#endif
     }
 }

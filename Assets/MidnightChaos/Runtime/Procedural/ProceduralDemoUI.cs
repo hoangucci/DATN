@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MidnightChaos.Networking;
 using Unity.Netcode;
 using UnityEngine;
@@ -7,13 +8,43 @@ namespace MidnightChaos.Procedural
     [DisallowMultipleComponent]
     public sealed class ProceduralDemoUI : MonoBehaviour
     {
+        private enum DebugDisplayMode
+        {
+            Minimal,
+            Detailed,
+            Diagnostics
+        }
+
         private const float PanelWidth = 410f;
+        private const float PanelMargin = 16f;
+        private const float PanelContentInset = 14f;
+        private const float PanelTitleHeight = 28f;
+        private const float ActionBarHeight = 82f;
+
+        [Header("Debug UI")]
+        [Tooltip("Hiện hoặc ẩn toàn bộ procedural debug overlay. Không ảnh hưởng generation, LAN hoặc gameplay.")]
+        [SerializeField] private bool showUI = true;
+        [Tooltip("Đặt cấu hình section mặc định. Sau đó có thể bật hoặc tắt từng section thủ công.")]
+        [SerializeField] private DebugDisplayMode displayMode =
+            DebugDisplayMode.Minimal;
+
+        [Header("Sections")]
+        [SerializeField] private bool showNetwork = true;
+        [SerializeField] private bool showWorld = true;
+        [SerializeField] private bool showObjects;
+        [SerializeField] private bool showGrassDiagnostics;
+        [SerializeField] private bool showRendering;
+        [SerializeField] private bool showSpawnPoints;
+        [SerializeField] private bool showPerformance = true;
+        [SerializeField] private bool showLayoutHash;
+        [SerializeField, HideInInspector] private int appliedDisplayMode = -1;
 
         private NetworkManager networkManager;
         private ProceduralWorldSettings settings;
         private ProceduralLanController lan;
         private ProceduralWorldCoordinator world;
         private ProceduralEnemySpawnManager enemies;
+        private Vector2 statusScrollPosition;
         private string hostAddress = "127.0.0.1";
         private string portText = "7777";
         private string inlineError = string.Empty;
@@ -33,57 +64,292 @@ namespace MidnightChaos.Procedural
             portText = settings.DefaultPort.ToString();
         }
 
-        private void OnGUI()
+        private void OnValidate()
         {
-            if (lan == null || world == null)
+            if (appliedDisplayMode == (int)displayMode)
             {
                 return;
             }
 
-            float panelHeight = lan.IsSessionActive ? 520f : 285f;
-            Rect panel = new Rect(16f, 16f, PanelWidth, panelHeight);
+            ApplyDisplayModeDefaults();
+            appliedDisplayMode = (int)displayMode;
+            statusScrollPosition = Vector2.zero;
+        }
+
+        private void ApplyDisplayModeDefaults()
+        {
+            showNetwork = true;
+            showWorld = true;
+            showPerformance = true;
+
+            switch (displayMode)
+            {
+                case DebugDisplayMode.Minimal:
+                    showObjects = false;
+                    showGrassDiagnostics = false;
+                    showRendering = false;
+                    showSpawnPoints = false;
+                    showLayoutHash = false;
+                    break;
+
+                case DebugDisplayMode.Detailed:
+                    showObjects = true;
+                    showGrassDiagnostics = false;
+                    showRendering = false;
+                    showSpawnPoints = true;
+                    showLayoutHash = true;
+                    break;
+
+                case DebugDisplayMode.Diagnostics:
+                    showObjects = true;
+                    showGrassDiagnostics = true;
+                    showRendering = true;
+                    showSpawnPoints = true;
+                    showLayoutHash = true;
+                    break;
+            }
+        }
+
+        private void OnGUI()
+        {
+            if (!showUI || lan == null || world == null)
+            {
+                return;
+            }
+
+            bool sessionActive = lan.IsSessionActive;
+            float panelWidth = Mathf.Min(
+                PanelWidth,
+                Mathf.Max(220f, Screen.width - PanelMargin * 2f));
+            float preferredHeight = sessionActive
+                ? GetPreferredActivePanelHeight()
+                : 285f;
+            float panelHeight = Mathf.Min(
+                preferredHeight,
+                Mathf.Max(220f, Screen.height - PanelMargin * 2f));
+            Rect panel = new Rect(
+                PanelMargin,
+                PanelMargin,
+                panelWidth,
+                panelHeight);
             GUI.Box(panel, "Procedural Generation + LAN Synchronization");
 
             GUILayout.BeginArea(
                 new Rect(
-                    panel.x + 14f,
-                    panel.y + 28f,
-                    panel.width - 28f,
-                    panel.height - 40f));
+                    panel.x + PanelContentInset,
+                    panel.y + PanelTitleHeight,
+                    panel.width - PanelContentInset * 2f,
+                    panel.height - PanelTitleHeight - 12f));
 
-            GUILayout.Label($"LAN: {lan.StatusText}");
-            if (!lan.IsSessionActive)
+            if (sessionActive)
             {
-                DrawConnectionControls();
+                DrawActiveSession(panelHeight);
             }
             else
             {
-                DrawWorldStatus();
-                DrawHostControls();
-
-                GUILayout.Space(8f);
-                if (GUILayout.Button("Disconnect", GUILayout.Height(32f)))
-                {
-                    inlineError = string.Empty;
-                    lan.Shutdown();
-                }
-            }
-
-            string error = !string.IsNullOrWhiteSpace(inlineError)
-                ? inlineError
-                : !string.IsNullOrWhiteSpace(world.LastError)
-                    ? world.LastError
-                    : lan.LastError;
-            if (!string.IsNullOrWhiteSpace(error))
-            {
-                GUILayout.Space(6f);
-                Color previous = GUI.color;
-                GUI.color = new Color(1f, 0.42f, 0.42f);
-                GUILayout.Label(error);
-                GUI.color = previous;
+                GUILayout.Label($"LAN: {lan.StatusText}");
+                DrawConnectionControls();
+                DrawInlineError();
             }
 
             GUILayout.EndArea();
+        }
+
+        private float GetPreferredActivePanelHeight()
+        {
+            return displayMode switch
+            {
+                DebugDisplayMode.Minimal => 390f,
+                DebugDisplayMode.Detailed => 500f,
+                DebugDisplayMode.Diagnostics => 560f,
+                _ => 390f
+            };
+        }
+
+        private void DrawActiveSession(float panelHeight)
+        {
+            float contentHeight =
+                panelHeight - PanelTitleHeight - 12f;
+            float statusHeight = Mathf.Max(
+                60f,
+                contentHeight - ActionBarHeight);
+
+            statusScrollPosition = GUILayout.BeginScrollView(
+                statusScrollPosition,
+                false,
+                false,
+                GUILayout.Height(statusHeight));
+            DrawVisibleStatus();
+            DrawInlineError();
+            GUILayout.EndScrollView();
+
+            GUILayout.Space(6f);
+            DrawHostControls();
+            GUILayout.Space(6f);
+            if (GUILayout.Button("Disconnect", GUILayout.Height(32f)))
+            {
+                inlineError = string.Empty;
+                lan.Shutdown();
+            }
+        }
+
+        private void DrawVisibleStatus()
+        {
+            bool hasPreviousSection = false;
+            if (showNetwork)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawNetworkSection();
+            }
+            if (showWorld)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawWorldSection();
+            }
+            if (showObjects)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawObjectSection();
+            }
+            if (showGrassDiagnostics)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawGrassSection();
+            }
+            if (showRendering)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawRenderingSection();
+            }
+            if (showSpawnPoints)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawSpawnPointSection();
+            }
+            if (showPerformance)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawPerformanceSection();
+            }
+            if (showLayoutHash)
+            {
+                DrawSectionSpacing(ref hasPreviousSection);
+                DrawLayoutHashSection();
+            }
+        }
+
+        private static void DrawSectionSpacing(ref bool hasPreviousSection)
+        {
+            if (hasPreviousSection)
+            {
+                GUILayout.Space(6f);
+            }
+            hasPreviousSection = true;
+        }
+
+        private void DrawNetworkSection()
+        {
+            string role = networkManager.IsHost
+                ? "Host"
+                : networkManager.IsServer
+                    ? "Server"
+                    : "Client";
+            GUILayout.Label($"LAN: {lan.StatusText}");
+            GUILayout.Label($"Network Role: {role}");
+        }
+
+        private void DrawWorldSection()
+        {
+            GUILayout.Label($"World State: {world.StatusText}");
+            GUILayout.Label($"Seed: {world.CurrentSeed}");
+            if (displayMode != DebugDisplayMode.Minimal)
+            {
+                GUILayout.Label($"Revision: {world.Revision}");
+            }
+            GUILayout.Label(
+                $"Enemies: {enemies.ActiveEnemyCount}/" +
+                $"{settings.MaximumActiveEnemies}");
+            GUILayout.Label(
+                networkManager.IsServer
+                    ? $"NavMesh: {(world.IsWorldReady ? "Ready" : "Waiting")}"
+                    : "NavMesh: Host only");
+
+            if (networkManager.IsServer &&
+                !string.IsNullOrWhiteSpace(enemies.LastSpawnMessage))
+            {
+                GUILayout.Label(enemies.LastSpawnMessage);
+            }
+            else if (!networkManager.IsServer)
+            {
+                GUILayout.Label(
+                    "Recreate và Spawn Enemy chỉ khả dụng trên Host.");
+            }
+        }
+
+        private void DrawObjectSection()
+        {
+            GUILayout.Label($"Objects: {world.GeneratedObjectCount}");
+            GUILayout.Label(
+                $"Trees: {world.GeneratedTreeCount} | " +
+                $"Rocks: {world.GeneratedRockCount} | " +
+                $"Ores: {world.GeneratedOreCount}");
+            GUILayout.Label(
+                $"Vegetation: {world.GeneratedVegetationCount} | " +
+                $"Grass: {world.GeneratedGrassCount}");
+        }
+
+        private void DrawGrassSection()
+        {
+            GUILayout.Label($"Grass Clusters: {world.GrassClusterCount}");
+            GUILayout.Label(
+                $"Target: {world.GrassTargetCount} | " +
+                $"Placed: {world.GrassSuccessfullyPlacedCount} | " +
+                $"Rejected: {world.GrassRejectedPlacementCount}");
+            foreach (KeyValuePair<string, int> pair in
+                     world.GrassClusterCountsByStableId)
+            {
+                GUILayout.Label($"  {pair.Key} Clusters: {pair.Value}");
+            }
+        }
+
+        private void DrawRenderingSection()
+        {
+            GUILayout.Label(
+                $"Plant Render: instanced={world.InstancedVegetationCount}");
+            GUILayout.Label(
+                $"Vegetation GOs={world.GeneratedVegetationGameObjectCount} | " +
+                $"Grass GOs={world.GeneratedGrassGameObjectCount}");
+            GUILayout.Label(
+                $"Chunks: {world.VisibleVegetationChunkCount}/" +
+                $"{world.VegetationChunkCount} | " +
+                $"draws: {world.SubmittedVegetationDrawCount}/" +
+                $"{world.VegetationDrawBatchCount}");
+        }
+
+        private void DrawSpawnPointSection()
+        {
+            GUILayout.Label(
+                $"Player Spawn Points: {world.ValidPlayerSpawnCount}/" +
+                $"{world.PlannedPlayerSpawnCount} (markers only)");
+            GUILayout.Label(
+                $"Enemy Spawn Points: {world.ValidEnemySpawnCount}/" +
+                $"{world.PlannedEnemySpawnCount}");
+        }
+
+        private void DrawPerformanceSection()
+        {
+            GUILayout.Label(
+                $"Generation Time: {world.GenerationTimeSeconds:0.000}s");
+        }
+
+        private void DrawLayoutHashSection()
+        {
+            GUILayout.Label($"Layout Hash: {world.LayoutHash:X16}");
+            if (!networkManager.IsServer)
+            {
+                GUILayout.Label(
+                    $"Matches Host: {(world.LayoutMatchesHost ? "YES" : "NO")}");
+            }
         }
 
         private void DrawConnectionControls()
@@ -95,7 +361,8 @@ namespace MidnightChaos.Procedural
             portText = GUILayout.TextField(portText);
             GUILayout.Space(8f);
 
-            GUI.enabled = !lan.OperationInProgress;
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && !lan.OperationInProgress;
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Start Host", GUILayout.Height(36f)))
             {
@@ -114,94 +381,52 @@ namespace MidnightChaos.Procedural
                 }
             }
             GUILayout.EndHorizontal();
-            GUI.enabled = true;
+            GUI.enabled = previousEnabled;
             GUILayout.Space(8f);
             GUILayout.Label("Scene demo không spawn Player.");
             GUILayout.Label("Host quyết định seed; Client chỉ dựng lại từ seed đó.");
         }
 
-        private void DrawWorldStatus()
-        {
-            string role = networkManager.IsHost
-                ? "Host"
-                : networkManager.IsServer
-                    ? "Server"
-                    : "Client";
-
-            GUILayout.Space(8f);
-            GUILayout.Label($"Network Role: {role}");
-            GUILayout.Label($"World State: {world.StatusText}");
-            GUILayout.Label($"Seed: {world.CurrentSeed}");
-            GUILayout.Label($"Revision: {world.Revision}");
-            GUILayout.Label($"Objects: {world.GeneratedObjectCount}");
-            GUILayout.Label(
-                $"Trees: {world.GeneratedTreeCount} | " +
-                $"Rocks: {world.GeneratedRockCount} | " +
-                $"Ores: {world.GeneratedOreCount} | " +
-                $"Vegetation: {world.GeneratedVegetationCount}");
-            GUILayout.Label(
-                $"Vegetation Render: instanced={world.InstancedVegetationCount}, " +
-                $"GameObjects={world.GeneratedVegetationGameObjectCount}");
-            GUILayout.Label(
-                $"Chunks: {world.VisibleVegetationChunkCount}/" +
-                $"{world.VegetationChunkCount} | " +
-                $"draws: {world.SubmittedVegetationDrawCount}/" +
-                $"{world.VegetationDrawBatchCount}");
-            GUILayout.Label($"Enemies: {enemies.ActiveEnemyCount}");
-            GUILayout.Label(
-                $"Player Spawn Points: {world.ValidPlayerSpawnCount}/" +
-                $"{world.PlannedPlayerSpawnCount} (markers only)");
-            GUILayout.Label(
-                $"Enemy Spawn Points: {world.ValidEnemySpawnCount}/" +
-                $"{world.PlannedEnemySpawnCount}");
-            GUILayout.Label($"Generation Time: {world.GenerationTimeSeconds:0.000}s");
-            GUILayout.Label(
-                networkManager.IsServer
-                    ? $"NavMesh: {(world.IsWorldReady ? "Ready" : "Waiting")}" 
-                    : "NavMesh: Host only");
-            GUILayout.Label($"Layout Hash: {world.LayoutHash:X16}");
-            if (!networkManager.IsServer)
-            {
-                GUILayout.Label(
-                    $"Matches Host: {(world.LayoutMatchesHost ? "YES" : "NO")}");
-            }
-        }
-
         private void DrawHostControls()
         {
-            GUILayout.Space(10f);
-            bool canRecreate =
-                networkManager.IsServer &&
-                !world.IsGenerating;
+            bool canRecreate = networkManager.IsServer && !world.IsGenerating;
             bool canSpawnEnemy = canRecreate && world.IsWorldReady;
+            bool previousEnabled = GUI.enabled;
 
             GUILayout.BeginHorizontal();
-            GUI.enabled = canRecreate;
+            GUI.enabled = previousEnabled && canRecreate;
             if (GUILayout.Button("Recreate", GUILayout.Height(36f)))
             {
                 inlineError = string.Empty;
                 world.TryRecreate(out inlineError);
             }
-            GUI.enabled = canSpawnEnemy;
+            GUI.enabled = previousEnabled && canSpawnEnemy;
             if (GUILayout.Button("Spawn Enemy", GUILayout.Height(36f)))
             {
                 inlineError = string.Empty;
                 enemies.TrySpawnEnemy(out inlineError);
             }
             GUILayout.EndHorizontal();
-            GUI.enabled = true;
+            GUI.enabled = previousEnabled;
+        }
 
-            if (networkManager.IsServer)
+        private void DrawInlineError()
+        {
+            string error = !string.IsNullOrWhiteSpace(inlineError)
+                ? inlineError
+                : !string.IsNullOrWhiteSpace(world.LastError)
+                    ? world.LastError
+                    : lan.LastError;
+            if (string.IsNullOrWhiteSpace(error))
             {
-                GUILayout.Label(
-                    $"Enemy cap: {enemies.ActiveEnemyCount}/" +
-                    $"{settings.MaximumActiveEnemies}");
-                GUILayout.Label(enemies.LastSpawnMessage);
+                return;
             }
-            else
-            {
-                GUILayout.Label("Recreate và Spawn Enemy chỉ khả dụng trên Host.");
-            }
+
+            GUILayout.Space(6f);
+            Color previous = GUI.color;
+            GUI.color = new Color(1f, 0.42f, 0.42f);
+            GUILayout.Label(error);
+            GUI.color = previous;
         }
 
         private bool TryGetPort(out ushort port)

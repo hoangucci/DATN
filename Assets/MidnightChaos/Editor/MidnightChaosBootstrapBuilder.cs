@@ -16,6 +16,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.AI;
 
 namespace MidnightChaos.Editor
 {
@@ -27,11 +28,16 @@ namespace MidnightChaos.Editor
         private const string SceneFolder = GeneratedRoot + "/Scenes";
         private const string MaterialFolder = GeneratedRoot + "/Materials";
         private const string SettingsFolder = GeneratedRoot + "/Settings";
+        private const string EnemyDefinitionFolder = Root + "/Definitions/Enemies";
         private const string MuckFirstPersonControllerPath =
             Root + "/Animation/MuckFirstPerson/Cube.controller";
         private const string PlayerPrefabPath = PrefabFolder + "/DiagnosticNetworkPlayer.prefab";
         private const string ResourcePrefabPath = PrefabFolder + "/DiagnosticResourceNode.prefab";
         private const string EnemyPrefabPath = PrefabFolder + "/DiagnosticMeleeEnemy.prefab";
+        private const string FireMageVisualPrefabPath =
+            "Assets/Asset/Monster/Fire Mage Cute Series/Prefabs/Fire Mage.prefab";
+        private const string FireMageEnemyDefinitionPath =
+            EnemyDefinitionFolder + "/FireMageMeleeEnemy.asset";
         private const string ChaosShardPrefabPath = PrefabFolder + "/DiagnosticChaosShard.prefab";
         private const string AttackMaterialPath = MaterialFolder + "/DiagnosticAttackIndicator.mat";
         private const string TrunkMaterialPath = MaterialFolder + "/DiagnosticTreeTrunk.mat";
@@ -83,6 +89,7 @@ namespace MidnightChaos.Editor
             EnsureFolder(GeneratedRoot, "Scenes");
             EnsureFolder(GeneratedRoot, "Materials");
             EnsureFolder(GeneratedRoot, "Settings");
+            EnsureFolder(Root + "/Definitions", "Enemies");
 
             CombatAssetBundle combatAssets = CreateOrLoadCombatAssets(
                 configureMuckAnimation: true);
@@ -123,7 +130,11 @@ namespace MidnightChaos.Editor
             GameObject resourcePrefab = CreateResourcePrefab(
                 trunkMaterial,
                 leavesMaterial);
-            GameObject enemyPrefab = CreateEnemyPrefab(enemyMaterial);
+            EnemyDefinition enemyDefinition =
+                CreateOrRefreshFireMageEnemyDefinition();
+            GameObject enemyPrefab = CreateEnemyPrefab(
+                enemyMaterial,
+                enemyDefinition);
             GameObject chaosShardPrefab =
                 CreateChaosShardPrefab(chaosShardMaterial);
 
@@ -386,19 +397,80 @@ namespace MidnightChaos.Editor
             RemoveCollider(characterMesh);
         }
 
-        private static GameObject CreateEnemyPrefab(Material enemyMaterial)
+        private static EnemyDefinition CreateOrRefreshFireMageEnemyDefinition()
+        {
+            GameObject visualPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                FireMageVisualPrefabPath);
+            if (visualPrefab == null)
+            {
+                Debug.LogError(
+                    "[Enemy Definition] Fire Mage visual prefab is missing at " +
+                    FireMageVisualPrefabPath + ".");
+            }
+
+            EnemyDefinition definition =
+                AssetDatabase.LoadAssetAtPath<EnemyDefinition>(
+                    FireMageEnemyDefinitionPath);
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<EnemyDefinition>();
+                definition.ConfigureForDiagnostics(visualPrefab);
+                AssetDatabase.CreateAsset(
+                    definition,
+                    FireMageEnemyDefinitionPath);
+            }
+            else
+            {
+                // Builder refreshes must preserve values tuned by designers.
+                definition.ConfigureVisualIfMissing(visualPrefab);
+            }
+            EditorUtility.SetDirty(definition);
+            return definition;
+        }
+
+        public static GameObject CreateOrRefreshProceduralEnemyPrefab()
+        {
+            EnsureFolder(Root, "Generated");
+            EnsureFolder(GeneratedRoot, "Prefabs");
+            EnsureFolder(GeneratedRoot, "Materials");
+            EnsureFolder(Root, "Definitions");
+            EnsureFolder(Root + "/Definitions", "Enemies");
+
+            Material enemyMaterial = CreateOrRefreshUnlitMaterial(
+                EnemyMaterialPath,
+                "DiagnosticMeleeEnemy",
+                new Color(0.58f, 0.22f, 0.78f));
+            EnemyDefinition definition =
+                CreateOrRefreshFireMageEnemyDefinition();
+            GameObject prefab = CreateEnemyPrefab(
+                enemyMaterial,
+                definition);
+            AssetDatabase.SaveAssets();
+            return prefab;
+        }
+
+        private static GameObject CreateEnemyPrefab(
+            Material enemyMaterial,
+            EnemyDefinition definition)
         {
             GameObject root = new GameObject("DiagnosticMeleeEnemy");
             root.name = "DiagnosticMeleeEnemy";
             root.transform.position = Vector3.up;
 
-            CreatePrimitiveChild(
+            GameObject bodyVisual = CreatePrimitiveChild(
                 PrimitiveType.Capsule,
                 "BodyVisual",
                 root.transform,
                 Vector3.zero,
                 Vector3.one,
                 enemyMaterial);
+            Renderer fallbackRenderer = bodyVisual.GetComponent<Renderer>();
+            fallbackRenderer.enabled = definition == null ||
+                                       definition.VisualPrefab == null;
+
+            GameObject visualRoot = new GameObject("VisualRoot");
+            visualRoot.transform.SetParent(root.transform, false);
+            visualRoot.transform.localPosition = Vector3.down;
 
             root.AddComponent<NetworkObject>();
             NetworkTransform networkTransform =
@@ -407,10 +479,30 @@ namespace MidnightChaos.Editor
                 NetworkTransform.AuthorityModes.Server;
             networkTransform.Interpolate = true;
 
+            NavMeshAgent navMeshAgent = root.AddComponent<NavMeshAgent>();
+            navMeshAgent.agentTypeID = 0;
+            navMeshAgent.radius = 0.5f;
+            navMeshAgent.height = 2f;
+            navMeshAgent.baseOffset = 1f;
+            navMeshAgent.speed = 3.5f;
+            navMeshAgent.acceleration = 8f;
+            navMeshAgent.angularSpeed = 120f;
+            navMeshAgent.stoppingDistance = 0f;
+            navMeshAgent.autoBraking = true;
+            navMeshAgent.enabled = false;
+
             NetworkHealth enemyHealth = root.AddComponent<NetworkHealth>();
             enemyHealth.ConfigureForDiagnostics(66, "Melee Enemy");
             root.AddComponent<DiagnosticEnemyEvolution>();
-            root.AddComponent<DiagnosticMeleeEnemy>();
+            DiagnosticEnemyVisual enemyVisual =
+                root.AddComponent<DiagnosticEnemyVisual>();
+            enemyVisual.ConfigureForDiagnostics(
+                definition,
+                visualRoot.transform);
+            DiagnosticMeleeEnemy enemy =
+                root.AddComponent<DiagnosticMeleeEnemy>();
+            enemy.ConfigureForDiagnostics(definition);
+            root.AddComponent<DiagnosticEnemyDebugGizmos>();
             root.AddComponent<DiagnosticWorldHealthLabel>();
 
             GameObject prefab =

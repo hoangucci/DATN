@@ -123,6 +123,18 @@ namespace MidnightChaos.Procedural
             return true;
         }
 
+        public bool TryGetPlayerSpawnPoint(int index, out Vector3 point)
+        {
+            if (index < 0 || index >= playerSpawnPoints.Count)
+            {
+                point = default;
+                return false;
+            }
+
+            point = playerSpawnPoints[index];
+            return true;
+        }
+
         public void Clear()
         {
             playerSpawnPoints.Clear();

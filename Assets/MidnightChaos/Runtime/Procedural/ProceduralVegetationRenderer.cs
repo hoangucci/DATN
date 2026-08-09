@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MidnightChaos.World;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -20,9 +21,12 @@ namespace MidnightChaos.Procedural
         private ProceduralWorldSettings settings;
         private Camera renderCamera;
         private int vegetationLayer;
+        private int grassLayer;
         private float chunkSize;
-        private float cullDistanceSquared;
-        private float lodSwitchDistanceSquared;
+        private float vegetationCullDistanceSquared;
+        private float grassCullDistanceSquared;
+        private float vegetationLodSwitchDistanceSquared;
+        private float grassLodSwitchDistanceSquared;
         private bool isComplete;
 
         public int LogicalInstanceCount { get; private set; }
@@ -39,13 +43,22 @@ namespace MidnightChaos.Procedural
                 ProceduralRenderUtility.VegetationLayerName,
                 2,
                 this);
+            grassLayer = ProceduralRenderUtility.ResolveLayer(
+                ProceduralRenderUtility.GrassLayerName,
+                2,
+                this);
             chunkSize = settings.VegetationChunkSize;
-            cullDistanceSquared =
+            vegetationCullDistanceSquared =
                 settings.VegetationCullDistance *
                 settings.VegetationCullDistance;
-            lodSwitchDistanceSquared =
+            grassCullDistanceSquared =
+                settings.GrassCullDistance * settings.GrassCullDistance;
+            vegetationLodSwitchDistanceSquared =
                 settings.VegetationLodSwitchDistance *
                 settings.VegetationLodSwitchDistance;
+            grassLodSwitchDistanceSquared =
+                settings.GrassLodSwitchDistance *
+                settings.GrassLodSwitchDistance;
         }
 
         public bool TryAddPlacement(
@@ -70,7 +83,7 @@ namespace MidnightChaos.Procedural
                 if (invalidPrefabWarnings.Add(prefabId))
                 {
                     Debug.LogWarning(
-                        $"[Procedural] Vegetation prefab '{prefab.name}' " +
+                        $"[Procedural] Plant prefab '{prefab.name}' " +
                         "cannot use GPU instancing. Falling back to its " +
                         "legacy GameObject path.",
                         prefab);
@@ -83,6 +96,10 @@ namespace MidnightChaos.Procedural
                 descriptor,
                 placement,
                 categorySettings);
+            bool disableShadows = placement.Category ==
+                                  WorldObjectCategory.Grass
+                ? settings.DisableGrassShadows
+                : settings.DisableVegetationShadows;
             Vector2Int chunkCoordinate = new Vector2Int(
                 Mathf.FloorToInt(placement.Position.x / chunkSize),
                 Mathf.FloorToInt(placement.Position.z / chunkSize));
@@ -98,14 +115,15 @@ namespace MidnightChaos.Procedural
             {
                 Matrix4x4 matrix = rootMatrix * part.LocalToRoot;
                 BatchKey key = new BatchKey(
+                    placement.Category,
                     part.Mesh,
                     part.Material,
                     part.SubmeshIndex,
                     part.LodMode,
-                    settings.DisableVegetationShadows
+                    disableShadows
                         ? ShadowCastingMode.Off
                         : part.ShadowCastingMode,
-                    settings.DisableVegetationShadows
+                    disableShadows
                         ? false
                         : part.ReceiveShadows);
                 chunk.Add(key, matrix, part.Mesh.bounds);
@@ -152,26 +170,49 @@ namespace MidnightChaos.Procedural
                 renderCamera = Camera.main;
             }
             if (renderCamera == null ||
-                (renderCamera.cullingMask & (1 << vegetationLayer)) == 0)
+                ((renderCamera.cullingMask & (1 << vegetationLayer)) == 0 &&
+                 (renderCamera.cullingMask & (1 << grassLayer)) == 0))
             {
                 return;
             }
 
             Vector3 cameraPosition = renderCamera.transform.position;
+            float maximumCullDistanceSquared = Mathf.Max(
+                vegetationCullDistanceSquared,
+                grassCullDistanceSquared);
             foreach (RenderChunk chunk in chunks)
             {
                 if (chunk.Bounds.SqrDistance(cameraPosition) >
-                    cullDistanceSquared)
+                    maximumCullDistanceSquared)
                 {
                     continue;
                 }
 
-                VisibleChunkCount++;
-                bool useLowLod =
-                    (chunk.Bounds.center - cameraPosition).sqrMagnitude >=
-                    lodSwitchDistanceSquared;
+                bool submittedChunk = false;
                 foreach (RenderBatch batch in chunk.Batches)
                 {
+                    bool isGrass = batch.Category == WorldObjectCategory.Grass;
+                    int renderLayer = isGrass ? grassLayer : vegetationLayer;
+                    if ((renderCamera.cullingMask & (1 << renderLayer)) == 0)
+                    {
+                        continue;
+                    }
+
+                    float cullDistanceSquared = isGrass
+                        ? grassCullDistanceSquared
+                        : vegetationCullDistanceSquared;
+                    if (batch.Bounds.SqrDistance(cameraPosition) >
+                        cullDistanceSquared)
+                    {
+                        continue;
+                    }
+
+                    float lodSwitchDistanceSquared = isGrass
+                        ? grassLodSwitchDistanceSquared
+                        : vegetationLodSwitchDistanceSquared;
+                    bool useLowLod =
+                        (batch.Bounds.center - cameraPosition).sqrMagnitude >=
+                        lodSwitchDistanceSquared;
                     if ((batch.LodMode == 0 && useLowLod) ||
                         (batch.LodMode == 1 && !useLowLod))
                     {
@@ -181,7 +222,7 @@ namespace MidnightChaos.Procedural
                     RenderParams renderParams = new RenderParams(batch.Material)
                     {
                         camera = renderCamera,
-                        layer = vegetationLayer,
+                        layer = renderLayer,
                         worldBounds = batch.Bounds,
                         shadowCastingMode = batch.ShadowCastingMode,
                         receiveShadows = batch.ReceiveShadows,
@@ -196,6 +237,11 @@ namespace MidnightChaos.Procedural
                         batch.Matrices,
                         batch.Count);
                     SubmittedDrawCount++;
+                    submittedChunk = true;
+                }
+                if (submittedChunk)
+                {
+                    VisibleChunkCount++;
                 }
             }
         }
@@ -505,6 +551,7 @@ namespace MidnightChaos.Procedural
         private readonly struct BatchKey : IEquatable<BatchKey>
         {
             public BatchKey(
+                WorldObjectCategory category,
                 Mesh mesh,
                 Material material,
                 int submeshIndex,
@@ -512,6 +559,7 @@ namespace MidnightChaos.Procedural
                 ShadowCastingMode shadowCastingMode,
                 bool receiveShadows)
             {
+                Category = category;
                 Mesh = mesh;
                 Material = material;
                 SubmeshIndex = submeshIndex;
@@ -520,6 +568,7 @@ namespace MidnightChaos.Procedural
                 ReceiveShadows = receiveShadows;
             }
 
+            public WorldObjectCategory Category { get; }
             public Mesh Mesh { get; }
             public Material Material { get; }
             public int SubmeshIndex { get; }
@@ -529,7 +578,8 @@ namespace MidnightChaos.Procedural
 
             public bool Equals(BatchKey other)
             {
-                return Mesh == other.Mesh &&
+                return Category == other.Category &&
+                       Mesh == other.Mesh &&
                        Material == other.Material &&
                        SubmeshIndex == other.SubmeshIndex &&
                        LodMode == other.LodMode &&
@@ -546,7 +596,9 @@ namespace MidnightChaos.Procedural
             {
                 unchecked
                 {
-                    int hash = Mesh != null ? Mesh.GetInstanceID() : 0;
+                    int hash = (int)Category;
+                    hash = hash * 397 ^
+                           (Mesh != null ? Mesh.GetInstanceID() : 0);
                     hash = hash * 397 ^
                            (Material != null ? Material.GetInstanceID() : 0);
                     hash = hash * 397 ^ SubmeshIndex;
@@ -667,6 +719,7 @@ namespace MidnightChaos.Procedural
                 Matrix4x4[] matrices,
                 Bounds bounds)
             {
+                Category = key.Category;
                 Mesh = key.Mesh;
                 Material = key.Material;
                 SubmeshIndex = key.SubmeshIndex;
@@ -677,6 +730,7 @@ namespace MidnightChaos.Procedural
                 Bounds = bounds;
             }
 
+            public WorldObjectCategory Category { get; }
             public Mesh Mesh { get; }
             public Material Material { get; }
             public int SubmeshIndex { get; }

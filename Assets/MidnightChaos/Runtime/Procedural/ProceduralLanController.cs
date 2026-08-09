@@ -8,7 +8,7 @@ namespace MidnightChaos.Procedural
     [DisallowMultipleComponent]
     public sealed class ProceduralLanController : MonoBehaviour
     {
-        public const ushort ProtocolVersion = 11;
+        public const ushort ProtocolVersion = 12;
 
         private NetworkManager networkManager;
         private UnityTransport transport;

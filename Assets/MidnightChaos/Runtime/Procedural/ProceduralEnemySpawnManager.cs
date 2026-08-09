@@ -139,6 +139,13 @@ namespace MidnightChaos.Procedural
                     error = $"Không đặt được enemy lên NavMesh tại point {index}.";
                     return false;
                 }
+                if (!agent.isOnNavMesh)
+                {
+                    agent.enabled = false;
+                    Destroy(instance);
+                    error = $"Enemy agent không nằm trên NavMesh tại point {index}.";
+                    return false;
+                }
 
                 networkObject.Spawn(true);
                 activeEnemies.Add(networkObject);

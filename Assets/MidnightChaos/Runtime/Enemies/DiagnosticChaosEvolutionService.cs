@@ -20,7 +20,10 @@ namespace MidnightChaos.Enemies
         private void Awake()
         {
             networkManager = GetComponent<NetworkManager>();
+        }
 
+        private void Start()
+        {
             if (chaosShardPrefab == null)
             {
                 Debug.LogError(

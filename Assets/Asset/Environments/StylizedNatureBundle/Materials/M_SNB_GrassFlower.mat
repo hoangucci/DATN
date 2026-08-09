@@ -2,19 +2,25 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_Name: M_SNB_GrassFlower
   m_Shader: {fileID: 4800000, guid: f7835d26e94875f47848e4600cd0ab70, type: 3}
-  m_ShaderKeywords: _ALPHATEST_ON
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _ALPHATEST_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -82,7 +88,9 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
+    - _AlphaCutoff: 0.5
     - _BumpScale: 1
     - _Cutoff: 0.75
     - _DetailNormalMapScale: 1
@@ -121,6 +129,13 @@ Material:
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SubsurfaceDistortionModifier: 0.5
+    - _TransAmbient: 0.1
+    - _TransDirect: 0.9
+    - _TransNormal: 0.5
+    - _TransScattering: 2
+    - _TransShadow: 0.5
+    - _TransStrength: 1
+    - _Translucency: 0
     - _TranslucencyForce: 0.4
     - _TranslucencyLightInfluence: 0
     - _TranslucencyModifier: 0.5
@@ -161,3 +176,5 @@ Material:
     - _SSSTint: {r: 1, g: 0.99379236, b: 0.38207522, a: 0}
     - _SpecularColor: {r: 0.3921569, g: 0.3921569, b: 0.3921569, a: 1}
     - _TranslucencyTint: {r: 1, g: 0.96403116, b: 0.18396205, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

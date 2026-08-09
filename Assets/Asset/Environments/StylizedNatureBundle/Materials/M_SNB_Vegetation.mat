@@ -2,20 +2,27 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_SNB_Vegetation
   m_Shader: {fileID: 4800000, guid: 041ed92166f5aa9449994e31aba70f1e, type: 3}
-  m_ShaderKeywords: _ALPHATEST_ON _ENVIRONMENTREFLECTIONS_ON _TRANSLUCENCY_ON
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _TRANSLUCENCY_ON
+  m_InvalidKeywords:
+  - _ALPHATEST_ON
+  - _ENVIRONMENTREFLECTIONS_ON
   m_LightmapFlags: 2
   m_EnableInstancingVariants: 1
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_DoubleSidedGI: 1
+  m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -79,6 +86,7 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
     - _AlphaCutoff: 0.5
     - _BumpScale: 1
@@ -116,12 +124,12 @@ Material:
     - _Specularity: 1.5
     - _SrcBlend: 1
     - _SubsurfaceDistortionModifier: 0.5
-    - _TransAmbient: 0.5
+    - _TransAmbient: 1
     - _TransDirect: 0.9
     - _TransNormal: 0.1
     - _TransScattering: 1.8
     - _TransShadow: 0.5
-    - _TransStrength: 1.5
+    - _TransStrength: 2
     - _Translucency: 1
     - _TranslucencyForce: 0.4
     - _TranslucencyLightInfluence: 0
@@ -152,3 +160,4 @@ Material:
     - _SpecularColor: {r: 0.3921569, g: 0.3921569, b: 0.3921569, a: 1}
     - _TranslucencyTint: {r: 1, g: 0.9640312, b: 0.1839599, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1

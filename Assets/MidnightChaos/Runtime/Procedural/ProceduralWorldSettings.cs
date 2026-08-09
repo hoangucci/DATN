@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using MidnightChaos.World;
 using UnityEngine;
 
 namespace MidnightChaos.Procedural
@@ -19,8 +21,9 @@ namespace MidnightChaos.Procedural
     [Serializable]
     public sealed class ProceduralCategorySettings
     {
-        [Tooltip("Danh sách prefab được chọn bằng cùng một seeded random trên Host và Client. Thứ tự phần tử là một phần của kết quả deterministic.")]
-        [SerializeField] private GameObject[] prefabs = Array.Empty<GameObject>();
+        [Tooltip("Danh sách definition được chọn bằng cùng một seeded random trên Host và Client. Thứ tự và phần tử lặp là cấu hình trọng số deterministic; danh tính object dùng Stable ID, không dùng vị trí mảng.")]
+        [SerializeField] private WorldObjectDefinition[] definitions =
+            Array.Empty<WorldObjectDefinition>();
         [Tooltip("Số vật thể tối đa hệ thống cố gắng đặt cho category này.")]
         [SerializeField, Min(0)] private int count;
         [Tooltip("Bán kính giữ khoảng cách trên mặt phẳng XZ. Tăng giá trị để giảm spawn chồng nhau.")]
@@ -38,7 +41,8 @@ namespace MidnightChaos.Procedural
         [SerializeField, Range(0f, 0.2f)]
         private float lodCullScreenHeightOverride;
 
-        public GameObject[] Prefabs => prefabs ?? Array.Empty<GameObject>();
+        public WorldObjectDefinition[] Definitions =>
+            definitions ?? Array.Empty<WorldObjectDefinition>();
         public int Count => Mathf.Max(0, count);
         public float ClearanceRadius => Mathf.Max(0.1f, clearanceRadius);
         public Vector2 UniformScaleRange => new Vector2(
@@ -50,11 +54,13 @@ namespace MidnightChaos.Procedural
         public float LodCullScreenHeightOverride =>
             Mathf.Clamp(lodCullScreenHeightOverride, 0f, 0.2f);
 
-        public void ConfigureAssetReferencesIfEmpty(GameObject[] configuredPrefabs)
+        public void ConfigureDefinitionReferencesIfEmpty(
+            WorldObjectDefinition[] configuredDefinitions)
         {
-            if ((prefabs == null || prefabs.Length == 0) && configuredPrefabs != null)
+            if ((definitions == null || definitions.Length == 0) &&
+                configuredDefinitions != null)
             {
-                prefabs = configuredPrefabs;
+                definitions = configuredDefinitions;
             }
         }
 
@@ -65,7 +71,65 @@ namespace MidnightChaos.Procedural
             uniformScaleRange = UniformScaleRange;
             randomTiltDegrees = Mathf.Clamp(randomTiltDegrees, 0f, 30f);
             lodCullScreenHeightOverride = LodCullScreenHeightOverride;
-            prefabs ??= Array.Empty<GameObject>();
+            definitions ??= Array.Empty<WorldObjectDefinition>();
+        }
+    }
+
+    [Serializable]
+    public sealed class ProceduralGrassClusterSettings
+    {
+        [Tooltip("Khoảng số Grass instance mục tiêu trong một cluster. Mỗi cluster chỉ chọn một GrassDefinition.")]
+        [SerializeField] private Vector2Int instancesPerClusterRange =
+            new Vector2Int(50, 100);
+        [Tooltip("Khoảng bán kính cluster tính bằng world unit. Giảm bán kính làm Grass dày hơn.")]
+        [SerializeField] private Vector2 radiusRange = new Vector2(3f, 7f);
+        [Tooltip("Khoảng cách tâm tối thiểu giữa Grass trong cùng generation pass. Giá trị được chọn deterministic một lần cho mỗi cluster.")]
+        [SerializeField] private Vector2 minimumSpacingRange =
+            new Vector2(0.15f, 0.3f);
+
+        public Vector2Int InstancesPerClusterRange => new Vector2Int(
+            Mathf.Max(1, Mathf.Min(
+                instancesPerClusterRange.x,
+                instancesPerClusterRange.y)),
+            Mathf.Max(1, Mathf.Max(
+                instancesPerClusterRange.x,
+                instancesPerClusterRange.y)));
+        public Vector2 RadiusRange => new Vector2(
+            Mathf.Max(0.1f, Mathf.Min(radiusRange.x, radiusRange.y)),
+            Mathf.Max(0.1f, Mathf.Max(radiusRange.x, radiusRange.y)));
+        public Vector2 MinimumSpacingRange => new Vector2(
+            Mathf.Max(0.01f, Mathf.Min(
+                minimumSpacingRange.x,
+                minimumSpacingRange.y)),
+            Mathf.Max(0.01f, Mathf.Max(
+                minimumSpacingRange.x,
+                minimumSpacingRange.y)));
+
+        internal void Sanitize()
+        {
+            instancesPerClusterRange = InstancesPerClusterRange;
+            radiusRange = RadiusRange;
+            minimumSpacingRange = MinimumSpacingRange;
+        }
+
+        internal void Validate(List<string> errors)
+        {
+            if (instancesPerClusterRange.x <= 0 ||
+                instancesPerClusterRange.y < instancesPerClusterRange.x)
+            {
+                errors.Add(
+                    "Grass Instances Per Cluster must satisfy 0 < Min <= Max.");
+            }
+            if (radiusRange.x <= 0f || radiusRange.y < radiusRange.x)
+            {
+                errors.Add("Grass Cluster Radius must satisfy 0 < Min <= Max.");
+            }
+            if (minimumSpacingRange.x <= 0f ||
+                minimumSpacingRange.y < minimumSpacingRange.x)
+            {
+                errors.Add(
+                    "Grass Minimum Spacing must satisfy 0 < Min <= Max.");
+            }
         }
     }
 
@@ -76,7 +140,7 @@ namespace MidnightChaos.Procedural
     {
         [Header("Determinism")]
         [Tooltip("Tăng số này khi thuật toán generate thay đổi không tương thích với layout cũ.")]
-        [SerializeField, Min(1)] private int generatorVersion = 3;
+        [SerializeField, Min(1)] private int generatorVersion = 4;
         [Tooltip("0 để Host chọn seed mới khi bắt đầu. Giá trị khác 0 giúp tái tạo map cố định khi test.")]
         [SerializeField] private int initialSeed = 12345;
 
@@ -115,6 +179,12 @@ namespace MidnightChaos.Procedural
         [SerializeField] private ProceduralCategorySettings ores = new ProceduralCategorySettings();
         [Tooltip("Cấu hình vegetation nhỏ. BottomPoint không bắt buộc; hệ thống có fallback theo renderer bounds.")]
         [SerializeField] private ProceduralCategorySettings vegetation = new ProceduralCategorySettings();
+        [Tooltip("Cấu hình Grass trang trí GPU-instanced. Uniform Scale thay đổi đồng thời chiều cao, chiều rộng và chiều sâu; đây chưa phải height-only scaling.")]
+        [SerializeField] private ProceduralCategorySettings grass =
+            new ProceduralCategorySettings();
+        [Tooltip("Cấu hình deterministic cluster cho Grass. Không dùng UnityEngine.Random global.")]
+        [SerializeField] private ProceduralGrassClusterSettings grassClusters =
+            new ProceduralGrassClusterSettings();
 
         [Header("Spawn Points Only - No Player Is Spawned In This Demo")]
         [Tooltip("Số điểm spawn player được reserve để kiểm tra an toàn; scene demo không tự spawn player.")]
@@ -123,6 +193,8 @@ namespace MidnightChaos.Procedural
         [SerializeField, Range(1, 64)] private int enemySpawnPointCount = 12;
         [Tooltip("Bán kính không cho environment chồng vào điểm spawn player.")]
         [SerializeField, Min(0.5f)] private float playerSpawnClearance = 4f;
+        [Tooltip("Bán kính tối đa gom mọi player spawn point quanh điểm đầu tiên (Host). Giá trị thực tế không nhỏ hơn hai lần Player Spawn Clearance.")]
+        [SerializeField, Min(1f)] private float playerSpawnGroupRadius = 24f;
         [Tooltip("Bán kính không cho environment hoặc enemy khác chồng vào điểm spawn enemy.")]
         [SerializeField, Min(0.5f)] private float enemySpawnClearance = 3f;
         [Tooltip("Khoảng cách tối thiểu giữa enemy spawn point và mọi player spawn point.")]
@@ -143,6 +215,10 @@ namespace MidnightChaos.Procedural
         [SerializeField, Min(1f)] private float vegetationCullDistance = 55f;
         [Tooltip("Khoảng đổi từ LOD0 sang LOD thấp của vegetation instanced.")]
         [SerializeField, Min(1f)] private float vegetationLodSwitchDistance = 28f;
+        [Tooltip("Khoảng render tối đa của Grass GPU-instanced.")]
+        [SerializeField, Min(1f)] private float grassCullDistance = 45f;
+        [Tooltip("Khoảng đổi từ LOD0 sang LOD thấp của Grass instanced.")]
+        [SerializeField, Min(1f)] private float grassLodSwitchDistance = 6f;
         [Tooltip("Khoảng render tối đa của cây.")]
         [SerializeField, Min(1f)] private float treeCullDistance = 200f;
         [Tooltip("Khoảng render tối đa cho prop nhỏ. Hiện để sẵn cho category tương lai.")]
@@ -155,6 +231,8 @@ namespace MidnightChaos.Procedural
         [SerializeField, Range(8f, 64f)] private float vegetationChunkSize = 24f;
         [Tooltip("Tắt cast/receive shadow trên vegetation trang trí.")]
         [SerializeField] private bool disableVegetationShadows = true;
+        [Tooltip("Tắt cast/receive shadow trên Grass trang trí. Độc lập với Vegetation.")]
+        [SerializeField] private bool disableGrassShadows = true;
         [Tooltip("Bật ParticleSystem lá trên từng tree prefab. Tắt mặc định vì 2.000 cây tương đương 2.000 particle simulations.")]
         [SerializeField] private bool enableTreeParticles;
 
@@ -201,9 +279,14 @@ namespace MidnightChaos.Procedural
         public ProceduralCategorySettings Rocks => rocks;
         public ProceduralCategorySettings Ores => ores;
         public ProceduralCategorySettings Vegetation => vegetation;
+        public ProceduralCategorySettings Grass => grass;
+        public ProceduralGrassClusterSettings GrassClusters => grassClusters;
         public int PlayerSpawnPointCount => Mathf.Clamp(playerSpawnPointCount, 0, 32);
         public int EnemySpawnPointCount => Mathf.Clamp(enemySpawnPointCount, 1, 64);
         public float PlayerSpawnClearance => Mathf.Max(0.5f, playerSpawnClearance);
+        public float PlayerSpawnGroupRadius => Mathf.Max(
+            PlayerSpawnClearance * 2f,
+            playerSpawnGroupRadius);
         public float EnemySpawnClearance => Mathf.Max(0.5f, enemySpawnClearance);
         public float EnemyDistanceFromPlayerSpawns => Mathf.Max(0f, enemyDistanceFromPlayerSpawns);
         public float NavMeshSampleRadius => Mathf.Max(0.1f, navMeshSampleRadius);
@@ -216,6 +299,11 @@ namespace MidnightChaos.Procedural
             vegetationLodSwitchDistance,
             1f,
             VegetationCullDistance);
+        public float GrassCullDistance => Mathf.Max(1f, grassCullDistance);
+        public float GrassLodSwitchDistance => Mathf.Clamp(
+            grassLodSwitchDistance,
+            1f,
+            GrassCullDistance);
         public float TreeCullDistance => Mathf.Max(1f, treeCullDistance);
         public float SmallPropCullDistance => Mathf.Max(1f, smallPropCullDistance);
         public float ResourceCullDistance => Mathf.Max(1f, resourceCullDistance);
@@ -225,6 +313,7 @@ namespace MidnightChaos.Procedural
             8f,
             64f);
         public bool DisableVegetationShadows => disableVegetationShadows;
+        public bool DisableGrassShadows => disableGrassShadows;
         public bool EnableTreeParticles => enableTreeParticles;
         public int NavMeshAgentTypeId => navMeshAgentTypeId;
         public float NavMeshVolumeHeight => Mathf.Max(5f, navMeshVolumeHeight);
@@ -234,13 +323,15 @@ namespace MidnightChaos.Procedural
         public int MaximumActiveEnemies => Mathf.Clamp(maximumActiveEnemies, 1, 32);
         public ushort DefaultPort => defaultPort == 0 ? (ushort)7777 : defaultPort;
         public int ConfiguredEnvironmentCount =>
-            Trees.Count + Rocks.Count + Ores.Count + Vegetation.Count;
+            Trees.Count + Rocks.Count + Ores.Count + Vegetation.Count +
+            Grass.Count;
 
-        public void ConfigureAssetReferencesIfEmpty(
-            GameObject[] treePrefabs,
-            GameObject[] rockPrefabs,
-            GameObject[] orePrefabs,
-            GameObject[] vegetationPrefabs,
+        public void ConfigureDefinitionReferencesIfEmpty(
+            WorldObjectDefinition[] treeDefinitions,
+            WorldObjectDefinition[] rockDefinitions,
+            WorldObjectDefinition[] oreDefinitions,
+            WorldObjectDefinition[] vegetationDefinitions,
+            WorldObjectDefinition[] grassDefinitions,
             Material configuredGroundMaterial,
             GameObject configuredEnemyPrefab)
         {
@@ -248,13 +339,281 @@ namespace MidnightChaos.Procedural
             rocks ??= new ProceduralCategorySettings();
             ores ??= new ProceduralCategorySettings();
             vegetation ??= new ProceduralCategorySettings();
+            grass ??= new ProceduralCategorySettings();
 
-            trees.ConfigureAssetReferencesIfEmpty(treePrefabs);
-            rocks.ConfigureAssetReferencesIfEmpty(rockPrefabs);
-            ores.ConfigureAssetReferencesIfEmpty(orePrefabs);
-            vegetation.ConfigureAssetReferencesIfEmpty(vegetationPrefabs);
+            trees.ConfigureDefinitionReferencesIfEmpty(treeDefinitions);
+            rocks.ConfigureDefinitionReferencesIfEmpty(rockDefinitions);
+            ores.ConfigureDefinitionReferencesIfEmpty(oreDefinitions);
+            vegetation.ConfigureDefinitionReferencesIfEmpty(
+                vegetationDefinitions);
+            grass.ConfigureDefinitionReferencesIfEmpty(grassDefinitions);
             groundMaterial ??= configuredGroundMaterial;
             enemyPrefab ??= configuredEnemyPrefab;
+        }
+
+        public void ConfigureDefinitionReferencesIfEmpty(
+            WorldObjectDefinition[] treeDefinitions,
+            WorldObjectDefinition[] rockDefinitions,
+            WorldObjectDefinition[] oreDefinitions,
+            WorldObjectDefinition[] vegetationDefinitions,
+            Material configuredGroundMaterial,
+            GameObject configuredEnemyPrefab)
+        {
+            ConfigureDefinitionReferencesIfEmpty(
+                treeDefinitions,
+                rockDefinitions,
+                oreDefinitions,
+                vegetationDefinitions,
+                Array.Empty<WorldObjectDefinition>(),
+                configuredGroundMaterial,
+                configuredEnemyPrefab);
+        }
+
+        public void ValidateDefinitionsOrThrow()
+        {
+            List<string> errors = new List<string>();
+            Dictionary<string, WorldObjectDefinition> definitionsById =
+                new Dictionary<string, WorldObjectDefinition>(
+                    StringComparer.Ordinal);
+
+            ValidateCategoryDefinitions(
+                trees,
+                WorldObjectCategory.Tree,
+                nameof(Trees),
+                definitionsById,
+                errors);
+            ValidateCategoryDefinitions(
+                rocks,
+                WorldObjectCategory.Rock,
+                nameof(Rocks),
+                definitionsById,
+                errors);
+            ValidateCategoryDefinitions(
+                ores,
+                WorldObjectCategory.Ore,
+                nameof(Ores),
+                definitionsById,
+                errors);
+            ValidateCategoryDefinitions(
+                vegetation,
+                WorldObjectCategory.Vegetation,
+                nameof(Vegetation),
+                definitionsById,
+                errors);
+            ValidateCategoryDefinitions(
+                grass,
+                WorldObjectCategory.Grass,
+                nameof(Grass),
+                definitionsById,
+                errors);
+            if (grassClusters == null)
+            {
+                errors.Add("Grass cluster settings are null.");
+            }
+            else
+            {
+                grassClusters.Validate(errors);
+            }
+
+            if (grass == null)
+            {
+                errors.Add("Grass settings are null.");
+            }
+            else if (grass.NavigationMode != ProceduralNavigationMode.None)
+            {
+                errors.Add("Grass NavigationMode must be None.");
+            }
+
+            if (errors.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Invalid procedural world metadata:\n- " +
+                    string.Join("\n- ", errors));
+            }
+        }
+
+        private static void ValidateCategoryDefinitions(
+            ProceduralCategorySettings categorySettings,
+            WorldObjectCategory expectedCategory,
+            string label,
+            Dictionary<string, WorldObjectDefinition> definitionsById,
+            List<string> errors)
+        {
+            if (categorySettings == null)
+            {
+                errors.Add($"{label} settings are null.");
+                return;
+            }
+
+            WorldObjectDefinition[] definitions = categorySettings.Definitions;
+            if (categorySettings.Count > 0 && definitions.Length == 0)
+            {
+                errors.Add($"{label} has Count > 0 but no definitions.");
+            }
+
+            for (int index = 0; index < definitions.Length; index++)
+            {
+                WorldObjectDefinition definition = definitions[index];
+                if (definition == null)
+                {
+                    errors.Add($"{label}[{index}] is null.");
+                    continue;
+                }
+
+                if (!definition.TryValidate(out string definitionError))
+                {
+                    errors.Add($"{label}[{index}]: {definitionError}");
+                    continue;
+                }
+
+                if (definition.Category != expectedCategory)
+                {
+                    errors.Add(
+                        $"{label}[{index}] '{definition.StableId}' has " +
+                        $"category {definition.Category}, expected " +
+                        $"{expectedCategory}.");
+                }
+
+                if (expectedCategory == WorldObjectCategory.Grass)
+                {
+                    ValidateGrassDefinition(definition, label, index, errors);
+                }
+
+                bool blocksNavMesh = definition.HasFlag(
+                    WorldObjectFlags.BlocksNavMesh);
+                bool navigationEnabled = categorySettings.NavigationMode !=
+                                         ProceduralNavigationMode.None;
+                if (blocksNavMesh != navigationEnabled)
+                {
+                    errors.Add(
+                        $"{label}[{index}] '{definition.StableId}' " +
+                        $"BlocksNavMesh={blocksNavMesh}, but category " +
+                        $"NavigationMode is {categorySettings.NavigationMode}.");
+                }
+
+                if (definitionsById.TryGetValue(
+                        definition.StableId,
+                        out WorldObjectDefinition previous) &&
+                    previous != definition)
+                {
+                    errors.Add(
+                        $"Stable ID '{definition.StableId}' is duplicated by " +
+                        $"definitions '{previous.name}' and '{definition.name}'.");
+                }
+                else
+                {
+                    definitionsById[definition.StableId] = definition;
+                }
+            }
+        }
+
+        public IReadOnlyList<string> CollectDefinitionWarnings()
+        {
+            List<string> warnings = new List<string>();
+            if (grass == null)
+            {
+                return warnings;
+            }
+
+            HashSet<GameObject> visited = new HashSet<GameObject>();
+            foreach (WorldObjectDefinition definition in grass.Definitions)
+            {
+                GameObject prefab = definition == null ? null : definition.Prefab;
+                if (prefab == null || !visited.Add(prefab))
+                {
+                    continue;
+                }
+
+                if (prefab.GetComponentInChildren<Collider>(true) != null)
+                {
+                    warnings.Add(
+                        $"Grass source prefab '{prefab.name}' contains Collider; GPU instances ignore it.");
+                }
+                if (prefab.GetComponentInChildren<Rigidbody>(true) != null)
+                {
+                    warnings.Add(
+                        $"Grass source prefab '{prefab.name}' contains Rigidbody; GPU instances ignore it.");
+                }
+                if (prefab.GetComponentInChildren<Unity.Netcode.NetworkObject>(
+                        true) != null)
+                {
+                    warnings.Add(
+                        $"Grass source prefab '{prefab.name}' contains NetworkObject; GPU instances ignore it.");
+                }
+                MonoBehaviour[] behaviours =
+                    prefab.GetComponentsInChildren<MonoBehaviour>(true);
+                if (behaviours.Length > 0)
+                {
+                    warnings.Add(
+                        $"Grass source prefab '{prefab.name}' contains {behaviours.Length} MonoBehaviour component(s) unnecessary for GPU instances.");
+                }
+            }
+            return warnings;
+        }
+
+        private static void ValidateGrassDefinition(
+            WorldObjectDefinition definition,
+            string label,
+            int index,
+            List<string> errors)
+        {
+            WorldObjectFlags forbidden =
+                WorldObjectFlags.Interactive |
+                WorldObjectFlags.BlocksNavMesh |
+                WorldObjectFlags.Networked;
+            if (!definition.HasFlag(WorldObjectFlags.Decorative) ||
+                (definition.Flags & forbidden) != 0)
+            {
+                errors.Add(
+                    $"{label}[{index}] '{definition.StableId}' must be Decorative only and cannot be Interactive, BlocksNavMesh, or Networked.");
+            }
+
+            GameObject prefab = definition.Prefab;
+            if (prefab == null)
+            {
+                return;
+            }
+
+            MeshRenderer[] renderers =
+                prefab.GetComponentsInChildren<MeshRenderer>(true);
+            if (renderers.Length == 0)
+            {
+                errors.Add(
+                    $"{label}[{index}] '{definition.StableId}' has no MeshRenderer.");
+                return;
+            }
+
+            foreach (MeshRenderer renderer in renderers)
+            {
+                MeshFilter filter = renderer.GetComponent<MeshFilter>();
+                if (filter == null || filter.sharedMesh == null)
+                {
+                    errors.Add(
+                        $"{label}[{index}] '{definition.StableId}' has a renderer without a render mesh.");
+                    continue;
+                }
+
+                Material[] materials = renderer.sharedMaterials;
+                if (materials == null || materials.Length == 0)
+                {
+                    errors.Add(
+                        $"{label}[{index}] '{definition.StableId}' has no render material.");
+                    continue;
+                }
+                foreach (Material material in materials)
+                {
+                    if (material == null)
+                    {
+                        errors.Add(
+                            $"{label}[{index}] '{definition.StableId}' has a null render material.");
+                    }
+                    else if (!material.enableInstancing)
+                    {
+                        errors.Add(
+                            $"{label}[{index}] '{definition.StableId}' material '{material.name}' does not enable GPU instancing.");
+                    }
+                }
+            }
         }
 
         private void OnValidate()
@@ -273,6 +632,7 @@ namespace MidnightChaos.Procedural
             playerSpawnPointCount = PlayerSpawnPointCount;
             enemySpawnPointCount = EnemySpawnPointCount;
             playerSpawnClearance = PlayerSpawnClearance;
+            playerSpawnGroupRadius = PlayerSpawnGroupRadius;
             enemySpawnClearance = EnemySpawnClearance;
             enemyDistanceFromPlayerSpawns = EnemyDistanceFromPlayerSpawns;
             navMeshSampleRadius = NavMeshSampleRadius;
@@ -280,6 +640,8 @@ namespace MidnightChaos.Procedural
             cameraFarClipPlane = CameraFarClipPlane;
             vegetationCullDistance = VegetationCullDistance;
             vegetationLodSwitchDistance = VegetationLodSwitchDistance;
+            grassCullDistance = GrassCullDistance;
+            grassLodSwitchDistance = GrassLodSwitchDistance;
             treeCullDistance = TreeCullDistance;
             smallPropCullDistance = SmallPropCullDistance;
             resourceCullDistance = ResourceCullDistance;
@@ -296,10 +658,14 @@ namespace MidnightChaos.Procedural
             rocks ??= new ProceduralCategorySettings();
             ores ??= new ProceduralCategorySettings();
             vegetation ??= new ProceduralCategorySettings();
+            grass ??= new ProceduralCategorySettings();
+            grassClusters ??= new ProceduralGrassClusterSettings();
             trees.Sanitize();
             rocks.Sanitize();
             ores.Sanitize();
             vegetation.Sanitize();
+            grass.Sanitize();
+            grassClusters.Sanitize();
         }
     }
 }

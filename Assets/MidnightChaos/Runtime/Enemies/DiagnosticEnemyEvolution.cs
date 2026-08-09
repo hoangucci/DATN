@@ -51,6 +51,7 @@ namespace MidnightChaos.Enemies
 
         private NetworkHealth health;
         private Transform bodyVisual;
+        private DiagnosticEnemyVisual enemyVisual;
         private bool deathProcessedServer;
         private bool missingServiceLoggedServer;
         private bool shardDroppedServer;
@@ -100,6 +101,7 @@ namespace MidnightChaos.Enemies
         {
             health = GetComponent<NetworkHealth>();
             bodyVisual = transform.Find(BodyVisualName);
+            enemyVisual = GetComponent<DiagnosticEnemyVisual>();
         }
 
         public override void OnNetworkSpawn()
@@ -278,6 +280,13 @@ namespace MidnightChaos.Enemies
             }
 
             Vector3 bodyScale = GetBodyScale(stage);
+            enemyVisual?.ApplyEvolutionScale(bodyScale);
+
+            if (bodyVisual == null)
+            {
+                return;
+            }
+
             bodyVisual.localScale = bodyScale;
 
             // The root stays at the same network position. Moving only the

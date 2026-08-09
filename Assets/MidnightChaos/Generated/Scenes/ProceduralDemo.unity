@@ -314,6 +314,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   settings: {fileID: 11400000, guid: aaa7c0cfb4494d39a5d6c6ea91529900, type: 2}
+  enablePlayers: 0
+  playerPrefab: {fileID: 0}
+  chaosShardPrefab: {fileID: 3936567896631932670, guid: 0f87cb6328bae69418c8ad762be22b8a, type: 3}
 --- !u!4 &1708202215
 Transform:
   m_ObjectHideFlags: 0

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Diagnostics;
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -38,6 +39,9 @@ namespace MidnightChaos.Procedural
         public string StatusText { get; private set; } = "Waiting for LAN session";
         public string LastError { get; private set; } = string.Empty;
 
+        public event Action HostGenerationStarted;
+        public event Action HostWorldReady;
+
         public int GeneratedObjectCount =>
             generator != null ? generator.GeneratedObjectCount : 0;
         public int GeneratedTreeCount =>
@@ -48,10 +52,14 @@ namespace MidnightChaos.Procedural
             generator != null ? generator.GeneratedOreCount : 0;
         public int GeneratedVegetationCount =>
             generator != null ? generator.GeneratedVegetationCount : 0;
+        public int GeneratedGrassCount =>
+            generator != null ? generator.GeneratedGrassCount : 0;
         public int GeneratedVegetationGameObjectCount =>
             generator != null
                 ? generator.GeneratedVegetationGameObjectCount
                 : 0;
+        public int GeneratedGrassGameObjectCount =>
+            generator != null ? generator.GeneratedGrassGameObjectCount : 0;
         public int InstancedVegetationCount =>
             generator != null ? generator.InstancedVegetationCount : 0;
         public int VegetationChunkCount =>
@@ -66,6 +74,20 @@ namespace MidnightChaos.Procedural
             generator != null
                 ? generator.SubmittedVegetationDrawCount
                 : 0;
+        public int GrassClusterCount =>
+            generator != null ? generator.GrassClusterCount : 0;
+        public int GrassTargetCount =>
+            generator != null ? generator.GrassTargetCount : 0;
+        public int GrassSuccessfullyPlacedCount =>
+            generator != null ? generator.GrassSuccessfullyPlacedCount : 0;
+        public int GrassRejectedPlacementCount =>
+            generator != null ? generator.GrassRejectedPlacementCount : 0;
+        public IReadOnlyDictionary<string, int> GrassClusterCountsByStableId =>
+            generator != null
+                ? generator.GrassClusterCountsByStableId
+                : EmptyGrassClusterCounts;
+        private static readonly IReadOnlyDictionary<string, int>
+            EmptyGrassClusterCounts = new Dictionary<string, int>();
         public int PlannedPlayerSpawnCount =>
             spawnPoints != null ? spawnPoints.PlayerSpawnPoints.Count : 0;
         public int PlannedEnemySpawnCount =>
@@ -199,6 +221,7 @@ namespace MidnightChaos.Procedural
             LayoutMatchesHost = true;
             LastError = string.Empty;
             StatusText = "Host generating deterministic layout...";
+            HostGenerationStarted?.Invoke();
             enemySpawnManager.ClearEnemiesServer();
             navMeshBuilder.Clear();
             generator.ClearGeneratedContent();
@@ -319,6 +342,7 @@ namespace MidnightChaos.Procedural
 
             IsWorldReady = true;
             StatusText = "World ready - use Spawn Enemy manually";
+            HostWorldReady?.Invoke();
         }
 
         private void ReceiveDescriptor(

@@ -34,6 +34,12 @@ namespace MidnightChaos.Procedural
             {
                 sourceMask &= ~(1 << vegetationLayer);
             }
+            int grassLayer = LayerMask.NameToLayer(
+                ProceduralRenderUtility.GrassLayerName);
+            if (grassLayer >= 0)
+            {
+                sourceMask &= ~(1 << grassLayer);
+            }
             surface.layerMask = sourceMask;
             surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
             surface.ignoreNavMeshAgent = true;

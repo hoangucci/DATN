@@ -4,6 +4,6 @@
   <Project Path="MidnightChaos.Runtime.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="VoxelLabs.UltimatePreview.Lib.csproj" />
-  <Project Path="MidnightChaos.Editor.csproj" />
   <Project Path="MidnightChaos.Procedural.EditModeTests.csproj" />
+  <Project Path="MidnightChaos.Editor.csproj" />
 </Solution>

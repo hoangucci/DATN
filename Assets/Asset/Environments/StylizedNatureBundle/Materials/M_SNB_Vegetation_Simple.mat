@@ -2,20 +2,29 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_SNB_Vegetation_Simple
   m_Shader: {fileID: 4800000, guid: 1f5312e2845fc8043a8f85df1d840121, type: 3}
-  m_ShaderKeywords: _ALPHATEST_ON
-  m_LightmapFlags: 2
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - BACKFACE_NORMAL_MODE_MIRROR
+  - _ALPHATEST_ON
+  - _METALLICGLOSSMAP
+  - _NORMALMAP
+  - _WINDQUALITY_BEST
+  m_LightmapFlags: 6
   m_EnableInstancingVariants: 1
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_DoubleSidedGI: 1
+  m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
+  m_LockedProperties: :m_LightmapFlags
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -23,8 +32,12 @@ Material:
         m_Texture: {fileID: 2800000, guid: edaa1c39b8397324ebba76b2bbacba6e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: fcbd578e80a32e8469fe6fecd607d8aa, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: fc84c738c0737df418cb63cacdcb9f84, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -39,6 +52,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DetailTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _EmissionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -47,12 +64,16 @@ Material:
         m_Texture: {fileID: 2800000, guid: b40e4f8e896e21344a3d5ca84d541ca5, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _ExtraTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: fcbd578e80a32e8469fe6fecd607d8aa, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: b40e4f8e896e21344a3d5ca84d541ca5, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalMap:
@@ -67,6 +88,14 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SubsurfaceTex:
+        m_Texture: {fileID: 2800000, guid: b40e4f8e896e21344a3d5ca84d541ca5, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _TextureSample0:
         m_Texture: {fileID: 2800000, guid: 3ad8079a59589074c82c1e360903a23a, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -79,40 +108,82 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
+    - BACKFACE_NORMAL_MODE: 1
+    - Backface_Normal_Mode: 0
+    - EFFECT_BILLBOARD: 0
+    - EFFECT_EXTRA_TEX: 1
+    - _AddPrecomputedVelocity: 0
+    - _AlphaClip: 1
+    - _AlphaClipThreshold: 0.5
     - _AlphaCutoff: 0.5
+    - _AlphaToMask: 1
+    - _BillboardKwToggle: 0
+    - _BillboardShadowFade: 1
+    - _Blend: 2
+    - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
-    - _Cutoff: 0.75
+    - _ClearCoatMask: 0
+    - _ClearCoatSmoothness: 0
+    - _Cull: 0
+    - _Cutoff: 0.541
+    - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DirectionalShadows: 0.324
     - _DirectionalTranslucency: 0.143
     - _DstBlend: 0
+    - _DstBlendAlpha: 0
     - _EmissionPower: 0
     - _EmissionStrength: 0
+    - _EnvironmentReflections: 1
     - _Float0: 0
     - _Float1: 1.26
     - _GlossMapScale: 1
     - _Glossiness: 0
     - _GlossyReflections: 1
+    - _HueVariationKwToggle: 0
     - _LOD_FADE_CROSSFADE: 0
     - _Metallic: 0
     - _Mode: 1
+    - _NormalMapKwToggle: 1
     - _NormalPower: 1
     - _NormalStrength: 1
     - _OcclusionStrength: 1
-    - _Parallax: 0.02
+    - _OldHueVarBehavior: 0
+    - _Parallax: 0.005
     - _PointLightPunchTrough: 1
     - _PointLightTranslucency: 3
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    - _ReceiveShadows: 1
     - _SSSColorPower: 3.7
     - _SSSForce: 0.4
     - _SSSPower: 1
     - _SSSScale: 1
     - _ShadowStrength: 0.2
     - _Shininess: 0.1
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
+    - _SrcBlendAlpha: 1
     - _SubsurfaceDistortionModifier: 0.5
+    - _SubsurfaceIndirect: 0
+    - _SubsurfaceKwToggle: 1
+    - _Surface: 0
     - _TranslucencyForce: 0.4
     - _TranslucencyLightInfluence: 0
     - _TranslucencyModifier: 0.5
@@ -120,25 +191,39 @@ Material:
     - _TranslucencyScale: 1
     - _TrunkWindAmplitude: 0.03
     - _TrunkWindPower: 0.6
+    - _TwoSided: 0
     - _UVSec: 0
+    - _WINDQUALITY: 4
+    - _WIND_BRANCH1: 0
+    - _WIND_BRANCH2: 0
+    - _WIND_RIPPLE: 0
+    - _WIND_SHARED: 0
+    - _WIND_SHIMMER: 0
     - _WindFoliageAmplitude: 0.05
     - _WindFoliageSpeed: 0.3
     - _WindLeafAmplitude: 0.035
     - _WindLeafSpeed: 0.17
+    - _WindQuality: 1
     - _WindSpeed: 0.17
     - _WindStrength: 0.035
     - _WindTrunkAmplitude: 0.06
     - _WindTrunkPower: 0.6
     - _WindTrunkSpeed: 0.3
+    - _WorkflowMode: 1
     - _ZWrite: 1
     - __dirty: 0
     m_Colors:
-    - _Color: {r: 0, g: 0, b: 0, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _Color0: {r: 0.62495226, g: 0.6603774, b: 0.49528304, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _HueVariation: {r: 1, g: 0.5, b: 0, a: 0.1}
+    - _HueVariationColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0.2}
     - _SSSColor: {r: 1, g: 0.9439245, b: 0.5801887, a: 0}
     - _SSSTint: {r: 1, g: 0.99379236, b: 0.38207522, a: 0}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecularColor: {r: 0.3921569, g: 0.3921569, b: 0.3921569, a: 1}
+    - _SubsurfaceColor: {r: 1, g: 1, b: 1, a: 1}
     - _TranslucencyTint: {r: 1, g: 0.96403116, b: 0.18396008, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
