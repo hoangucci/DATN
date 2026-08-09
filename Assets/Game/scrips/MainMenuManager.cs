@@ -10,7 +10,9 @@ public class MainMenuManager : MonoBehaviour
     [Header("UI Panels")]
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject settingsPanel;
+    [SerializeField] private GameObject settingsOverlayBackdrop;
     [SerializeField] private GameObject authCanvasGroup; // Hoặc Panel chứa toàn bộ Auth UI
+    [SerializeField] private GameObject gameLogoObject;
 
     [Header("User Profile UI")]
     [SerializeField] private TMP_Text userNameText;
@@ -24,14 +26,19 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private Button quitButton;
 
     [Header("Scene Config")]
-    [SerializeField] private string gameSceneName = "SampleScene"; // Scene khi bấm Play
-    [SerializeField] private string loginSceneName = "Login";       // Scene màn hình Đăng Nhập khi bấm Logout
+    [SerializeField] private string gameSceneName = "Map"; // Scene khi bấm Play
+    [SerializeField] private string loginSceneName = "Login"; // Scene màn hình Đăng Nhập khi bấm Logout
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
+        }
+
+        if (string.IsNullOrEmpty(gameSceneName) || gameSceneName.Equals("SampleScene", System.StringComparison.OrdinalIgnoreCase))
+        {
+            gameSceneName = "Map";
         }
     }
 
@@ -55,10 +62,7 @@ public class MainMenuManager : MonoBehaviour
     {
         // Thêm dòng này để ẩn khung đăng nhập đi ngay khi mở Main Menu
         if (authCanvasGroup != null) authCanvasGroup.SetActive(false);
-<<<<<<< Updated upstream
-=======
         SetLogoActive(false);
->>>>>>> Stashed changes
 
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (settingsPanel != null) settingsPanel.SetActive(false);
@@ -104,14 +108,21 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnPlayClicked()
     {
-        Debug.Log($"[MainMenuManager] Đang tải Scene game: {gameSceneName}...");
-        if (!string.IsNullOrEmpty(gameSceneName))
+        if (string.IsNullOrEmpty(gameSceneName) || gameSceneName.Equals("SampleScene", System.StringComparison.OrdinalIgnoreCase))
         {
-            SceneManager.LoadScene(gameSceneName);
+            gameSceneName = "Map";
+        }
+
+        Debug.Log($"[MainMenuManager] Đang tải Scene game: {gameSceneName}...");
+
+        Game.UI.IntroStoryManager storyManager = Game.UI.IntroStoryManager.Instance ?? Object.FindFirstObjectByType<Game.UI.IntroStoryManager>(FindObjectsInactive.Include);
+        if (storyManager != null)
+        {
+            storyManager.StartStorySequence();
         }
         else
         {
-            Debug.LogWarning("[MainMenuManager] Chưa đặt tên gameSceneName trong Inspector!");
+            SceneManager.LoadScene(gameSceneName);
         }
     }
 
@@ -150,10 +161,7 @@ public class MainMenuManager : MonoBehaviour
         // Hoặc ẩn Main Menu Panel nếu chạy cùng 1 Scene
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
-<<<<<<< Updated upstream
-=======
         SetLogoActive(true);
->>>>>>> Stashed changes
 
         if (authCanvasGroup != null)
         {

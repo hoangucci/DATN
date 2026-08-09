@@ -14,11 +14,12 @@ public class AuthUIManager : MonoBehaviour
             Instance = this;
         }
     }
-    [Header("Panels")]
+    [Header("UI Panels")]
     [SerializeField] private GameObject loginPanel;
     [SerializeField] private GameObject registerPanel;
     [SerializeField] private GameObject forgotPasswordPanel;
     [SerializeField] private GameObject mainMenuPanel;
+    [SerializeField] private GameObject gameLogoObject;
 
     [Header("Scene Transition")]
     [SerializeField] private bool loadSceneOnLogin = true;
@@ -77,10 +78,7 @@ public class AuthUIManager : MonoBehaviour
         SetPanelActive(loginPanel, true);
         SetPanelActive(registerPanel, false);
         SetPanelActive(forgotPasswordPanel, false);
-<<<<<<< Updated upstream
-=======
         SetLogoActive(true);
->>>>>>> Stashed changes
         ClearStatus();
     }
 
@@ -176,10 +174,7 @@ public class AuthUIManager : MonoBehaviour
                 SetPanelActive(loginPanel, false);
                 SetPanelActive(registerPanel, false);
                 SetPanelActive(forgotPasswordPanel, false);
-<<<<<<< Updated upstream
-=======
                 SetLogoActive(false);
->>>>>>> Stashed changes
 
                 // Hiển thị Main Menu Panel
                 mainMenuPanel.SetActive(true);
