@@ -14,7 +14,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/MidnightChaos/Generated/Scenes/Map.unity
     guid: 44711e124a2087e45a09240ff225a9dd
-  - enabled: 0
+  - enabled: 1
     path: Assets/Game/Scenes/Map.unity
     guid: 6a13787220fef3845b8ee82533e3fb8a
   - enabled: 1

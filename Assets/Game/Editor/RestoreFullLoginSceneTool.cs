@@ -15,21 +15,34 @@ namespace Game.Editor
             System.Collections.Generic.List<EditorBuildSettingsScene> buildScenes = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
             bool updated = false;
 
-            if (!buildScenes.Exists(s => s.path.Contains("Login.unity")))
+            EditorBuildSettingsScene loginScene = buildScenes.Find(s => s.path.Contains("Login.unity"));
+            if (loginScene == null)
             {
                 buildScenes.Insert(0, new EditorBuildSettingsScene("Assets/Game/Scenes/Login.unity", true));
                 updated = true;
             }
-            if (!buildScenes.Exists(s => s.path.Contains("Map.unity")))
+            else if (!loginScene.enabled)
+            {
+                loginScene.enabled = true;
+                updated = true;
+            }
+
+            EditorBuildSettingsScene mapScene = buildScenes.Find(s => s.path.Contains("Assets/Game/Scenes/Map.unity"));
+            if (mapScene == null)
             {
                 buildScenes.Add(new EditorBuildSettingsScene("Assets/Game/Scenes/Map.unity", true));
+                updated = true;
+            }
+            else if (!mapScene.enabled)
+            {
+                mapScene.enabled = true;
                 updated = true;
             }
 
             if (updated)
             {
                 EditorBuildSettings.scenes = buildScenes.ToArray();
-                Debug.Log("[AutoRegister] Đã tự động thêm Login.unity và Map.unity vào Unity Build Settings!");
+                Debug.Log("[AutoRegister] Đã tự động kích hoạt (Enable) Login.unity và Map.unity trong Build Settings!");
             }
         }
 
