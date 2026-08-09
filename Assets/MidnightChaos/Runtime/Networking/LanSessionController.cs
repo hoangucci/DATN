@@ -10,6 +10,8 @@ namespace MidnightChaos.Networking
     [RequireComponent(typeof(UnityTransport))]
     public sealed class LanSessionController : MonoBehaviour
     {
+        public const ushort CurrentProtocolVersion = 10;
+
         [Header("LAN")]
         [SerializeField] private ushort defaultPort = LanEndpointValidator.DefaultPort;
         [SerializeField, Range(1, 8)] private int maxPlayers = 8;
@@ -209,6 +211,8 @@ namespace MidnightChaos.Networking
             }
 
             networkManager.NetworkConfig.ConnectionApproval = true;
+            networkManager.NetworkConfig.ProtocolVersion =
+                CurrentProtocolVersion;
         }
 
         private void ApproveConnection(

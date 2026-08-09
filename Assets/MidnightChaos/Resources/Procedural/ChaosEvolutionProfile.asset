@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2f61e81c0b74b58b02e1ec09d65d404, type: 3}
+  m_Name: ChaosEvolutionProfile
+  m_EditorClassIdentifier: 
+  baseDeathCharge: 1
+  groupExtraEnemies: 2
+  evolutionRadius: 250
+  chaosShardAmount: 1
+  tiers:
+  - displayName: Small
+    chargesToNextTier: 2
+    finalTier: 0
+    bodyScale: {x: 0.68, y: 0.72, z: 0.68}
+    healthMultiplier: 0.55
+    damageMultiplier: 0.7
+    speedMultiplier: 1.15
+    attackReachMultiplier: 0.85
+  - displayName: Mature
+    chargesToNextTier: 3
+    finalTier: 0
+    bodyScale: {x: 0.9, y: 1.05, z: 0.9}
+    healthMultiplier: 1
+    damageMultiplier: 1
+    speedMultiplier: 1
+    attackReachMultiplier: 1
+  - displayName: Alpha
+    chargesToNextTier: 1
+    finalTier: 1
+    bodyScale: {x: 1.35, y: 1.55, z: 1.35}
+    healthMultiplier: 2.2
+    damageMultiplier: 1.5
+    speedMultiplier: 0.85
+    attackReachMultiplier: 1.25

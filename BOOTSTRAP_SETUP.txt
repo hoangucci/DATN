@@ -1,89 +1,255 @@
-MIDNIGHT CHAOS - LAN BOOTSTRAP v0.3.2
+MIDNIGHT CHAOS - ROTATION-DRIVEN FIRST-PERSON MELEE v0.8.4
+Baseline: v0.8.3 - Melee Motion Feel & Hit Timing
 
-Purpose
--------
-Gate A Host/Join LAN, Gate B combat and Gate C resource transactions remain
-intact.
+============================================================
+1. MUC TIEU
+============================================================
 
-Gate C.1 unifies combat and harvesting into one Host-validated attack:
+v0.8.4 thay motion "keo cay kiem qua man hinh" bang mot grip swing co
+rotation la chuyen dong chinh:
 
-attack input -> Host validates one shared cooldown -> Host finds the nearest
-valid Player or Tree -> Host commits exactly one damage or harvest result
--> state replicates to every peer.
+- Rest Pose dung dung gia tri trong video cua Hoang.
+- Swing rotation duoc tinh trong truc local cua camera.
+- Thu tu rotation la Swing * Rest, khong con Rest * Swing.
+- Position cua tung phase la offset nho tu Rest, khong phai endpoint tuyet doi.
+- Them RestPosePivot de tach huong goc cua mesh khoi rotation cua don danh.
+- Chi dung mot motion chinh de danh gia chat luong truoc khi them bien the.
+- ScriptableObject Inspector cho biet asset co dang duoc Attack Profile dung hay
+  khong.
+- Host van quyet dinh hit tai Impact; hit shake cua v0.8.3 duoc giu nguyen.
 
-The client sends no target, damage, resource ID, item ID or quantity. E no
-longer sends a gathering request and remains free for future interactions.
+============================================================
+2. PHIEN BAN MUC TIEU
+============================================================
 
-Changes in v0.3.2
------------------
-- F or left mouse button attacks Players and harvests Trees.
-- Combat and harvesting share one RPC and one 0.65 second Host cooldown.
-- Host compares all valid Player and Tree candidates and chooses the nearest.
-- One accepted attack commits at most one gameplay consequence.
-- Tree labels and diagnostic UI no longer instruct the player to press E.
-- Keeps the v0.3.1 UnityTransport self-repair.
+- Unity: 6000.0.69f1
+- URP: 17
+- Netcode for GameObjects: 2.7.0
+- Input System: 1.14.2
+- Baseline bat buoc: v0.8.3
+- ProtocolVersion: 9
 
-Required baseline
------------------
-1. Unity 6000.0.69f1.
-2. Universal 3D template (URP 17).
-3. Netcode for GameObjects 2.7.0.
-4. Input System 1.14.2 with Active Input Handling set to Input System Package.
+Chua xac nhan tren Unity hoac package version khac.
 
-Install or update
------------------
-1. Copy Assets/MidnightChaos into the Unity project's Assets folder.
-2. Replace the existing files when prompted.
-3. Wait until Unity finishes compiling with zero Console errors.
-4. Run:
-   Midnight Chaos > Bootstrap > Create or Refresh LAN Test Scene
-5. Open:
-   Assets/MidnightChaos/Generated/Scenes/LAN_Bootstrap.unity
-6. Rebuild the Windows client because the prefabs and scripts changed.
+============================================================
+3. CAI DAT
+============================================================
 
-Two-machine test
-----------------
-1. Start Host LAN on one machine.
-2. Join using the Host IPv4 and the same UDP port from the second machine.
-3. Move a player close to a green Tree and face it.
-4. Press F or left mouse button once.
-5. Confirm the Tree changes from 3/3 to 2/3 and that player's Wood changes
-   from 0 to 1 on both peers.
-6. Move the other Player beside the Tree and verify one attack affects only
-   the nearest valid target.
-7. Alternate both players while attacking the same Tree.
+1. Thoat Play Mode.
+2. Tao Git commit hoac backup project.
+3. Giai nen ZIP ra thu muc tam ben ngoai Unity Project.
+4. Mo:
+   MidnightChaos_Bootstrap_v0_8_4/Assets/MidnightChaos
+5. Copy thu muc MidnightChaos vao:
+   D:/GitHub/DATN/Assets/
+6. Chon merge va ghi de file trung ten.
+7. KHONG xoa Assets/MidnightChaos cu truoc khi copy. Generated khong nam trong
+   ZIP; xoa thu muc cu co the lam mat prefab, scene va asset hien tai.
+8. Cho Unity import va compile het.
+9. Chi khi Console khong con loi do, chay:
+   Midnight Chaos
+      -> Bootstrap
+      -> Upgrade Rotation-Driven Melee to v0.8.4
+10. Build lai Host va tat ca Client.
 
-Gate C.1 pass criteria
-----------------------
-- Exactly three accepted attacks deplete one Tree.
-- Each accepted Tree hit adds exactly one Wood to only the attacking player.
-- Both peers display the same Tree hits and player Wood count.
-- Attacking outside 2.6 units does nothing.
-- Attacking while facing away does nothing.
-- Input spam cannot bypass the shared 0.65 second Host cooldown.
-- Two clients racing for the final hit cannot receive Wood twice.
-- A depleted Tree cannot grant more Wood.
-- Dead players cannot attack or harvest.
-- One attack never damages a Player and harvests a Tree together.
-- Pressing E alone does not damage or harvest anything.
-- Gate A disconnect/reconnect still works.
+KHONG CHAY:
 
-Controls
---------
-- Move: WASD
-- Sprint: Left Shift
-- Jump: Space
-- Attack / Harvest: F or left mouse button
-- Interact: E is reserved and has no action in this bootstrap
+Midnight Chaos
+   -> Bootstrap
+   -> Create or Refresh LAN Test Scene
 
-Important limits
-----------------
-- DiagnosticLanUI and world labels use OnGUI and are not production UI.
-- DiagnosticNetworkInventory stores only one integer: Wood.
-- Trees do not respawn and do not require a tool in this proof.
-- There are no dropped pickup objects, item stacks, save data or crafting yet.
-- This is a transaction/authority proof, not the final item database.
-- The bootstrap still has no Lobby Ready, scene loading, procedural
-  generation, Chaos Evolution, enemy AI, boss flow or final death flow.
-- Keep Host authority for combat, AI, inventory, loot, Chaos Evolution,
-  day/night and win/lose state.
+Cong cu tren co the dung lai scene/prefab test va ghi de thiet lap khong lien
+quan den motion.
+
+============================================================
+4. MIGRATION v0.8.4 LAM GI
+============================================================
+
+- Tai DiagnosticNetworkPlayer.prefab hien tai ma khong dung lai PlayerVisual.
+- Giu damage, reach, attack angle va base interval cua Attack Profile.
+- Gan lai dung:
+  - UnarmedAttackProfile -> UnarmedFirstPersonAttackMotionSet
+  - SwordAttackProfile -> SwordFirstPersonAttackMotionSet
+- Thay du lieu motion v0.8.3 bang motion rotation-driven v0.8.4.
+- Dat Sword Rest Pose theo video.
+- Giu nguyen Unarmed total 0.300 giay va Impact 0.10825 giay cua v0.8.3;
+  sua kiem khong duoc lam don tay khong bi tre.
+- Them/giu DiagnosticFirstPersonAttackAnimator tren player prefab.
+- Chon va ping dung SwordFirstPersonAttackMotionSet sau migration.
+- Khong sua model, Animator Controller, RightHandSocket hay SwordVisual cua
+  third-person character.
+
+Motion endpoint cu KHONG duoc giu. Do chinh la du lieu tao ra chuyen dong
+translation-dominant can thay the.
+
+============================================================
+5. ASSET DUNG DE CHINH
+============================================================
+
+Sword Attack Profile:
+Assets/MidnightChaos/Generated/Settings/SwordAttackProfile.asset
+
+Sword Motion Set:
+Assets/MidnightChaos/Generated/Settings/
+SwordFirstPersonAttackMotionSet.asset
+
+Neu khong chac dang chinh asset nao, chay:
+
+Midnight Chaos
+   -> Combat
+   -> Select Active Sword Motion Set
+
+Custom Inspector se hien:
+
+- Info: asset dang duoc profile nao su dung.
+- Warning: khong profile nao tham chieu asset; chinh asset do se khong tac dong
+  runtime.
+
+Asset cu sau day co the van ton tai de bao toan du lieu/Guid, nhung thuong khong
+con duoc runtime dung:
+
+Assets/MidnightChaos/Generated/Settings/
+DiagnosticFirstPersonAttackMotionSet.asset
+
+============================================================
+6. THONG SO MAC DINH PHAI KIEM TRA
+============================================================
+
+REST POSE - SWORD
+
+- Rest Local Position: (0.45, -0.35, 0.65)
+- Rest Local Euler Angles: (0, 100, 9.5)
+- Rest Local Scale: (0.6, 0.6, 0.6)
+
+TIMING O ATTACK SPEED x1
+
+- Wind Up Duration: 0.12 giay
+- Strike Duration: 0.15 giay
+- Follow Through Duration: 0.09 giay
+- Recovery Duration: 0.20 giay
+- Tong motion: 0.56 giay
+- Impact: 0.27 giay ke tu luc Host chap nhan attack
+
+TIMING O ATTACK SPEED x2
+
+- Tong motion: 0.28 giay
+- Impact: 0.135 giay
+
+UNARMED COMPATIBILITY TIMING
+
+- Attack Speed x1: tong 0.300 giay, Impact 0.10825 giay
+- Attack Speed x2: tong 0.150 giay, Impact 0.054125 giay
+
+REFERENCE RIGHT-HAND SLASH
+
+- Wind Up Position Offset: (0.07, 0.05, 0.04)
+- Wind Up Euler Offset: (-8, 12, -58)
+- Strike Arc Position Offset: (-0.015, 0.08, -0.09)
+- Impact Position Offset: (-0.06, -0.04, -0.14)
+- Impact Euler Offset: (14, -18, 38)
+- Follow Through Position Offset: (-0.17, -0.18, -0.08)
+- Follow Through Euler Offset: (25, -25, 118)
+
+Position chi ho tro quy dao va chieu sau. Rotation Z tao cung vung thay ro;
+rotation X/Y tao pitch/twist va cam giac tien gan camera.
+
+============================================================
+7. HIERARCHY RUNTIME MONG DOI
+============================================================
+
+Main Camera
+  FirstPersonViewmodelRoot
+    AttackPivot
+      RestPosePivot
+        FirstPersonSwordVisual
+
+- AttackPivot: Rest position/scale + animated camera-local offset/rotation.
+- RestPosePivot: Rest rotation cua mesh.
+- FirstPersonSwordVisual: local position zero, rotation identity, scale one.
+
+Effective rotation = AttackPivot Swing Rotation * RestPosePivot Rest Rotation.
+
+============================================================
+8. TEST BAT BUOC
+============================================================
+
+1. Idle voi kiem:
+   - Kiem dung tai Rest Pose (0.45, -0.35, 0.65), (0, 100, 9.5), scale 0.6.
+
+2. Chinh Rest Pose trong dung Sword Motion Set khi dang Play Mode va idle:
+   - Vi tri, rotation va scale phai thay doi ngay.
+
+3. Chon DiagnosticFirstPersonAttackMotionSet asset cu:
+   - Inspector phai canh bao neu khong Attack Profile nao tham chieu.
+
+4. Chay Select Active Sword Motion Set:
+   - Unity phai chon SwordFirstPersonAttackMotionSet dang duoc
+     SwordAttackProfile tham chieu.
+
+5. Danh hut:
+   - Mot motion duy nhat lap lai on dinh.
+   - Kiem phai xoay thanh cung lon; khong con truot ngang nhu mot vat cung.
+   - Khong damage, khong harvest, khong camera shake.
+
+6. Kiem tra chieu sau:
+   - Kiem tien gan camera ro nhat gan Impact, sau do di qua Follow-through.
+   - Khong duoc clip camera qua muc chap nhan duoc.
+
+7. Danh Enemy:
+   - HP chi giam tai khoang 0.27 giay o Attack Speed x1.
+   - Camera cua nguoi danh rung dung mot lan.
+
+8. Danh Player khi friendly fire bat:
+   - Player chi mat HP tai Impact.
+   - Chi camera nguoi danh rung.
+
+9. Danh cay, da hoac resource:
+   - Harvest chi xay ra tai Impact.
+   - Camera rung dung mot lan.
+
+10. Dung ngoai cone luc bam, buoc vao truoc Impact:
+    - Muc tieu co the bi trung vi Host tim target tai Impact.
+
+11. Dung trong cone luc bam, buoc ra truoc Impact:
+    - Muc tieu khong bi trung.
+
+12. Chet/despawn trong Wind-up:
+    - Pending hit bi huy; khong damage/harvest/shake.
+
+13. Test Host va Client rieng:
+    - Ca hai deu danh duoc.
+    - Chi local owner thay first-person sword va hit shake cua minh.
+
+14. Attack Speed x2:
+    - Tong motion 0.28 giay, Impact 0.135 giay.
+    - Animation va authoritative hit van khop.
+
+15. Client v0.8.3 vao Host v0.8.4:
+    - Bi tu choi do ProtocolVersion 8 != 9.
+
+16. Danh tay khong/harvest khi chua co kiem:
+    - Total va Impact phai giu dung timing v0.8.3; khong bi tre theo Sword.
+
+============================================================
+9. GIOI HAN VA ANH HUONG BEN NGOAI
+============================================================
+
+- Vung trung van la cone check, khong phai collider luoi kiem sweep theo mesh.
+- Rotation chi xoay dung quanh grip neu origin cua FirstPersonSwordVisual nam tai
+  tay cam. Neu origin model nam giua luoi kiem, can sua prefab/model pivot.
+- v0.8.4 chi co mot motion chinh. Day la co chu dich; bon motion ngau nhien cu
+  lam kho danh gia chuyen dong nao dang sai.
+- Third-person upper-body animation khong thay doi.
+- Khong them RPC hoac NetworkVariable.
+- Protocol tang 8 -> 9 vi authoritative Impact delay thay doi.
+- Code ngoai Assets/MidnightChaos khong bi ZIP ghi de.
+- Chinh motion data giua luc mot don dang chay co the tao snap vi gia tri duoc
+  doc lai moi frame. Nen chinh khi idle, sau do bat dau don moi de danh gia.
+
+============================================================
+10. TRANG THAI XAC MINH
+============================================================
+
+Goi nay co the duoc kiem tra cau truc, cu phap va tinh nhat quan timing ben
+ngoai Unity. Tuy nhien, CHUA THE XAC NHAN compile/runtime trong Unity cho den
+khi import, chay migration, build Host/Client va hoan thanh toan bo test tren.

@@ -1,0 +1,127 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 411f26747501853458cb854ec55d09d2, type: 3}
+  m_Name: ProceduralWorldSettings
+  m_EditorClassIdentifier: 
+  generatorVersion: 4
+  initialSeed: 12345
+  mapSize: {x: 1000, y: 1000}
+  terrainSegments: 200
+  baseHeight: 2
+  heightAmplitude: 20
+  noiseScale: 0.01
+  edgeFalloffStart: 0.631
+  edgeDrop: 0
+  edgeHeightOffset: -10
+  groundMaterial: {fileID: 2100000, guid: 233e8ab6bfea1cd40b58160e9e75d760, type: 2}
+  edgePadding: 20
+  maximumSlopeDegrees: 34
+  attemptsPerObject: 40
+  trees:
+    definitions:
+    - {fileID: 11400000, guid: e5e17a5a89a642b0b3e4bc014ab57fd0, type: 2}
+    - {fileID: 11400000, guid: bfb54a1cab724bde924e3fa9dd6114fe, type: 2}
+    - {fileID: 11400000, guid: f56d91a047a14d38938b3f04bce0c8ce, type: 2}
+    - {fileID: 11400000, guid: 505a3758016e44539f4e4604bbe6da1b, type: 2}
+    - {fileID: 11400000, guid: 703141cc989f4c5c916a158fab35e78e, type: 2}
+    - {fileID: 11400000, guid: 342b43e0ff2645b0baba06a0b3548521, type: 2}
+    - {fileID: 11400000, guid: cf25216b3a5a47218d6dba6cec2c9051, type: 2}
+    - {fileID: 11400000, guid: 819873c96b5249d6809537caecd421cf, type: 2}
+    - {fileID: 11400000, guid: d40b4878995f4581baa381f4e89bd289, type: 2}
+    - {fileID: 11400000, guid: e3f70f3d2f8b404eaadc721abc733234, type: 2}
+    - {fileID: 11400000, guid: 6791af9ac8984b53b12aa4c4d12c85b0, type: 2}
+    - {fileID: 11400000, guid: 722c44a1b4de4442a8c9748d849c61a9, type: 2}
+    count: 2000
+    clearanceRadius: 3.2
+    uniformScaleRange: {x: 0.85, y: 1.2}
+    randomTiltDegrees: 0
+    surfaceAlignment: 0
+    navigationMode: 2
+    layoutHashCompatibilityValue: 0
+  rocks:
+    definitions:
+    - {fileID: 11400000, guid: e5a2d8b9ba464cbbb32b90ad67b0ceb6, type: 2}
+    - {fileID: 11400000, guid: af358bda27e94a8ea647adcc9c766377, type: 2}
+    - {fileID: 11400000, guid: 8b3b480281134c549ca3980764a7e909, type: 2}
+    - {fileID: 11400000, guid: 656d5e4f3ad546e3892d053dd8b7c8c5, type: 2}
+    - {fileID: 11400000, guid: 7820682817ae465e890aef91801efd3e, type: 2}
+    - {fileID: 11400000, guid: 668fbf9518334a67a5f80cabf45b4eca, type: 2}
+    - {fileID: 11400000, guid: 53cc98b9b52246c99789d7b38a4bb4d1, type: 2}
+    - {fileID: 11400000, guid: 7c575bfe229e445dadd1595d1c534732, type: 2}
+    - {fileID: 11400000, guid: f3a546cbcc2d4afc83da809e20f273cf, type: 2}
+    - {fileID: 11400000, guid: 4eb9e0be7a584560a9e03cc75014e3c0, type: 2}
+    count: 200
+    clearanceRadius: 2.4
+    uniformScaleRange: {x: 0.75, y: 1.25}
+    randomTiltDegrees: 0
+    surfaceAlignment: 1
+    navigationMode: 2
+    layoutHashCompatibilityValue: 0
+  ores:
+    definitions:
+    - {fileID: 11400000, guid: a8f6fcbb0aeb4c87931ea85790b8d106, type: 2}
+    - {fileID: 11400000, guid: e49bcd1fa7a246f6a9369a6085c7b6bb, type: 2}
+    - {fileID: 11400000, guid: 539e7774b3c14dd2bbed2ffd9b3942ba, type: 2}
+    count: 200
+    clearanceRadius: 2.8
+    uniformScaleRange: {x: 0.7, y: 1.05}
+    randomTiltDegrees: 0
+    surfaceAlignment: 1
+    navigationMode: 2
+    layoutHashCompatibilityValue: 0
+  vegetation:
+    definitions:
+    - {fileID: 11400000, guid: 9e88f21fd4984afdab967eb0dab438f5, type: 2}
+    - {fileID: 11400000, guid: 975b45cebff649adb188c4970c4f72a8, type: 2}
+    - {fileID: 11400000, guid: 240d42e67d324bf68f093cabf4b0ff37, type: 2}
+    - {fileID: 11400000, guid: 46ff1f2351d344d88e444899e391519a, type: 2}
+    - {fileID: 11400000, guid: 95e3f08527f64ae3802cda7070874c2a, type: 2}
+    count: 2000
+    clearanceRadius: 0.7
+    uniformScaleRange: {x: 0.8, y: 1.25}
+    randomTiltDegrees: 0
+    surfaceAlignment: 1
+    navigationMode: 0
+    layoutHashCompatibilityValue: 0.001
+  grass:
+    definitions:
+    - {fileID: 11400000, guid: 11d87eee178c47d889304b87d9895c78, type: 2}
+    - {fileID: 11400000, guid: 9533971608304fef97dca55c70b04bef, type: 2}
+    count: 80000
+    clearanceRadius: 0.5
+    uniformScaleRange: {x: 0.8, y: 1.25}
+    randomTiltDegrees: 0
+    surfaceAlignment: 1
+    navigationMode: 0
+    layoutHashCompatibilityValue: 0.001
+  grassClusters:
+    instancesPerClusterRange: {x: 500, y: 1000}
+    radiusRange: {x: 100, y: 300}
+    minimumSpacingRange: {x: 0.15, y: 0.3}
+  smallRocks:
+    visualPrefab: {fileID: 3154134708773150627, guid: 143d9ed7e66a08b4d9bad1f884b4c9bc, type: 3}
+    useDensity: 1
+    fixedCount: 256
+    densityPer1000SquareMeters: 0.05
+    minimumSpacing: 2
+    starterCount: 2
+    starterRadius: 8
+    starterReachRadius: 1.05
+    groundOffset: 0.18
+    surfaceAlignment: 0
+    randomTiltDegrees: 0
+  playerSpawnPointCount: 8
+  enemySpawnPointCount: 12
+  playerSpawnClearance: 4
+  playerSpawnGroupRadius: 24
+  enemySpawnClearance: 3
+  enemyDistanceFromPlayerSpawns: 10

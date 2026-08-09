@@ -1,4 +1,5 @@
 using MidnightChaos.Enemies;
+using MidnightChaos.Inventory;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -10,16 +11,21 @@ namespace MidnightChaos.UI
     public sealed class DiagnosticWorldChaosShardLabel : MonoBehaviour
     {
         private NetworkObject networkObject;
+        private DiagnosticWorldPickup pickup;
         private GUIStyle labelStyle;
 
         private void Awake()
         {
             networkObject = GetComponent<NetworkObject>();
+            pickup = GetComponent<DiagnosticWorldPickup>();
         }
 
         private void OnGUI()
         {
-            if (!networkObject.IsSpawned || Camera.main == null)
+            if (!networkObject.IsSpawned ||
+                Camera.main == null ||
+                pickup == null ||
+                pickup.Item != VerticalSliceItemId.ChaosShard)
             {
                 return;
             }
@@ -43,7 +49,7 @@ namespace MidnightChaos.UI
 
             GUI.Label(
                 labelRect,
-                "CHAOS SHARD - Alpha drop",
+                $"{pickup.Item} x{pickup.Amount}",
                 labelStyle);
         }
 

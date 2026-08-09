@@ -18,6 +18,7 @@ namespace MidnightChaos.UI
         private const float PanelWidth = 390f;
         private LanSessionController session;
         private NetworkManager networkManager;
+        private DiagnosticEnemySpawner enemySpawner;
         private string hostAddress = "127.0.0.1";
         private string portText = LanEndpointValidator.DefaultPort.ToString();
         private string inlineError = string.Empty;
@@ -26,6 +27,7 @@ namespace MidnightChaos.UI
         {
             session = GetComponent<LanSessionController>();
             networkManager = GetComponent<NetworkManager>();
+            enemySpawner = GetComponent<DiagnosticEnemySpawner>();
             portText = session.DefaultPort.ToString();
         }
 
@@ -35,12 +37,12 @@ namespace MidnightChaos.UI
                 16f,
                 16f,
                 PanelWidth,
-                session.IsSessionActive ? 420f : 300f);
-            GUI.Box(panel, "Midnight Chaos - Gate F Chaos Evolution");
+                session.IsSessionActive ? 500f : 300f);
+            GUI.Box(panel, "Midnight Chaos - Gate G FPS Foundation");
 
             GUILayout.BeginArea(new Rect(panel.x + 14f, panel.y + 28f, panel.width - 28f, panel.height - 40f));
             GUILayout.Label(
-                "Diagnostic only - Host xác nhận death, charge, stage và shard.");
+                "Diagnostic only - camera local, gameplay vẫn do Host xác nhận.");
             GUILayout.Space(6f);
             GUILayout.Label($"Status: {session.StatusText}");
 
@@ -55,6 +57,7 @@ namespace MidnightChaos.UI
                 if (session.IsHost)
                 {
                     GUILayout.Label($"Host IPv4: {FindLocalIpv4()}");
+                    DrawEnemyHostControls();
                 }
 
                 GUILayout.Space(10f);
@@ -98,6 +101,8 @@ namespace MidnightChaos.UI
             if (session.IsSessionActive)
             {
                 GUILayout.Label(
+                    "Look: Mouse | Esc: thả chuột | Chuột phải: khóa lại");
+                GUILayout.Label(
                     $"Attack/Harvest: F hoặc chuột trái | Damage: {GetLocalDamage()}");
                 GUILayout.Label("Tree hợp lệ: -1 hit và +1 Wood");
                 GUILayout.Label(
@@ -125,6 +130,37 @@ namespace MidnightChaos.UI
             }
 
             GUILayout.EndArea();
+        }
+
+        private void DrawEnemyHostControls()
+        {
+            if (enemySpawner == null)
+            {
+                GUILayout.Label("Enemy controls unavailable: missing spawner.");
+                return;
+            }
+
+            GUILayout.Label(
+                $"Enemies: {enemySpawner.ActiveEnemyCount}/" +
+                $"{enemySpawner.MaximumActiveEnemies} | " +
+                $"Move: {(enemySpawner.MovementEnabled ? "ON" : "OFF")}");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Spawn Enemy", GUILayout.Height(34f)))
+            {
+                inlineError = string.Empty;
+                enemySpawner.TrySpawnEnemy(out inlineError);
+            }
+            string movementLabel = enemySpawner.MovementEnabled
+                ? "Enemy Move: OFF"
+                : "Enemy Move: ON";
+            if (GUILayout.Button(movementLabel, GUILayout.Height(34f)))
+            {
+                inlineError = string.Empty;
+                enemySpawner.TrySetMovementEnabled(
+                    !enemySpawner.MovementEnabled,
+                    out inlineError);
+            }
+            GUILayout.EndHorizontal();
         }
 
         private NetworkObject GetLocalPlayerObject()

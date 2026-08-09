@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d905419108944789d4d4d6c46dd8722, type: 3}
+  m_Name: FireMageMeleeEnemy
+  m_EditorClassIdentifier: 
+  stableId: fire_mage_melee
+  visualPrefab: {fileID: 6817494484392920856, guid: 0e7eab5a206e1f743b07486ddaa2bddc, type: 3}
+  visualLocalPosition: {x: 0, y: 0, z: 0}
+  visualLocalEulerAngles: {x: 0, y: 0, z: 0}
+  visualLocalScale: {x: 1, y: 1, z: 1}
+  patrolRadius: 15
+  patrolSpeed: 2
+  minimumPatrolWait: 1
+  maximumPatrolWait: 3
+  detectionRange: 15
+  loseTargetRange: 22
+  lineOfSightMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  eyeOffset: {x: 0, y: 1.35, z: 0}
+  targetEyeOffset: {x: 0, y: 0.8, z: 0}
+  loseSightGraceSeconds: 1.5
+  retargetInterval: 0.5
+  targetSwitchAdvantage: 1
+  chaseSpeed: 3.5
+  repathInterval: 0.3
+  attackReach: 1.8
+  attackConeHalfAngleDegrees: 50
+  attackDamage: 20
+  attackCooldownSeconds: 1.15
+  attackPoseSeconds: 0.65
+  attackImpactDelaySeconds: 0.35
+  idleAnimationState: Idle
+  moveAnimationState: Fly Forward In Place
+  attackAnimationState: Slap Attack
+  spawnAnimationState: Spawn
+  hitAnimationState: Take Damage
+  deathAnimationState: Die
+  animationCrossFadeSeconds: 0.12
+  attackAnimationLockSeconds: 0.65
+  spawnPresentationSeconds: 0.85
+  hitReactionSeconds: 0.3
+  hitVisualCooldownSeconds: 0.25
+  deathPresentationSeconds: 1.7
