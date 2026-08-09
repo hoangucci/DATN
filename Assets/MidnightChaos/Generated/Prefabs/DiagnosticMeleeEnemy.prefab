@@ -195,7 +195,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 4143641173
+  GlobalObjectIdHash: 2764324109
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -307,9 +307,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   speciesId: 1
   matureMaxHealth: 120
-  smallBodyScale: {x: 0.68, y: 0.72, z: 0.68}
-  matureBodyScale: {x: 0.9, y: 1.05, z: 0.9}
-  alphaBodyScale: {x: 1.35, y: 1.55, z: 1.35}
+  evolutionProfile: {fileID: 11400000, guid: 6adbea072d3e4957c8433316d0935448, type: 2}
 --- !u!114 &6095764772492698321
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -354,6 +352,7 @@ MonoBehaviour:
   showPatrolArea: 1
   showDetectionRanges: 1
   showAttackRange: 1
+  showLockedAttack: 1
   showTargetAndCandidate: 1
   showLineOfSight: 1
   showCurrentDestination: 1

@@ -20,7 +20,7 @@ namespace MidnightChaos.Procedural
         public void ApplyLayout(
             ProceduralWorldLayout layout,
             Transform generatedRoot,
-            ProceduralWorldSettings settings)
+            ProceduralRenderingSettings settings)
         {
             playerSpawnPoints.Clear();
             enemySpawnPoints.Clear();
@@ -68,7 +68,7 @@ namespace MidnightChaos.Procedural
             }
         }
 
-        public void ValidateAfterNavMesh(ProceduralWorldSettings settings)
+        public void ValidateAfterNavMesh(ProceduralNavigationSettings settings)
         {
             ValidPlayerSpawnCount = 0;
             ValidEnemySpawnCount = 0;

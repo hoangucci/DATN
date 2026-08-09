@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using MidnightChaos.Networking;
+using MidnightChaos.Inventory;
+using MidnightChaos.Enemies;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -40,7 +42,8 @@ namespace MidnightChaos.Procedural
         [SerializeField, HideInInspector] private int appliedDisplayMode = -1;
 
         private NetworkManager networkManager;
-        private ProceduralWorldSettings settings;
+        private VerticalSliceGameplaySettings gameplaySettings;
+        private ChaosEvolutionProfile evolutionProfile;
         private ProceduralLanController lan;
         private ProceduralWorldCoordinator world;
         private ProceduralEnemySpawnManager enemies;
@@ -51,17 +54,19 @@ namespace MidnightChaos.Procedural
 
         public void Initialize(
             NetworkManager configuredNetworkManager,
-            ProceduralWorldSettings configuredSettings,
+            VerticalSliceGameplaySettings configuredGameplaySettings,
+            ChaosEvolutionProfile configuredEvolutionProfile,
             ProceduralLanController configuredLan,
             ProceduralWorldCoordinator configuredWorld,
             ProceduralEnemySpawnManager configuredEnemies)
         {
             networkManager = configuredNetworkManager;
-            settings = configuredSettings;
+            gameplaySettings = configuredGameplaySettings;
+            evolutionProfile = configuredEvolutionProfile;
             lan = configuredLan;
             world = configuredWorld;
             enemies = configuredEnemies;
-            portText = settings.DefaultPort.ToString();
+            portText = lan.DefaultPort.ToString();
         }
 
         private void OnValidate()
@@ -266,9 +271,15 @@ namespace MidnightChaos.Procedural
             {
                 GUILayout.Label($"Revision: {world.Revision}");
             }
-            GUILayout.Label(
-                $"Enemies: {enemies.ActiveEnemyCount}/" +
-                $"{settings.MaximumActiveEnemies}");
+            GUILayout.Label($"Enemies: {enemies.ActiveEnemyCount}");
+            if (displayMode != DebugDisplayMode.Minimal &&
+                networkManager.IsServer)
+            {
+                GUILayout.Label(
+                    $"Gameplay Group: {enemies.GameplayGroupSize}/" +
+                    $"{evolutionProfile.RequiredEnemyGroupSize} | " +
+                    $"Debug Max: {gameplaySettings.MaximumActiveEnemies}");
+            }
             GUILayout.Label(
                 networkManager.IsServer
                     ? $"NavMesh: {(world.IsWorldReady ? "Ready" : "Waiting")}"

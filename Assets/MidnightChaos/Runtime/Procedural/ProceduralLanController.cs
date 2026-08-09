@@ -10,6 +10,11 @@ namespace MidnightChaos.Procedural
     {
         public const ushort ProtocolVersion = 12;
 
+        [Header("LAN")]
+        [Tooltip("Cổng UDP mặc định cho Host/Client trong procedural demo.")]
+        [SerializeField] private ushort defaultPort =
+            LanEndpointValidator.DefaultPort;
+
         private NetworkManager networkManager;
         private UnityTransport transport;
 
@@ -19,6 +24,17 @@ namespace MidnightChaos.Procedural
         public bool IsSessionActive =>
             networkManager != null && networkManager.IsListening;
         public bool IsHost => networkManager != null && networkManager.IsHost;
+        public ushort DefaultPort => defaultPort == 0
+            ? LanEndpointValidator.DefaultPort
+            : defaultPort;
+
+        private void OnValidate()
+        {
+            if (defaultPort == 0)
+            {
+                defaultPort = LanEndpointValidator.DefaultPort;
+            }
+        }
 
         public void Initialize(
             NetworkManager configuredNetworkManager,

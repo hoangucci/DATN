@@ -2188,6 +2188,7 @@ GameObject:
   - component: {fileID: 8986300413540027041}
   - component: {fileID: 1793848085044209110}
   - component: {fileID: 8425496570083030860}
+  - component: {fileID: 3243604884901029342}
   m_Layer: 0
   m_Name: DiagnosticNetworkPlayer
   m_TagString: Untagged
@@ -2250,7 +2251,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1285303486
+  GlobalObjectIdHash: 2819133824
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -2340,7 +2341,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maximumWood: 999
+  maximumStackSize: 999
 --- !u!114 &1340945166633524855
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2387,6 +2388,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  gameplaySettings: {fileID: 11400000, guid: 59cad9c61c2d4846b7322205cf824337, type: 2}
 --- !u!114 &6412796365412591421
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2485,6 +2487,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &3243604884901029342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7106681116296994028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33394f3da34e7054993ac860dd500f53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  worldSettings: {fileID: 11400000, guid: aaa7c0cfb4494d39a5d6c6ea91529900, type: 2}
+  gameplaySettings: {fileID: 11400000, guid: 59cad9c61c2d4846b7322205cf824337, type: 2}
 --- !u!1 &7298315645919909470
 GameObject:
   m_ObjectHideFlags: 0

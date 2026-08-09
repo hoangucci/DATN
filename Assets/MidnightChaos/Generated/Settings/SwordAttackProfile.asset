@@ -16,7 +16,7 @@ MonoBehaviour:
   damage: 40
   attackReach: 3
   attackHalfAngle: 65
-  baseAttackInterval: 1.56
+  baseAttackInterval: 1
   firstPersonAnimationVariantCount: 3
   firstPersonImpactTime: 0.25
   firstPersonRestLocalPosition: {x: 0.7, y: -0.5, z: 0.95}

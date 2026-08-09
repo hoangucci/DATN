@@ -81,6 +81,10 @@ namespace MidnightChaos.Procedural
             new List<ProceduralObjectPlacement>();
         private readonly List<Vector3> playerSpawnPoints = new List<Vector3>();
         private readonly List<Vector3> enemySpawnPoints = new List<Vector3>();
+        private readonly List<Vector3> smallRockPickupPoints =
+            new List<Vector3>();
+        private readonly List<Quaternion> smallRockPickupRotations =
+            new List<Quaternion>();
         private readonly List<string> warnings = new List<string>();
         private readonly Dictionary<string, int> grassClusterCountsByStableId =
             new Dictionary<string, int>(StringComparer.Ordinal);
@@ -107,6 +111,10 @@ namespace MidnightChaos.Procedural
         public IReadOnlyList<ProceduralObjectPlacement> Objects => objects;
         public IReadOnlyList<Vector3> PlayerSpawnPoints => playerSpawnPoints;
         public IReadOnlyList<Vector3> EnemySpawnPoints => enemySpawnPoints;
+        public IReadOnlyList<Vector3> SmallRockPickupPoints =>
+            smallRockPickupPoints;
+        public IReadOnlyList<Quaternion> SmallRockPickupRotations =>
+            smallRockPickupRotations;
         public IReadOnlyList<string> Warnings => warnings;
         public int GrassTargetCount { get; internal set; }
         public int GrassSuccessfullyPlacedCount { get; internal set; }
@@ -119,6 +127,10 @@ namespace MidnightChaos.Procedural
         internal List<ProceduralObjectPlacement> MutableObjects => objects;
         internal List<Vector3> MutablePlayerSpawnPoints => playerSpawnPoints;
         internal List<Vector3> MutableEnemySpawnPoints => enemySpawnPoints;
+        internal List<Vector3> MutableSmallRockPickupPoints =>
+            smallRockPickupPoints;
+        internal List<Quaternion> MutableSmallRockPickupRotations =>
+            smallRockPickupRotations;
         internal List<string> MutableWarnings => warnings;
 
         internal void RecordGrassCluster(string stableId)
@@ -146,6 +158,8 @@ namespace MidnightChaos.Procedural
         private const uint OreStream = 0xC9745A17u;
         private const uint VegetationStream = 0xD5E80B49u;
         private const uint GrassStream = 0xE6F91C5Bu;
+        private const uint SmallRockPickupStream = 0xF7042D6Fu;
+        private const uint SmallRockRotationStream = 0x8A15C9E3u;
         private const ulong FnvOffset = 14695981039346656037UL;
         private const ulong FnvPrime = 1099511628211UL;
 
@@ -314,6 +328,7 @@ namespace MidnightChaos.Procedural
                 seed,
                 reservations);
             PlaceGrassClusters(layout, settings, seed, reservations);
+            PlaceSmallRockPickups(layout, settings, seed, reservations);
 
             foreach (string warning in settings.CollectDefinitionWarnings())
             {
@@ -782,6 +797,140 @@ namespace MidnightChaos.Procedural
             }
         }
 
+        private static void PlaceSmallRockPickups(
+            ProceduralWorldLayout layout,
+            ProceduralWorldSettings settings,
+            int seed,
+            SpatialReservationGrid reservations)
+        {
+            ProceduralSmallRockSettings smallRocks = settings.SmallRocks;
+            int targetCount = smallRocks.CalculateTargetCount(settings.MapSize);
+            float reservationRadius = smallRocks.MinimumSpacing * 0.5f;
+            DeterministicRandom random = new DeterministicRandom(
+                DeterministicRandom.DeriveSeed(seed, SmallRockPickupStream));
+            int maximumAttempts = targetCount * settings.AttemptsPerObject;
+            int consumedAttempts = 0;
+
+            int starterTarget = layout.PlayerSpawnPoints.Count > 0
+                ? Mathf.Min(targetCount, smallRocks.StarterCount)
+                : 0;
+            float starterRadius = Mathf.Min(
+                smallRocks.StarterRadius,
+                smallRocks.StarterReachRadius);
+            float starterCandidateClearance = Mathf.Min(
+                reservationRadius,
+                starterRadius * 0.15f);
+            float starterSpacing = Mathf.Min(
+                smallRocks.MinimumSpacing,
+                starterRadius * 1.4f);
+            while (layout.MutableSmallRockPickupPoints.Count < starterTarget &&
+                   consumedAttempts < maximumAttempts)
+            {
+                consumedAttempts++;
+                if (!TryCreateCandidateNear(
+                        ref random,
+                        settings,
+                        seed,
+                        starterCandidateClearance,
+                        layout.PlayerSpawnPoints[0],
+                        starterRadius,
+                        out Vector3 candidate,
+                        out Vector3 surfaceNormal))
+                {
+                    continue;
+                }
+
+                Vector2 planar = new Vector2(candidate.x, candidate.z);
+                // Player spawn clearance already guarantees this area is free
+                // from generated obstacles. Checking the global reservation
+                // grid here would reject the starter against the player spawn
+                // reservation itself, so only de-overlap starter pickups.
+                if (IsNearAny(
+                        candidate,
+                        layout.SmallRockPickupPoints,
+                        starterSpacing))
+                {
+                    continue;
+                }
+                AddSmallRockPlacement(
+                    layout,
+                    candidate,
+                    surfaceNormal,
+                    smallRocks,
+                    seed);
+                reservations.Add(planar, reservationRadius);
+            }
+
+            for (int attempt = consumedAttempts;
+                 attempt < maximumAttempts &&
+                 layout.MutableSmallRockPickupPoints.Count < targetCount;
+                 attempt++)
+            {
+                if (!TryCreateCandidate(
+                        ref random,
+                        settings,
+                        seed,
+                        reservationRadius,
+                        out Vector3 candidate,
+                        out Vector3 surfaceNormal))
+                {
+                    continue;
+                }
+
+                Vector2 planar = new Vector2(candidate.x, candidate.z);
+                if (!reservations.IsFree(planar, reservationRadius))
+                {
+                    continue;
+                }
+
+                AddSmallRockPlacement(
+                    layout,
+                    candidate,
+                    surfaceNormal,
+                    smallRocks,
+                    seed);
+                reservations.Add(planar, reservationRadius);
+            }
+
+            if (layout.MutableSmallRockPickupPoints.Count < targetCount)
+            {
+                layout.MutableWarnings.Add(
+                    $"Placed {layout.MutableSmallRockPickupPoints.Count}/" +
+                    $"{targetCount} Small Rock pickups. Increase map area or " +
+                    "reduce Small Rock Minimum Spacing.");
+            }
+        }
+
+        private static void AddSmallRockPlacement(
+            ProceduralWorldLayout layout,
+            Vector3 position,
+            Vector3 surfaceNormal,
+            ProceduralSmallRockSettings settings,
+            int seed)
+        {
+            int index = layout.MutableSmallRockPickupPoints.Count;
+            layout.MutableSmallRockPickupPoints.Add(position);
+
+            uint indexedStream = unchecked(
+                SmallRockRotationStream + (uint)index * 0x9E3779B9u);
+            DeterministicRandom rotationRandom = new DeterministicRandom(
+                DeterministicRandom.DeriveSeed(seed, indexedStream));
+            float tilt = settings.RandomTiltDegrees;
+            Vector3 targetUp = settings.SurfaceAlignment ==
+                               ProceduralSurfaceAlignment.AlignToSurfaceNormal &&
+                               surfaceNormal.sqrMagnitude > 0.000001f
+                ? surfaceNormal.normalized
+                : Vector3.up;
+            Quaternion rotation =
+                Quaternion.AngleAxis(index * 47f, targetUp) *
+                Quaternion.FromToRotation(Vector3.up, targetUp) *
+                Quaternion.Euler(
+                    rotationRandom.Range(-tilt, tilt),
+                    0f,
+                    rotationRandom.Range(-tilt, tilt));
+            layout.MutableSmallRockPickupRotations.Add(rotation);
+        }
+
         private static bool TryCreateCandidateAtPosition(
             ProceduralWorldSettings settings,
             int seed,
@@ -989,7 +1138,10 @@ namespace MidnightChaos.Procedural
             WorldObjectDefinition[] definitions = category.Definitions;
             AddHash(ref hash, (int)category.SurfaceAlignment);
             AddHash(ref hash, (int)category.NavigationMode);
-            AddHash(ref hash, category.LodCullScreenHeightOverride);
+            // Generator v4 included a local LOD override in LayoutHash. Keep
+            // its migrated value as a non-rendering salt so existing Host and
+            // Client hashes remain byte-for-byte compatible after the split.
+            AddHash(ref hash, category.LayoutHashCompatibilityValue);
             AddHash(ref hash, definitions.Length);
             foreach (WorldObjectDefinition definition in definitions)
             {

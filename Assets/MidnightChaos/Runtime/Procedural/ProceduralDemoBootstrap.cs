@@ -4,7 +4,9 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 using MidnightChaos.Enemies;
+using MidnightChaos.Inventory;
 using MidnightChaos.Player;
+using MidnightChaos.Resources;
 
 namespace MidnightChaos.Procedural
 {
@@ -14,8 +16,13 @@ namespace MidnightChaos.Procedural
     {
         private const string SettingsResourcePath =
             "Procedural/ProceduralWorldSettings";
+        private static bool fallbackWarningLogged;
 
         [SerializeField] private ProceduralWorldSettings settings;
+        [SerializeField] private ProceduralRenderingSettings renderingSettings;
+        [SerializeField] private ProceduralNavigationSettings navigationSettings;
+        [SerializeField] private VerticalSliceGameplaySettings gameplaySettings;
+        [SerializeField] private ChaosEvolutionProfile evolutionProfile;
         [SerializeField, Tooltip(
             "Enable only in ProceduralCombatDemo. ProceduralDemo remains a no-player generation showcase.")]
         private bool enablePlayers;
@@ -28,17 +35,21 @@ namespace MidnightChaos.Procedural
 
         private void Awake()
         {
-            settings ??= UnityEngine.Resources.Load<ProceduralWorldSettings>(
-                SettingsResourcePath);
-            if (settings == null)
+            ResolveSettings();
+            if (settings == null || renderingSettings == null ||
+                navigationSettings == null || gameplaySettings == null ||
+                evolutionProfile == null)
             {
                 Debug.LogError(
-                    "[Procedural] Missing Resources/Procedural/" +
-                    "ProceduralWorldSettings.asset.",
+                    "[Procedural] Missing one or more Resources/Procedural " +
+                    "config assets (World, Rendering, Navigation, Gameplay, " +
+                    "Chaos Evolution).",
                     this);
                 enabled = false;
                 return;
             }
+
+            ConfigurePrefabDependencies();
 
             GameObject networkRoot = gameObject;
             networkRoot.name = "NetworkManager";
@@ -49,7 +60,10 @@ namespace MidnightChaos.Procedural
             ConfigureNetworkManager(networkManager, transport);
             DiagnosticChaosEvolutionService evolutionService =
                 GetOrAdd<DiagnosticChaosEvolutionService>(networkRoot);
-            evolutionService.Configure(chaosShardPrefab);
+            evolutionService.Configure(
+                gameplaySettings,
+                evolutionProfile,
+                chaosShardPrefab);
 
             GameObject generatorObject = FindOrCreate(
                 "ProceduralWorldGenerator");
@@ -60,7 +74,7 @@ namespace MidnightChaos.Procedural
             GetOrAdd<NavMeshSurface>(navMeshObject);
             RuntimeNavMeshBuilder navMeshBuilder =
                 GetOrAdd<RuntimeNavMeshBuilder>(navMeshObject);
-            navMeshBuilder.Initialize(settings);
+            navMeshBuilder.Initialize(settings, navigationSettings);
 
             GameObject playerSpawnObject = FindOrCreate("PlayerSpawnManager");
             ProceduralSpawnPointRegistry spawnPoints =
@@ -71,7 +85,8 @@ namespace MidnightChaos.Procedural
                 GetOrAdd<ProceduralEnemySpawnManager>(enemySpawnObject);
             enemySpawnManager.Initialize(
                 networkManager,
-                settings,
+                gameplaySettings,
+                navigationSettings,
                 spawnPoints,
                 navMeshBuilder);
 
@@ -80,6 +95,9 @@ namespace MidnightChaos.Procedural
             world.Initialize(
                 networkManager,
                 settings,
+                renderingSettings,
+                gameplaySettings,
+                navigationSettings,
                 generator,
                 navMeshBuilder,
                 spawnPoints,
@@ -91,10 +109,20 @@ namespace MidnightChaos.Procedural
                     GetOrAdd<ProceduralPlayerSpawnManager>(playerSpawnObject);
                 playerSpawnManager.Initialize(
                     networkManager,
-                    settings,
+                    navigationSettings,
                     spawnPoints,
                     world,
                     playerPrefab);
+
+                ProceduralVerticalSliceController verticalSlice =
+                    GetOrAdd<ProceduralVerticalSliceController>(networkRoot);
+                verticalSlice.Initialize(
+                    networkManager,
+                    settings,
+                    gameplaySettings,
+                    evolutionProfile,
+                    world,
+                    enemySpawnManager);
             }
 
             ProceduralLanController lan =
@@ -105,16 +133,101 @@ namespace MidnightChaos.Procedural
             ProceduralDemoUI ui = GetOrAdd<ProceduralDemoUI>(uiObject);
             ui.Initialize(
                 networkManager,
-                settings,
+                gameplaySettings,
+                evolutionProfile,
                 lan,
                 world,
                 enemySpawnManager);
 
             ConfigureFallbackCamera(
                 FindOrCreate("Camera fallback"),
-                settings,
+                renderingSettings,
                 enablePlayers);
             ConfigureDirectionalLight(FindOrCreate("Directional Light"));
+        }
+
+        private void ResolveSettings()
+        {
+            bool usedFallback = false;
+            if (settings == null)
+            {
+                settings = UnityEngine.Resources.Load<ProceduralWorldSettings>(
+                    SettingsResourcePath);
+                usedFallback = true;
+            }
+            if (renderingSettings == null)
+            {
+                renderingSettings =
+                    UnityEngine.Resources.Load<ProceduralRenderingSettings>(
+                        ProceduralRenderingSettings.ResourcePath);
+                usedFallback = true;
+            }
+            if (navigationSettings == null)
+            {
+                navigationSettings =
+                    UnityEngine.Resources.Load<ProceduralNavigationSettings>(
+                        ProceduralNavigationSettings.ResourcePath);
+                usedFallback = true;
+            }
+            if (gameplaySettings == null)
+            {
+                gameplaySettings =
+                    UnityEngine.Resources.Load<VerticalSliceGameplaySettings>(
+                        VerticalSliceGameplaySettings.ResourcePath);
+                usedFallback = true;
+            }
+            if (evolutionProfile == null)
+            {
+                evolutionProfile =
+                    UnityEngine.Resources.Load<ChaosEvolutionProfile>(
+                        ChaosEvolutionProfile.ResourcePath);
+                usedFallback = true;
+            }
+            if (!usedFallback || fallbackWarningLogged)
+            {
+                return;
+            }
+            fallbackWarningLogged = true;
+            Debug.LogWarning(
+                "[Settings] ProceduralDemoBootstrap had missing serialized " +
+                "settings; using Resources compatibility fallback.",
+                this);
+        }
+
+        private void ConfigurePrefabDependencies()
+        {
+            if (playerPrefab != null)
+            {
+                playerPrefab.GetComponent<VerticalSlicePlayerActions>()
+                    ?.Configure(settings, gameplaySettings);
+                playerPrefab.GetComponent<DiagnosticResourceGatherer>()
+                    ?.Configure(gameplaySettings);
+            }
+
+            GameObject enemyPrefab = gameplaySettings.EnemyPrefab;
+            if (enemyPrefab != null)
+            {
+                enemyPrefab.GetComponent<DiagnosticEnemyEvolution>()
+                    ?.Configure(evolutionProfile);
+            }
+
+            ConfigureWorldItemPrefab(
+                gameplaySettings.WorldItemNetworkPrefab);
+            if (chaosShardPrefab !=
+                gameplaySettings.WorldItemNetworkPrefab)
+            {
+                ConfigureWorldItemPrefab(chaosShardPrefab);
+            }
+        }
+
+        private void ConfigureWorldItemPrefab(GameObject prefab)
+        {
+            if (prefab == null)
+            {
+                return;
+            }
+            prefab.GetComponent<DiagnosticWorldPickup>()
+                ?.Configure(settings, gameplaySettings);
         }
 
         private void ConfigureNetworkManager(
@@ -133,36 +246,41 @@ namespace MidnightChaos.Procedural
             networkManager.NetworkConfig.ProtocolVersion =
                 ProceduralLanController.ProtocolVersion;
 
-            if (settings.EnemyPrefab == null)
+            if (gameplaySettings.EnemyPrefab == null)
             {
                 Debug.LogError(
-                    "[Procedural] Enemy Prefab is missing in World Settings.",
-                    settings);
+                    "[Procedural] Enemy Prefab is missing in Vertical Slice " +
+                    "Gameplay Settings.",
+                    gameplaySettings);
                 return;
             }
 
             try
             {
-                networkManager.AddNetworkPrefab(settings.EnemyPrefab);
+                networkManager.AddNetworkPrefab(gameplaySettings.EnemyPrefab);
             }
             catch (Exception exception)
             {
                 Debug.LogError(
                     $"[Procedural] Failed to register Enemy Prefab: " +
                     $"{exception.Message}",
-                    settings);
+                    gameplaySettings);
             }
 
-            if (chaosShardPrefab != null)
+            GameObject worldItemPrefab =
+                gameplaySettings.WorldItemNetworkPrefab != null
+                    ? gameplaySettings.WorldItemNetworkPrefab
+                    : chaosShardPrefab;
+            if (worldItemPrefab != null)
             {
                 try
                 {
-                    networkManager.AddNetworkPrefab(chaosShardPrefab);
+                    networkManager.AddNetworkPrefab(worldItemPrefab);
                 }
                 catch (Exception exception)
                 {
                     Debug.LogError(
-                        $"[Procedural] Failed to register Chaos Shard Prefab: " +
+                    $"[Procedural] Failed to register World Item Prefab: " +
                         $"{exception.Message}",
                         this);
                 }
@@ -216,7 +334,7 @@ namespace MidnightChaos.Procedural
 
         private static void ConfigureFallbackCamera(
             GameObject cameraObject,
-            ProceduralWorldSettings settings,
+            ProceduralRenderingSettings settings,
             bool configurePlayerFollow)
         {
             Camera camera = GetOrAdd<Camera>(cameraObject);
@@ -231,7 +349,9 @@ namespace MidnightChaos.Procedural
                 cameraObject);
             if (configurePlayerFollow)
             {
-                GetOrAdd<DiagnosticCameraFollow>(cameraObject);
+                DiagnosticCameraFollow follow =
+                    GetOrAdd<DiagnosticCameraFollow>(cameraObject);
+                follow.Configure(settings);
             }
         }
 

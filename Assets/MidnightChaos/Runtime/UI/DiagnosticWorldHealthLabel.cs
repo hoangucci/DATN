@@ -66,9 +66,9 @@ namespace MidnightChaos.UI
                 : string.Empty;
 
             string evolutionState = evolution != null
-                ? evolution.CurrentStage == DiagnosticEnemyStage.Alpha
-                    ? " [Alpha]"
-                    : $" [{evolution.CurrentStage} " +
+                ? evolution.IsFinalTier
+                    ? $" [{evolution.CurrentTierName}]"
+                    : $" [{evolution.CurrentTierName} " +
                       $"C{evolution.CurrentCharge}/" +
                       $"{evolution.ChargeRequirement}]"
                 : string.Empty;

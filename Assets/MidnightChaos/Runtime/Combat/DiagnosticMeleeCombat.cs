@@ -478,7 +478,7 @@ namespace MidnightChaos.Combat
                 pendingHit.AttackHalfAngle,
                 out float healthDistanceSquared);
 
-            DiagnosticResourceNode resourceTarget = null;
+            ProceduralHarvestable resourceTarget = null;
             float resourceDistanceSquared = float.PositiveInfinity;
 
             if (resourceGatherer != null)

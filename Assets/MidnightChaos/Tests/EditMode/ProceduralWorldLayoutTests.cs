@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
+using MidnightChaos.Enemies;
+using MidnightChaos.Inventory;
 using MidnightChaos.World;
 using NUnit.Framework;
 using UnityEngine;
@@ -37,11 +39,47 @@ namespace MidnightChaos.Procedural.Tests
             Assert.That(second.TerrainHeights, Is.EqualTo(first.TerrainHeights));
             Assert.That(second.PlayerSpawnPoints, Is.EqualTo(first.PlayerSpawnPoints));
             Assert.That(second.EnemySpawnPoints, Is.EqualTo(first.EnemySpawnPoints));
+            Assert.That(
+                second.SmallRockPickupPoints,
+                Is.EqualTo(first.SmallRockPickupPoints));
+            Assert.That(
+                second.SmallRockPickupRotations,
+                Is.EqualTo(first.SmallRockPickupRotations));
             Assert.That(second.Objects.Count, Is.EqualTo(first.Objects.Count));
 
             for (int index = 0; index < first.Objects.Count; index++)
             {
                 AssertPlacementEqual(first.Objects[index], second.Objects[index]);
+            }
+        }
+
+        [Test]
+        public void SmallRocksMeetConfiguredTargetAndStarterIsWithinPickupRange()
+        {
+            ProceduralWorldLayout layout =
+                ProceduralWorldLayoutBuilder.Build(settings, 12345);
+            ProceduralSmallRockSettings smallRocks = settings.SmallRocks;
+            int expectedCount = smallRocks.CalculateTargetCount(
+                settings.MapSize);
+
+            Assert.That(
+                layout.SmallRockPickupPoints.Count,
+                Is.EqualTo(expectedCount));
+            Assert.That(layout.PlayerSpawnPoints.Count, Is.GreaterThan(0));
+
+            int starterCount = Mathf.Min(
+                smallRocks.StarterCount,
+                layout.SmallRockPickupPoints.Count);
+            float maximumStarterDistance = Mathf.Min(
+                smallRocks.StarterRadius,
+                smallRocks.StarterReachRadius);
+            for (int index = 0; index < starterCount; index++)
+            {
+                Assert.That(
+                    PlanarDistance(
+                        layout.PlayerSpawnPoints[0],
+                        layout.SmallRockPickupPoints[index]),
+                    Is.LessThanOrEqualTo(maximumStarterDistance + 0.001f));
             }
         }
 
@@ -57,9 +95,46 @@ namespace MidnightChaos.Procedural.Tests
         }
 
         [Test]
-        public void LocalRenderingSettingsDoNotChangeLayoutHash()
+        public void SmallRockTiltIsDeterministicAndUsesSeparateSeededStream()
         {
             ProceduralWorldSettings clone = Object.Instantiate(settings);
+            try
+            {
+                SetPrivateField(
+                    clone.SmallRocks,
+                    "randomTiltDegrees",
+                    12f);
+                ProceduralWorldLayout first =
+                    ProceduralWorldLayoutBuilder.Build(clone, 12345);
+                ProceduralWorldLayout repeat =
+                    ProceduralWorldLayoutBuilder.Build(clone, 12345);
+                ProceduralWorldLayout differentSeed =
+                    ProceduralWorldLayoutBuilder.Build(clone, 54321);
+
+                Assert.That(
+                    repeat.SmallRockPickupPoints,
+                    Is.EqualTo(first.SmallRockPickupPoints));
+                Assert.That(
+                    repeat.SmallRockPickupRotations,
+                    Is.EqualTo(first.SmallRockPickupRotations));
+                Assert.That(
+                    differentSeed.SmallRockPickupRotations,
+                    Is.Not.EqualTo(first.SmallRockPickupRotations));
+            }
+            finally
+            {
+                Object.DestroyImmediate(clone);
+            }
+        }
+
+        [Test]
+        public void LocalRenderingSettingsDoNotChangeLayoutHash()
+        {
+            ProceduralRenderingSettings source =
+                UnityEngine.Resources.Load<ProceduralRenderingSettings>(
+                    ProceduralRenderingSettings.ResourcePath);
+            Assert.That(source, Is.Not.Null);
+            ProceduralRenderingSettings clone = Object.Instantiate(source);
             try
             {
                 SetPrivateField(clone, "useInstancedVegetation", false);
@@ -75,7 +150,7 @@ namespace MidnightChaos.Procedural.Tests
                 ProceduralWorldLayout expected =
                     ProceduralWorldLayoutBuilder.Build(settings, 12345);
                 ProceduralWorldLayout actual =
-                    ProceduralWorldLayoutBuilder.Build(clone, 12345);
+                    ProceduralWorldLayoutBuilder.Build(settings, 12345);
 
                 Assert.That(actual.LayoutHash, Is.EqualTo(expected.LayoutHash));
                 Assert.That(actual.Objects.Count, Is.EqualTo(expected.Objects.Count));
@@ -131,21 +206,21 @@ namespace MidnightChaos.Procedural.Tests
         }
 
         [Test]
-        public void GrassDefaultsAndSerializedEnumValuesRemainStable()
+        public void MigratedGrassConfigurationAndEnumValuesRemainStable()
         {
             Assert.That((int)WorldObjectCategory.Tree, Is.EqualTo(0));
             Assert.That((int)WorldObjectCategory.Rock, Is.EqualTo(1));
             Assert.That((int)WorldObjectCategory.Ore, Is.EqualTo(2));
             Assert.That((int)WorldObjectCategory.Vegetation, Is.EqualTo(3));
             Assert.That((int)WorldObjectCategory.Grass, Is.EqualTo(4));
-            Assert.That(settings.Grass.Count, Is.EqualTo(8000));
+            Assert.That(settings.Grass.Count, Is.EqualTo(80000));
             Assert.That(settings.Vegetation.Count, Is.EqualTo(2000));
             Assert.That(
                 settings.GrassClusters.InstancesPerClusterRange,
-                Is.EqualTo(new Vector2Int(50, 100)));
+                Is.EqualTo(new Vector2Int(500, 1000)));
             Assert.That(
                 settings.GrassClusters.RadiusRange,
-                Is.EqualTo(new Vector2(3f, 7f)));
+                Is.EqualTo(new Vector2(100f, 300f)));
             Assert.That(
                 settings.GrassClusters.MinimumSpacingRange,
                 Is.EqualTo(new Vector2(0.15f, 0.3f)));
@@ -498,6 +573,82 @@ namespace MidnightChaos.Procedural.Tests
                 WorldObjectCategory.Grass => settings.Grass.ClearanceRadius,
                 _ => throw new AssertionException($"Unknown category {category}")
             };
+        }
+
+        [Test]
+        public void MigratedChaosEvolutionProfileComputesSevenEnemies()
+        {
+            ChaosEvolutionProfile profile =
+                UnityEngine.Resources.Load<ChaosEvolutionProfile>(
+                    ChaosEvolutionProfile.ResourcePath);
+            Assert.That(profile, Is.Not.Null);
+            Assert.That(profile.Tiers.Length, Is.EqualTo(3));
+            Assert.That(profile.Tiers[0].ChargesToNextTier, Is.EqualTo(2));
+            Assert.That(profile.Tiers[1].ChargesToNextTier, Is.EqualTo(3));
+            Assert.That(profile.Tiers[2].FinalTier, Is.True);
+            Assert.That(profile.MinimumRequiredEnemyGroupSize, Is.EqualTo(6));
+            Assert.That(profile.RequiredEnemyGroupSize, Is.EqualTo(7));
+        }
+
+        [Test]
+        public void ChaosEvolutionGroupSizeTracksRetunedThresholds()
+        {
+            ChaosEvolutionProfile profile =
+                ScriptableObject.CreateInstance<ChaosEvolutionProfile>();
+            try
+            {
+                ChaosEvolutionTierSettings[] tiers = profile.Tiers;
+                tiers[0] = new ChaosEvolutionTierSettings(
+                    "Small", 3, false, Vector3.one,
+                    1f, 1f, 1f, 1f);
+                tiers[1] = new ChaosEvolutionTierSettings(
+                    "Mature", 5, false, Vector3.one,
+                    1f, 1f, 1f, 1f);
+                tiers[2] = new ChaosEvolutionTierSettings(
+                    "Final", 1, true, Vector3.one,
+                    1f, 1f, 1f, 1f);
+
+                Assert.That(profile.GroupExtraEnemies, Is.EqualTo(1));
+                Assert.That(profile.RequiredEnemyGroupSize, Is.EqualTo(10));
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
+            }
+        }
+
+        [Test]
+        public void SplitConfigAssetsPreserveMigratedRuntimeValues()
+        {
+            ProceduralRenderingSettings rendering =
+                UnityEngine.Resources.Load<ProceduralRenderingSettings>(
+                    ProceduralRenderingSettings.ResourcePath);
+            ProceduralNavigationSettings navigation =
+                UnityEngine.Resources.Load<ProceduralNavigationSettings>(
+                    ProceduralNavigationSettings.ResourcePath);
+            VerticalSliceGameplaySettings gameplay =
+                UnityEngine.Resources.Load<VerticalSliceGameplaySettings>(
+                    VerticalSliceGameplaySettings.ResourcePath);
+
+            Assert.That(rendering, Is.Not.Null);
+            Assert.That(navigation, Is.Not.Null);
+            Assert.That(gameplay, Is.Not.Null);
+            Assert.That(rendering.UseInstancedVegetation, Is.False);
+            Assert.That(rendering.EnableTreeParticles, Is.True);
+            Assert.That(rendering.GrassCullDistance, Is.EqualTo(100f));
+            Assert.That(navigation.NavMeshAgentTypeId, Is.Zero);
+            Assert.That(navigation.NavMeshSampleRadius, Is.EqualTo(2.5f));
+            Assert.That(gameplay.TreeHealth, Is.EqualTo(3));
+            Assert.That(gameplay.OreHealth, Is.EqualTo(4));
+            Assert.That(gameplay.WorkbenchWoodCost, Is.EqualTo(3));
+            Assert.That(gameplay.GameplayGroupRadius, Is.EqualTo(8f));
+            Assert.That(
+                gameplay.GameplayGroupMinimumSpacing,
+                Is.EqualTo(1.5f));
+            Assert.That(gameplay.MaximumActiveEnemies, Is.EqualTo(32));
+            Assert.That(settings.SmallRocks.CalculateTargetCount(settings.MapSize),
+                Is.EqualTo(50));
+            Assert.That(settings.SmallRocks.RandomTiltDegrees, Is.Zero);
         }
 
         private static void AssertCategoryHasAnchors(

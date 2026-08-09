@@ -18,7 +18,7 @@ namespace MidnightChaos.Procedural
         private readonly List<RenderChunk> chunks = new List<RenderChunk>();
         private readonly HashSet<int> invalidPrefabWarnings = new HashSet<int>();
 
-        private ProceduralWorldSettings settings;
+        private ProceduralRenderingSettings settings;
         private Camera renderCamera;
         private int vegetationLayer;
         private int grassLayer;
@@ -35,7 +35,7 @@ namespace MidnightChaos.Procedural
         public int VisibleChunkCount { get; private set; }
         public int SubmittedDrawCount { get; private set; }
 
-        public void Initialize(ProceduralWorldSettings configuredSettings)
+        public void Initialize(ProceduralRenderingSettings configuredSettings)
         {
             settings = configuredSettings ??
                 throw new ArgumentNullException(nameof(configuredSettings));

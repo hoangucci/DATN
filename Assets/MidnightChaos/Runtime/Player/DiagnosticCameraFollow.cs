@@ -9,8 +9,7 @@ namespace MidnightChaos.Player
     [RequireComponent(typeof(Camera))]
     public sealed class DiagnosticCameraFollow : MonoBehaviour
     {
-        private const string ProceduralSettingsResourcePath =
-            "Procedural/ProceduralWorldSettings";
+        private static bool fallbackWarningLogged;
 
         [Header("Gate G - Local First Person Camera")]
         [SerializeField] private Vector3 eyeOffset =
@@ -33,10 +32,16 @@ namespace MidnightChaos.Player
         private float hitShakeFrequency;
         private int hitShakeGeneration;
         private Camera controlledCamera;
-        private ProceduralWorldSettings proceduralSettings;
+        [SerializeField] private ProceduralRenderingSettings renderingSettings;
 
         public bool IsCursorCaptured =>
             rotationTarget != null && Cursor.lockState == CursorLockMode.Locked;
+
+        public void Configure(
+            ProceduralRenderingSettings configuredRenderingSettings)
+        {
+            renderingSettings = configuredRenderingSettings;
+        }
 
         public void SetTarget(Transform newTarget)
         {
@@ -53,12 +58,16 @@ namespace MidnightChaos.Player
             rotationTarget = newRotationTarget;
             positionAnchor = newPositionAnchor;
             controlledCamera ??= GetComponent<Camera>();
-            proceduralSettings ??=
-                UnityEngine.Resources.Load<ProceduralWorldSettings>(
-                    ProceduralSettingsResourcePath);
+            if (renderingSettings == null)
+            {
+                renderingSettings =
+                    UnityEngine.Resources.Load<ProceduralRenderingSettings>(
+                        ProceduralRenderingSettings.ResourcePath);
+                LogFallbackWarningOnce();
+            }
             ProceduralRenderUtility.ConfigureCamera(
                 controlledCamera,
-                proceduralSettings,
+                renderingSettings,
                 this);
             yaw = rotationTarget.eulerAngles.y;
             pitch = 0f;
@@ -254,6 +263,19 @@ namespace MidnightChaos.Player
         {
             hitShakeDuration = 0f;
             ReleaseOwnedCursorIfNecessary();
+        }
+
+        private void LogFallbackWarningOnce()
+        {
+            if (fallbackWarningLogged)
+            {
+                return;
+            }
+            fallbackWarningLogged = true;
+            Debug.LogWarning(
+                "[Settings] DiagnosticCameraFollow had no injected Rendering " +
+                "Settings; using Resources compatibility fallback.",
+                this);
         }
     }
 }

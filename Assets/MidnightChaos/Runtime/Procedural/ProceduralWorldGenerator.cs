@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using MidnightChaos.World;
 using Unity.AI.Navigation;
 using UnityEngine;
+using MidnightChaos.Inventory;
+using MidnightChaos.Resources;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
 
@@ -65,12 +67,22 @@ namespace MidnightChaos.Procedural
 
         public ProceduralWorldLayout Generate(
             ProceduralWorldSettings settings,
+            ProceduralRenderingSettings renderingSettings,
+            VerticalSliceGameplaySettings gameplaySettings,
             int seed,
             uint revision)
         {
             if (settings == null)
             {
                 throw new ArgumentNullException(nameof(settings));
+            }
+            if (renderingSettings == null)
+            {
+                throw new ArgumentNullException(nameof(renderingSettings));
+            }
+            if (gameplaySettings == null)
+            {
+                throw new ArgumentNullException(nameof(gameplaySettings));
             }
 
             ValidateDynamicObstacleContracts(settings);
@@ -83,11 +95,11 @@ namespace MidnightChaos.Procedural
             generatedRoot = rootObject.transform;
 
             vegetationRenderer = null;
-            if (settings.UseInstancedVegetation)
+            if (renderingSettings.UseInstancedVegetation)
             {
                 vegetationRenderer =
                     rootObject.AddComponent<ProceduralVegetationRenderer>();
-                vegetationRenderer.Initialize(settings);
+                vegetationRenderer.Initialize(renderingSettings);
             }
 
             CreateTerrain(CurrentLayout, settings, generatedRoot);
@@ -147,12 +159,26 @@ namespace MidnightChaos.Procedural
                     categorySettings);
                 ApplyLodCullOverride(
                     instance,
-                    categorySettings.LodCullScreenHeightOverride);
+                    renderingSettings.GetLodCullScreenHeightOverride(
+                        placement.Category));
                 ConfigureRendering(
                     instance,
                     placement.Category,
-                    settings);
+                    renderingSettings);
                 ConfigureNavigation(instance, prefab, placement.NavigationMode);
+
+                if (placement.Category == WorldObjectCategory.Tree ||
+                    placement.Category == WorldObjectCategory.Ore)
+                {
+                    ProceduralHarvestable harvestable =
+                        instance.AddComponent<ProceduralHarvestable>();
+                    bool tree = placement.Category == WorldObjectCategory.Tree;
+                    harvestable.Initialize(
+                        instance.name,
+                        tree ? gameplaySettings.TreeHealth : gameplaySettings.OreHealth,
+                        tree ? VerticalSliceItemId.Wood : VerticalSliceItemId.Ore,
+                        tree ? gameplaySettings.WoodDropAmount : gameplaySettings.OreDropAmount);
+                }
 
                 GeneratedObjectCount++;
                 IncrementCategoryCount(placement.Category);
@@ -521,7 +547,7 @@ namespace MidnightChaos.Procedural
         private void ConfigureRendering(
             GameObject instance,
             WorldObjectCategory category,
-            ProceduralWorldSettings settings)
+            ProceduralRenderingSettings settings)
         {
             int layer = ProceduralRenderUtility.ResolveCategoryLayer(
                 category,

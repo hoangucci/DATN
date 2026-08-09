@@ -7,6 +7,7 @@ using MidnightChaos.Equipment;
 using MidnightChaos.Inventory;
 using MidnightChaos.Networking;
 using MidnightChaos.Player;
+using MidnightChaos.Procedural;
 using MidnightChaos.Resources;
 using MidnightChaos.UI;
 using Unity.Netcode;
@@ -29,6 +30,16 @@ namespace MidnightChaos.Editor
         private const string MaterialFolder = GeneratedRoot + "/Materials";
         private const string SettingsFolder = GeneratedRoot + "/Settings";
         private const string EnemyDefinitionFolder = Root + "/Definitions/Enemies";
+        private const string ProceduralSettingsFolder =
+            Root + "/Resources/Procedural";
+        private const string ProceduralWorldSettingsPath =
+            ProceduralSettingsFolder + "/ProceduralWorldSettings.asset";
+        private const string ProceduralRenderingSettingsPath =
+            ProceduralSettingsFolder + "/ProceduralRenderingSettings.asset";
+        private const string VerticalSliceGameplaySettingsPath =
+            ProceduralSettingsFolder + "/VerticalSliceGameplaySettings.asset";
+        private const string ChaosEvolutionProfilePath =
+            ProceduralSettingsFolder + "/ChaosEvolutionProfile.asset";
         private const string MuckFirstPersonControllerPath =
             Root + "/Animation/MuckFirstPerson/Cube.controller";
         private const string PlayerPrefabPath = PrefabFolder + "/DiagnosticNetworkPlayer.prefab";
@@ -332,13 +343,26 @@ namespace MidnightChaos.Editor
             NetworkHealth playerHealth = root.AddComponent<NetworkHealth>();
             playerHealth.ConfigureForDiagnostics(100, "Player");
             root.AddComponent<DiagnosticNetworkInventory>();
+            ProceduralWorldSettings proceduralWorldSettings =
+                AssetDatabase.LoadAssetAtPath<ProceduralWorldSettings>(
+                    ProceduralWorldSettingsPath);
+            VerticalSliceGameplaySettings gameplaySettings =
+                AssetDatabase.LoadAssetAtPath<VerticalSliceGameplaySettings>(
+                    VerticalSliceGameplaySettingsPath);
+            VerticalSlicePlayerActions playerActions =
+                root.AddComponent<VerticalSlicePlayerActions>();
+            playerActions.Configure(
+                proceduralWorldSettings,
+                gameplaySettings);
             DiagnosticPlayerEquipment playerEquipment =
                 root.AddComponent<DiagnosticPlayerEquipment>();
             playerEquipment.ConfigureWorldSwordVisual(swordVisual);
             playerEquipment.ConfigureFirstPersonViewmodelForMigration(
                 firstPersonController);
             root.AddComponent<DiagnosticCraftingInteractor>();
-            root.AddComponent<DiagnosticResourceGatherer>();
+            DiagnosticResourceGatherer resourceGatherer =
+                root.AddComponent<DiagnosticResourceGatherer>();
+            resourceGatherer.Configure(gameplaySettings);
             DiagnosticMeleeCombat meleeCombat =
                 root.AddComponent<DiagnosticMeleeCombat>();
             meleeCombat.Configure(
@@ -493,7 +517,11 @@ namespace MidnightChaos.Editor
 
             NetworkHealth enemyHealth = root.AddComponent<NetworkHealth>();
             enemyHealth.ConfigureForDiagnostics(66, "Melee Enemy");
-            root.AddComponent<DiagnosticEnemyEvolution>();
+            DiagnosticEnemyEvolution evolution =
+                root.AddComponent<DiagnosticEnemyEvolution>();
+            evolution.Configure(
+                AssetDatabase.LoadAssetAtPath<ChaosEvolutionProfile>(
+                    ChaosEvolutionProfilePath));
             DiagnosticEnemyVisual enemyVisual =
                 root.AddComponent<DiagnosticEnemyVisual>();
             enemyVisual.ConfigureForDiagnostics(
@@ -524,10 +552,22 @@ namespace MidnightChaos.Editor
             Collider collider = root.GetComponent<Collider>();
             if (collider != null)
             {
-                Object.DestroyImmediate(collider);
+                collider.isTrigger = true;
             }
 
             root.AddComponent<NetworkObject>();
+            NetworkTransform networkTransform = root.AddComponent<NetworkTransform>();
+            networkTransform.AuthorityMode = NetworkTransform.AuthorityModes.Server;
+            Rigidbody rigidbody = root.AddComponent<Rigidbody>();
+            rigidbody.isKinematic = true;
+            rigidbody.useGravity = false;
+            DiagnosticWorldPickup pickup =
+                root.AddComponent<DiagnosticWorldPickup>();
+            pickup.Configure(
+                AssetDatabase.LoadAssetAtPath<ProceduralWorldSettings>(
+                    ProceduralWorldSettingsPath),
+                AssetDatabase.LoadAssetAtPath<VerticalSliceGameplaySettings>(
+                    VerticalSliceGameplaySettingsPath));
             root.AddComponent<DiagnosticChaosShard>();
             root.AddComponent<DiagnosticWorldChaosShardLabel>();
 
@@ -980,6 +1020,15 @@ namespace MidnightChaos.Editor
             GameObject chaosShardPrefab,
             Material workbenchMaterial)
         {
+            ProceduralRenderingSettings renderingSettings =
+                AssetDatabase.LoadAssetAtPath<ProceduralRenderingSettings>(
+                    ProceduralRenderingSettingsPath);
+            VerticalSliceGameplaySettings gameplaySettings =
+                AssetDatabase.LoadAssetAtPath<VerticalSliceGameplaySettings>(
+                    VerticalSliceGameplaySettingsPath);
+            ChaosEvolutionProfile evolutionProfile =
+                AssetDatabase.LoadAssetAtPath<ChaosEvolutionProfile>(
+                    ChaosEvolutionProfilePath);
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "LAN_Bootstrap";
 
@@ -989,6 +1038,8 @@ namespace MidnightChaos.Editor
                 typeof(AudioListener),
                 typeof(DiagnosticCameraFollow));
             cameraObject.tag = "MainCamera";
+            cameraObject.GetComponent<DiagnosticCameraFollow>()
+                .Configure(renderingSettings);
             Camera gameplayCamera = cameraObject.GetComponent<Camera>();
             gameplayCamera.nearClipPlane = 0.05f;
 
@@ -1015,7 +1066,10 @@ namespace MidnightChaos.Editor
             resourceSpawner.Configure(resourcePrefab);
             DiagnosticChaosEvolutionService evolutionService =
                 networkRoot.AddComponent<DiagnosticChaosEvolutionService>();
-            evolutionService.Configure(chaosShardPrefab);
+            evolutionService.Configure(
+                gameplaySettings,
+                evolutionProfile,
+                chaosShardPrefab);
             DiagnosticEnemySpawner enemySpawner =
                 networkRoot.AddComponent<DiagnosticEnemySpawner>();
             enemySpawner.Configure(enemyPrefab);

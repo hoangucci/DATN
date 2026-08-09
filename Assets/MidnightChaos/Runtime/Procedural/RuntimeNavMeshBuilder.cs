@@ -17,16 +17,18 @@ namespace MidnightChaos.Procedural
         public bool IsReady { get; private set; }
         public string StatusText { get; private set; } = "Not built";
 
-        public void Initialize(ProceduralWorldSettings settings)
+        public void Initialize(
+            ProceduralWorldSettings worldSettings,
+            ProceduralNavigationSettings navigationSettings)
         {
             surface = GetComponent<NavMeshSurface>();
-            surface.agentTypeID = settings.NavMeshAgentTypeId;
+            surface.agentTypeID = navigationSettings.NavMeshAgentTypeId;
             surface.collectObjects = CollectObjects.Volume;
-            surface.center = new Vector3(0f, settings.BaseHeight, 0f);
+            surface.center = new Vector3(0f, worldSettings.BaseHeight, 0f);
             surface.size = new Vector3(
-                settings.MapSize.x,
-                settings.NavMeshVolumeHeight,
-                settings.MapSize.y);
+                worldSettings.MapSize.x,
+                navigationSettings.NavMeshVolumeHeight,
+                worldSettings.MapSize.y);
             int sourceMask = ~(1 << 2);
             int vegetationLayer = LayerMask.NameToLayer(
                 ProceduralRenderUtility.VegetationLayerName);
@@ -46,21 +48,24 @@ namespace MidnightChaos.Procedural
             surface.ignoreNavMeshObstacle = true;
         }
 
-        public IEnumerator Rebuild(ProceduralWorldSettings settings)
+        public IEnumerator Rebuild(
+            ProceduralWorldSettings worldSettings,
+            ProceduralNavigationSettings navigationSettings)
         {
             if (IsBuilding)
             {
                 yield break;
             }
 
-            Initialize(settings);
+            Initialize(worldSettings, navigationSettings);
             IsBuilding = true;
             IsReady = false;
             StatusText = "Building...";
             ClearRuntimeData();
 
             Physics.SyncTransforms();
-            NavMeshData newData = new NavMeshData(settings.NavMeshAgentTypeId)
+            NavMeshData newData = new NavMeshData(
+                navigationSettings.NavMeshAgentTypeId)
             {
                 name = "ProceduralDemo_RuntimeNavMesh"
             };

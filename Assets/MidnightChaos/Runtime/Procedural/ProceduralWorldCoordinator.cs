@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Collections.Generic;
+using MidnightChaos.Inventory;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -17,6 +18,9 @@ namespace MidnightChaos.Procedural
 
         private NetworkManager networkManager;
         private ProceduralWorldSettings settings;
+        private ProceduralRenderingSettings renderingSettings;
+        private VerticalSliceGameplaySettings gameplaySettings;
+        private ProceduralNavigationSettings navigationSettings;
         private ProceduralWorldGenerator generator;
         private RuntimeNavMeshBuilder navMeshBuilder;
         private ProceduralSpawnPointRegistry spawnPoints;
@@ -96,10 +100,21 @@ namespace MidnightChaos.Procedural
             spawnPoints != null ? spawnPoints.ValidPlayerSpawnCount : 0;
         public int ValidEnemySpawnCount =>
             spawnPoints != null ? spawnPoints.ValidEnemySpawnCount : 0;
+        public IReadOnlyList<Vector3> SmallRockPickupPoints =>
+            generator != null && generator.CurrentLayout != null
+                ? generator.CurrentLayout.SmallRockPickupPoints
+                : System.Array.Empty<Vector3>();
+        public IReadOnlyList<Quaternion> SmallRockPickupRotations =>
+            generator != null && generator.CurrentLayout != null
+                ? generator.CurrentLayout.SmallRockPickupRotations
+                : System.Array.Empty<Quaternion>();
 
         public void Initialize(
             NetworkManager configuredNetworkManager,
             ProceduralWorldSettings configuredSettings,
+            ProceduralRenderingSettings configuredRenderingSettings,
+            VerticalSliceGameplaySettings configuredGameplaySettings,
+            ProceduralNavigationSettings configuredNavigationSettings,
             ProceduralWorldGenerator configuredGenerator,
             RuntimeNavMeshBuilder configuredNavMeshBuilder,
             ProceduralSpawnPointRegistry configuredSpawnPoints,
@@ -107,6 +122,9 @@ namespace MidnightChaos.Procedural
         {
             networkManager = configuredNetworkManager;
             settings = configuredSettings;
+            renderingSettings = configuredRenderingSettings;
+            gameplaySettings = configuredGameplaySettings;
+            navigationSettings = configuredNavigationSettings;
             generator = configuredGenerator;
             navMeshBuilder = configuredNavMeshBuilder;
             spawnPoints = configuredSpawnPoints;
@@ -243,7 +261,12 @@ namespace MidnightChaos.Procedural
             ProceduralWorldLayout layout;
             try
             {
-                layout = generator.Generate(settings, seed, revision);
+                layout = generator.Generate(
+                    settings,
+                    renderingSettings,
+                    gameplaySettings,
+                    seed,
+                    revision);
             }
             catch (Exception exception)
             {
@@ -255,7 +278,7 @@ namespace MidnightChaos.Procedural
             spawnPoints.ApplyLayout(
                 layout,
                 generator.GeneratedRoot,
-                settings);
+                renderingSettings);
 
             CurrentSeed = seed;
             Revision = revision;
@@ -268,13 +291,13 @@ namespace MidnightChaos.Procedural
             // Host continues the authoritative NavMesh phase.
             BroadcastDescriptor();
 
-            yield return navMeshBuilder.Rebuild(settings);
+            yield return navMeshBuilder.Rebuild(settings, navigationSettings);
 
-            if (settings.NavMeshCarvingSettleSeconds > 0f)
+            if (navigationSettings.NavMeshCarvingSettleSeconds > 0f)
             {
                 StatusText = "Waiting for NavMeshObstacle carving...";
                 yield return new WaitForSecondsRealtime(
-                    settings.NavMeshCarvingSettleSeconds);
+                    navigationSettings.NavMeshCarvingSettleSeconds);
             }
             else
             {
@@ -318,7 +341,7 @@ namespace MidnightChaos.Procedural
                 yield break;
             }
 
-            spawnPoints.ValidateAfterNavMesh(settings);
+            spawnPoints.ValidateAfterNavMesh(navigationSettings);
             if (spawnPoints.ValidPlayerSpawnCount !=
                 spawnPoints.PlayerSpawnPoints.Count)
             {
@@ -341,7 +364,9 @@ namespace MidnightChaos.Procedural
             }
 
             IsWorldReady = true;
-            StatusText = "World ready - use Spawn Enemy manually";
+            StatusText =
+                "World ready - automatic gameplay group starts now; " +
+                "Spawn Enemy is debug only";
             HostWorldReady?.Invoke();
         }
 
@@ -386,7 +411,12 @@ namespace MidnightChaos.Procedural
             ProceduralWorldLayout layout;
             try
             {
-                layout = generator.Generate(settings, seed, revision);
+                layout = generator.Generate(
+                    settings,
+                    renderingSettings,
+                    gameplaySettings,
+                    seed,
+                    revision);
             }
             catch (Exception exception)
             {
@@ -399,7 +429,7 @@ namespace MidnightChaos.Procedural
             spawnPoints.ApplyLayout(
                 layout,
                 generator.GeneratedRoot,
-                settings);
+                renderingSettings);
 
             CurrentSeed = seed;
             Revision = revision;

@@ -18,36 +18,18 @@ namespace MidnightChaos.Enemies
     public sealed class DiagnosticEnemyEvolution : NetworkBehaviour
     {
         private const string BodyVisualName = "BodyVisual";
-        private const byte SmallChargeRequirement = 2;
-        private const byte MatureChargeRequirement = 3;
+        private static bool fallbackWarningLogged;
 
-        [Header("Gate F - Chaos Evolution")]
         [SerializeField, Min(1)] private int speciesId = 1;
         [SerializeField, Min(1)] private int matureMaxHealth = 120;
-        [SerializeField] private Vector3 smallBodyScale =
-            new Vector3(0.68f, 0.72f, 0.68f);
-        [SerializeField] private Vector3 matureBodyScale =
-            new Vector3(0.9f, 1.05f, 0.9f);
-        [SerializeField] private Vector3 alphaBodyScale =
-            new Vector3(1.35f, 1.55f, 1.35f);
+        [SerializeField] private ChaosEvolutionProfile evolutionProfile;
 
-        private NetworkVariable<byte> replicatedStage =
-            new NetworkVariable<byte>(
-                (byte)DiagnosticEnemyStage.Small,
-                NetworkVariableReadPermission.Everyone,
-                NetworkVariableWritePermission.Server);
-
-        private NetworkVariable<byte> replicatedCharge =
-            new NetworkVariable<byte>(
-                0,
-                NetworkVariableReadPermission.Everyone,
-                NetworkVariableWritePermission.Server);
-
-        private NetworkVariable<uint> feedbackSequence =
-            new NetworkVariable<uint>(
-                0,
-                NetworkVariableReadPermission.Everyone,
-                NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<byte> replicatedTier =
+            new NetworkVariable<byte>(0);
+        private readonly NetworkVariable<int> replicatedCharge =
+            new NetworkVariable<int>(0);
+        private readonly NetworkVariable<uint> feedbackSequence =
+            new NetworkVariable<uint>(0);
 
         private NetworkHealth health;
         private Transform bodyVisual;
@@ -56,254 +38,227 @@ namespace MidnightChaos.Enemies
         private bool missingServiceLoggedServer;
         private bool shardDroppedServer;
 
-        public event Action<DiagnosticEnemyStage, DiagnosticEnemyStage>
-            StageChanged;
+        public event Action<DiagnosticEnemyStage, DiagnosticEnemyStage> StageChanged;
         public event Action<uint, uint> FeedbackRequested;
 
+        public int CurrentTierIndex => replicatedTier.Value;
         public DiagnosticEnemyStage CurrentStage =>
-            (DiagnosticEnemyStage)replicatedStage.Value;
-        public byte CurrentCharge => replicatedCharge.Value;
+            (DiagnosticEnemyStage)Mathf.Clamp(CurrentTierIndex, 0, 2);
+        public string CurrentTierName => CurrentTier != null
+            ? CurrentTier.DisplayName
+            : $"Tier {CurrentTierIndex}";
+        public int CurrentCharge => replicatedCharge.Value;
         public int SpeciesId => speciesId;
+        public bool IsFinalTier => CurrentTier == null || CurrentTier.FinalTier ||
+                                   CurrentTierIndex >= Tiers.Length - 1;
         public bool CanReceiveCharge =>
-            IsSpawned && !health.IsDead &&
-            CurrentStage != DiagnosticEnemyStage.Alpha;
-        public byte ChargeRequirement => CurrentStage switch
-        {
-            DiagnosticEnemyStage.Small => SmallChargeRequirement,
-            DiagnosticEnemyStage.Mature => MatureChargeRequirement,
-            _ => 0
-        };
-        public float DamageMultiplier => CurrentStage switch
-        {
-            DiagnosticEnemyStage.Small => 0.70f,
-            DiagnosticEnemyStage.Mature => 1f,
-            DiagnosticEnemyStage.Alpha => 1.50f,
-            _ => 1f
-        };
-        public float SpeedMultiplier => CurrentStage switch
-        {
-            DiagnosticEnemyStage.Small => 1.15f,
-            DiagnosticEnemyStage.Mature => 1f,
-            DiagnosticEnemyStage.Alpha => 0.85f,
-            _ => 1f
-        };
-        public float AttackReachMultiplier => CurrentStage switch
-        {
-            DiagnosticEnemyStage.Small => 0.85f,
-            DiagnosticEnemyStage.Mature => 1f,
-            DiagnosticEnemyStage.Alpha => 1.25f,
-            _ => 1f
-        };
+            IsSpawned && health != null && !health.IsDead && !IsFinalTier;
+        public int ChargeRequirement => CanReceiveCharge
+            ? CurrentTier.ChargesToNextTier
+            : 0;
+        public float DamageMultiplier => CurrentTier?.DamageMultiplier ?? 1f;
+        public float SpeedMultiplier => CurrentTier?.SpeedMultiplier ?? 1f;
+        public float AttackReachMultiplier =>
+            CurrentTier?.AttackReachMultiplier ?? 1f;
         public float WorldLabelHeightOffset =>
-            GetBodyScale(CurrentStage).y * 2f - 0.65f;
+            GetBodyScale().y * 2f - 0.65f;
+
+        private ChaosEvolutionTierSettings[] Tiers =>
+            evolutionProfile != null
+                ? evolutionProfile.Tiers
+                : Array.Empty<ChaosEvolutionTierSettings>();
+        private ChaosEvolutionTierSettings CurrentTier =>
+            CurrentTierIndex >= 0 && CurrentTierIndex < Tiers.Length
+                ? Tiers[CurrentTierIndex]
+                : null;
+
+        public void Configure(ChaosEvolutionProfile configuredEvolutionProfile)
+        {
+            evolutionProfile = configuredEvolutionProfile;
+        }
 
         private void Awake()
         {
             health = GetComponent<NetworkHealth>();
             bodyVisual = transform.Find(BodyVisualName);
             enemyVisual = GetComponent<DiagnosticEnemyVisual>();
+            if (evolutionProfile == null)
+            {
+                evolutionProfile =
+                    UnityEngine.Resources.Load<ChaosEvolutionProfile>(
+                        ChaosEvolutionProfile.ResourcePath);
+                LogFallbackWarningOnce();
+            }
+        }
+
+        private void LogFallbackWarningOnce()
+        {
+            if (fallbackWarningLogged)
+            {
+                return;
+            }
+            fallbackWarningLogged = true;
+            Debug.LogWarning(
+                "[Settings] DiagnosticEnemyEvolution had no injected Chaos " +
+                "Evolution Profile; using Resources compatibility fallback.",
+                this);
         }
 
         public override void OnNetworkSpawn()
         {
-            replicatedStage.OnValueChanged += HandleStageChanged;
+            replicatedTier.OnValueChanged += HandleTierChanged;
             feedbackSequence.OnValueChanged += HandleFeedbackSequenceChanged;
-
+            if (Tiers.Length < 2 || Tiers[0] == null)
+            {
+                Debug.LogError(
+                    "[ChaosEvolution] Chaos Evolution Profile tiers are invalid.",
+                    this);
+                enabled = false;
+                return;
+            }
             if (IsServer)
             {
                 deathProcessedServer = false;
                 missingServiceLoggedServer = false;
                 shardDroppedServer = false;
-                replicatedStage.Value = (byte)DiagnosticEnemyStage.Small;
+                replicatedTier.Value = 0;
                 replicatedCharge.Value = 0;
-                health.TrySetMaxHealthPreserveRatioServer(
-                    GetMaxHealth(DiagnosticEnemyStage.Small));
+                health.TrySetMaxHealthPreserveRatioServer(GetMaxHealth(0));
             }
-
-            ApplyStagePresentation(CurrentStage);
+            ApplyTierPresentation();
         }
 
         public override void OnNetworkDespawn()
         {
-            replicatedStage.OnValueChanged -= HandleStageChanged;
+            replicatedTier.OnValueChanged -= HandleTierChanged;
             feedbackSequence.OnValueChanged -= HandleFeedbackSequenceChanged;
         }
 
         private void Update()
         {
-            if (!IsServer ||
-                !IsSpawned ||
-                deathProcessedServer ||
-                health == null ||
-                !health.IsDead)
+            if (IsServer && IsSpawned && !deathProcessedServer &&
+                health != null && health.IsDead)
             {
-                return;
+                CommitDeathServer();
             }
-
-            CommitDeathServer();
         }
 
-        public bool TryReceiveChaosChargeServer(ulong sourceEnemyId)
+        public bool TryReceiveChaosChargeServer(ulong sourceEnemyId) =>
+            TryReceiveChaosChargeServer(sourceEnemyId, 1);
+
+        public bool TryReceiveChaosChargeServer(
+            ulong sourceEnemyId,
+            int transferAmount)
         {
-            if (!IsServer || !CanReceiveCharge)
+            if (!IsServer || !CanReceiveCharge || transferAmount <= 0)
             {
                 return false;
             }
-
-            byte newCharge = (byte)(replicatedCharge.Value + 1);
-            replicatedCharge.Value = newCharge;
+            replicatedCharge.Value = Mathf.Max(
+                0,
+                replicatedCharge.Value + transferAmount);
             feedbackSequence.Value++;
-
             Debug.Log(
-                $"[Gate F] Enemy {NetworkObjectId} received Chaos Charge " +
-                $"from enemy {sourceEnemyId}. Stage {CurrentStage}, " +
-                $"charge {newCharge}/{ChargeRequirement}.");
+                $"[ChaosTransfer] Enemy {NetworkObjectId} received " +
+                $"{transferAmount} from {sourceEnemyId}; tier={CurrentTierName}, " +
+                $"charge={CurrentCharge}.");
 
-            if (newCharge < ChargeRequirement)
+            int protection = Tiers.Length + 1;
+            while (CanReceiveCharge && protection-- > 0)
             {
-                return true;
+                int cost = ChargeRequirement;
+                if (cost <= 0 || CurrentCharge < cost)
+                {
+                    break;
+                }
+                int previousTier = CurrentTierIndex;
+                replicatedCharge.Value -= cost;
+                ApplyTierServer(previousTier + 1);
+                Debug.Log(
+                    $"[ChaosEvolution] Enemy {NetworkObjectId}: " +
+                    $"tier {previousTier} -> {CurrentTierIndex}, " +
+                    $"consumed={cost}, remaining={CurrentCharge}.");
             }
-
-            DiagnosticEnemyStage nextStage = CurrentStage switch
+            if (protection < 0)
             {
-                DiagnosticEnemyStage.Small => DiagnosticEnemyStage.Mature,
-                DiagnosticEnemyStage.Mature => DiagnosticEnemyStage.Alpha,
-                _ => DiagnosticEnemyStage.Alpha
-            };
-
-            ApplyStageServer(nextStage);
+                Debug.LogError("[ChaosEvolution] Chain protection stopped invalid tier config.", this);
+            }
             return true;
         }
 
         public bool TryMarkShardDroppedServer()
         {
-            if (!IsServer ||
-                CurrentStage != DiagnosticEnemyStage.Alpha ||
-                shardDroppedServer)
+            if (!IsServer || !IsFinalTier || shardDroppedServer)
             {
                 return false;
             }
-
             shardDroppedServer = true;
             return true;
         }
 
-        private void ApplyStageServer(DiagnosticEnemyStage newStage)
+        private void ApplyTierServer(int newTier)
         {
-            if (!IsServer ||
-                health.IsDead ||
-                newStage == CurrentStage)
+            if (!IsServer || health.IsDead || newTier <= CurrentTierIndex ||
+                newTier < 0 || newTier >= Tiers.Length || Tiers[newTier] == null)
             {
                 return;
             }
-
-            DiagnosticEnemyStage previousStage = CurrentStage;
-            int previousHealth = health.CurrentHealth;
-            int previousMaxHealth = health.MaxHealth;
-
-            health.TrySetMaxHealthPreserveRatioServer(GetMaxHealth(newStage));
-            replicatedCharge.Value = 0;
-            replicatedStage.Value = (byte)newStage;
+            health.TrySetMaxHealthPreserveRatioServer(GetMaxHealth(newTier));
+            replicatedTier.Value = (byte)newTier;
             feedbackSequence.Value++;
-
-            Debug.Log(
-                $"[Gate F] Enemy {NetworkObjectId} evolved " +
-                $"{previousStage} -> {newStage}. HP ratio preserved: " +
-                $"{previousHealth}/{previousMaxHealth} -> " +
-                $"{health.CurrentHealth}/{health.MaxHealth}.");
         }
 
         private void CommitDeathServer()
         {
-            if (!IsServer || deathProcessedServer || !health.IsDead)
-            {
-                return;
-            }
-
             DiagnosticChaosEvolutionService service =
                 FindFirstObjectByType<DiagnosticChaosEvolutionService>();
-
             if (service == null)
             {
                 if (!missingServiceLoggedServer)
                 {
                     missingServiceLoggedServer = true;
-                    Debug.LogError(
-                        "[Gate F] Chaos Evolution service is missing. " +
-                        $"Death {NetworkObjectId} is waiting for the service.");
+                    Debug.LogError("[ChaosEvolution] Evolution service is missing.");
                 }
-
                 return;
             }
-
             deathProcessedServer = true;
             service.CommitEnemyDeathServer(this);
         }
 
-        private int GetMaxHealth(DiagnosticEnemyStage stage)
+        private int GetMaxHealth(int tierIndex)
         {
-            float multiplier = stage switch
-            {
-                DiagnosticEnemyStage.Small => 0.55f,
-                DiagnosticEnemyStage.Mature => 1f,
-                DiagnosticEnemyStage.Alpha => 2.20f,
-                _ => 1f
-            };
-
-            return Mathf.Max(1, Mathf.RoundToInt(matureMaxHealth * multiplier));
+            ChaosEvolutionTierSettings tier =
+                tierIndex >= 0 && tierIndex < Tiers.Length
+                    ? Tiers[tierIndex]
+                    : null;
+            return Mathf.Max(
+                1,
+                Mathf.RoundToInt(
+                    matureMaxHealth * (tier?.HealthMultiplier ?? 1f)));
         }
 
-        private void HandleStageChanged(byte previous, byte current)
+        private void HandleTierChanged(byte previous, byte current)
         {
-            DiagnosticEnemyStage previousStage =
-                (DiagnosticEnemyStage)previous;
-            DiagnosticEnemyStage currentStage =
-                (DiagnosticEnemyStage)current;
-
-            ApplyStagePresentation(currentStage);
-            StageChanged?.Invoke(previousStage, currentStage);
+            ApplyTierPresentation();
+            StageChanged?.Invoke(
+                (DiagnosticEnemyStage)Mathf.Clamp(previous, 0, 2),
+                (DiagnosticEnemyStage)Mathf.Clamp(current, 0, 2));
         }
 
         private void HandleFeedbackSequenceChanged(uint previous, uint current)
         {
-            if (current != previous)
-            {
-                FeedbackRequested?.Invoke(previous, current);
-            }
+            if (current != previous) FeedbackRequested?.Invoke(previous, current);
         }
 
-        private void ApplyStagePresentation(DiagnosticEnemyStage stage)
+        private void ApplyTierPresentation()
         {
-            if (bodyVisual == null)
-            {
-                return;
-            }
-
-            Vector3 bodyScale = GetBodyScale(stage);
-            enemyVisual?.ApplyEvolutionScale(bodyScale);
-
-            if (bodyVisual == null)
-            {
-                return;
-            }
-
-            bodyVisual.localScale = bodyScale;
-
-            // The root stays at the same network position. Moving only the
-            // visual/collider child keeps the capsule resting on the ground.
-            bodyVisual.localPosition =
-                new Vector3(0f, bodyScale.y - 1f, 0f);
+            if (bodyVisual == null) return;
+            Vector3 scale = GetBodyScale();
+            enemyVisual?.ApplyEvolutionScale(scale);
+            bodyVisual.localScale = scale;
+            bodyVisual.localPosition = new Vector3(0f, scale.y - 1f, 0f);
         }
 
-        private Vector3 GetBodyScale(DiagnosticEnemyStage stage)
-        {
-            return stage switch
-            {
-                DiagnosticEnemyStage.Small => smallBodyScale,
-                DiagnosticEnemyStage.Mature => matureBodyScale,
-                DiagnosticEnemyStage.Alpha => alphaBodyScale,
-                _ => matureBodyScale
-            };
-        }
+        private Vector3 GetBodyScale() => CurrentTier?.BodyScale ?? Vector3.one;
     }
 }

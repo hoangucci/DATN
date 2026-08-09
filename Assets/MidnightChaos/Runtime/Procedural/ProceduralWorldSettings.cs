@@ -37,9 +37,8 @@ namespace MidnightChaos.Procedural
         [Tooltip("None: không tham gia navigation. Bake Into NavMesh: collider tạo lỗ cố định khi build. Dynamic Carving: bắt buộc prefab có NavMeshObstacle và bật Carving; runtime không tự tạo component.")]
         [SerializeField] private ProceduralNavigationMode navigationMode =
             ProceduralNavigationMode.DynamicCarving;
-        [Tooltip("0 giữ nguyên ngưỡng culling của prefab. Giá trị nhỏ như 0.001 giúp vegetation nhỏ vẫn hiện từ camera demo.")]
-        [SerializeField, Range(0f, 0.2f)]
-        private float lodCullScreenHeightOverride;
+        [SerializeField, HideInInspector]
+        private float layoutHashCompatibilityValue;
 
         public WorldObjectDefinition[] Definitions =>
             definitions ?? Array.Empty<WorldObjectDefinition>();
@@ -51,8 +50,8 @@ namespace MidnightChaos.Procedural
         public float RandomTiltDegrees => Mathf.Clamp(randomTiltDegrees, 0f, 30f);
         public ProceduralSurfaceAlignment SurfaceAlignment => surfaceAlignment;
         public ProceduralNavigationMode NavigationMode => navigationMode;
-        public float LodCullScreenHeightOverride =>
-            Mathf.Clamp(lodCullScreenHeightOverride, 0f, 0.2f);
+        public float LayoutHashCompatibilityValue =>
+            Mathf.Clamp(layoutHashCompatibilityValue, 0f, 0.2f);
 
         public void ConfigureDefinitionReferencesIfEmpty(
             WorldObjectDefinition[] configuredDefinitions)
@@ -70,7 +69,7 @@ namespace MidnightChaos.Procedural
             clearanceRadius = Mathf.Max(0.1f, clearanceRadius);
             uniformScaleRange = UniformScaleRange;
             randomTiltDegrees = Mathf.Clamp(randomTiltDegrees, 0f, 30f);
-            lodCullScreenHeightOverride = LodCullScreenHeightOverride;
+            layoutHashCompatibilityValue = LayoutHashCompatibilityValue;
             definitions ??= Array.Empty<WorldObjectDefinition>();
         }
     }
@@ -133,6 +132,81 @@ namespace MidnightChaos.Procedural
         }
     }
 
+    [Serializable]
+    public sealed class ProceduralSmallRockSettings
+    {
+        [Tooltip("Prefab visual Small Rock. Runtime clone visual này vào generic network world item; component gameplay trên source prefab không được instantiate.")]
+        [SerializeField] private GameObject visualPrefab;
+        [Tooltip("Bật để tính số Small Rock từ diện tích map và Density Per 1000 m². Tắt để dùng Fixed Count.")]
+        [SerializeField] private bool useDensity = true;
+        [Tooltip("Số Small Rock cố định khi Use Density tắt.")]
+        [SerializeField, Range(1, 256)] private int fixedCount = 48;
+        [Tooltip("Số Small Rock mục tiêu trên mỗi 1.000 m² khi dùng density.")]
+        [SerializeField, Min(0.01f)] private float densityPer1000SquareMeters =
+            0.05f;
+        [Tooltip("Khoảng cách tối thiểu giữa hai Small Rock và với object procedural đã reserve.")]
+        [SerializeField, Min(0.1f)] private float minimumSpacing = 2f;
+        [Tooltip("Số Rock trong tổng target được ưu tiên đặt gần player spawn đầu tiên.")]
+        [SerializeField, Range(0, 8)] private int starterCount = 2;
+        [Tooltip("Bán kính tuning tối đa của starter Rock. Runtime còn cap theo Pickup Radius để vòng gameplay có thể bắt đầu ngay.")]
+        [SerializeField, Min(2f)] private float starterRadius = 8f;
+        [Tooltip("Giới hạn placement thực tế quanh player spawn để starter Rock nằm trong tầm tương tác. Giá trị migrate 1.05 giữ đúng behavior cũ từ Pickup Radius 1.4 x 75%.")]
+        [SerializeField, Min(0.1f)] private float starterReachRadius = 1.05f;
+        [Tooltip("Khoảng nâng root pickup khỏi mặt terrain.")]
+        [SerializeField, Min(0f)] private float groundOffset = 0.18f;
+        [Tooltip("Upright giữ Small Rock thẳng đứng như behavior cũ. Align To Surface Normal căn trục up theo normal terrain.")]
+        [SerializeField] private ProceduralSurfaceAlignment surfaceAlignment =
+            ProceduralSurfaceAlignment.Upright;
+        [Tooltip("Độ nghiêng ngẫu nhiên quanh hai trục local sau surface alignment. Random được derive từ world seed và không làm đổi PRNG placement.")]
+        [SerializeField, Range(0f, 30f)] private float randomTiltDegrees;
+
+        public GameObject VisualPrefab => visualPrefab;
+        public bool UseDensity => useDensity;
+        public int FixedCount => Mathf.Clamp(fixedCount, 1, 256);
+        public float DensityPer1000SquareMeters =>
+            Mathf.Max(0.01f, densityPer1000SquareMeters);
+        public float MinimumSpacing => Mathf.Max(0.1f, minimumSpacing);
+        public int StarterCount => Mathf.Clamp(starterCount, 0, 8);
+        public float StarterRadius => Mathf.Max(2f, starterRadius);
+        public float StarterReachRadius => Mathf.Max(0.1f, starterReachRadius);
+        public float GroundOffset => Mathf.Max(0f, groundOffset);
+        public ProceduralSurfaceAlignment SurfaceAlignment => surfaceAlignment;
+        public float RandomTiltDegrees =>
+            Mathf.Clamp(randomTiltDegrees, 0f, 30f);
+
+        public int CalculateTargetCount(Vector2 mapSize)
+        {
+            if (!UseDensity)
+            {
+                return FixedCount;
+            }
+
+            float area = Mathf.Max(1f, mapSize.x * mapSize.y);
+            return Mathf.Clamp(
+                Mathf.RoundToInt(
+                    area / 1000f * DensityPer1000SquareMeters),
+                1,
+                256);
+        }
+
+        public void ConfigureVisualReferenceIfEmpty(GameObject configuredVisual)
+        {
+            visualPrefab ??= configuredVisual;
+        }
+
+        internal void Sanitize()
+        {
+            fixedCount = FixedCount;
+            densityPer1000SquareMeters = DensityPer1000SquareMeters;
+            minimumSpacing = MinimumSpacing;
+            starterCount = StarterCount;
+            starterRadius = StarterRadius;
+            starterReachRadius = StarterReachRadius;
+            groundOffset = GroundOffset;
+            randomTiltDegrees = RandomTiltDegrees;
+        }
+    }
+
     [CreateAssetMenu(
         fileName = "ProceduralWorldSettings",
         menuName = "Midnight Chaos/Procedural/World Settings")]
@@ -185,11 +259,14 @@ namespace MidnightChaos.Procedural
         [Tooltip("Cấu hình deterministic cluster cho Grass. Không dùng UnityEngine.Random global.")]
         [SerializeField] private ProceduralGrassClusterSettings grassClusters =
             new ProceduralGrassClusterSettings();
+        [Tooltip("Cấu hình phân bố deterministic của Small Rock world pickup.")]
+        [SerializeField] private ProceduralSmallRockSettings smallRocks =
+            new ProceduralSmallRockSettings();
 
-        [Header("Spawn Points Only - No Player Is Spawned In This Demo")]
+        [Header("Spawn Point Layout")]
         [Tooltip("Số điểm spawn player được reserve để kiểm tra an toàn; scene demo không tự spawn player.")]
         [SerializeField, Range(0, 32)] private int playerSpawnPointCount = 8;
-        [Tooltip("Số điểm có thể chọn khi nhấn nút Spawn Enemy; đây không phải số enemy tự spawn.")]
+        [Tooltip("Số group center deterministic có thể dùng để đặt gameplay enemy group. Mỗi center có thể chứa cả group; đây không phải số enemy trong group.")]
         [SerializeField, Range(1, 64)] private int enemySpawnPointCount = 12;
         [Tooltip("Bán kính không cho environment chồng vào điểm spawn player.")]
         [SerializeField, Min(0.5f)] private float playerSpawnClearance = 4f;
@@ -199,62 +276,6 @@ namespace MidnightChaos.Procedural
         [SerializeField, Min(0.5f)] private float enemySpawnClearance = 3f;
         [Tooltip("Khoảng cách tối thiểu giữa enemy spawn point và mọi player spawn point.")]
         [SerializeField, Min(0f)] private float enemyDistanceFromPlayerSpawns = 18f;
-        [Tooltip("Bán kính tìm polygon NavMesh gần spawn point khi spawn enemy thủ công.")]
-        [SerializeField, Min(0.1f)] private float navMeshSampleRadius = 2.5f;
-        [Tooltip("Hiện gizmo/marker của các điểm spawn trong scene demo.")]
-        [SerializeField] private bool showSpawnMarkers = true;
-        [Tooltip("Kích thước marker debug của spawn point.")]
-        [SerializeField, Min(0.05f)] private float spawnMarkerScale = 0.65f;
-
-        [Header("Rendering Performance (Local Only)")]
-        [Tooltip("Dùng Camera.layerCullDistances cho các layer procedural. Chỉ thay đổi hiển thị local, không thay đổi layout, physics hoặc Layout Hash.")]
-        [SerializeField] private bool useLayerDistanceCulling = true;
-        [Tooltip("Far Clip Plane áp dụng cho camera procedural. Với map lớn phải giữ đủ để terrain không bị cắt.")]
-        [SerializeField, Min(50f)] private float cameraFarClipPlane = 1000f;
-        [Tooltip("Khoảng render tối đa của grass/flower.")]
-        [SerializeField, Min(1f)] private float vegetationCullDistance = 55f;
-        [Tooltip("Khoảng đổi từ LOD0 sang LOD thấp của vegetation instanced.")]
-        [SerializeField, Min(1f)] private float vegetationLodSwitchDistance = 28f;
-        [Tooltip("Khoảng render tối đa của Grass GPU-instanced.")]
-        [SerializeField, Min(1f)] private float grassCullDistance = 45f;
-        [Tooltip("Khoảng đổi từ LOD0 sang LOD thấp của Grass instanced.")]
-        [SerializeField, Min(1f)] private float grassLodSwitchDistance = 6f;
-        [Tooltip("Khoảng render tối đa của cây.")]
-        [SerializeField, Min(1f)] private float treeCullDistance = 200f;
-        [Tooltip("Khoảng render tối đa cho prop nhỏ. Hiện để sẵn cho category tương lai.")]
-        [SerializeField, Min(1f)] private float smallPropCullDistance = 90f;
-        [Tooltip("Khoảng render tối đa của đá và quặng tương tác.")]
-        [SerializeField, Min(1f)] private float resourceCullDistance = 130f;
-        [Tooltip("Render vegetation bằng GPU instancing theo chunk, không tạo một GameObject cho mỗi cây cỏ/hoa.")]
-        [SerializeField] private bool useInstancedVegetation = true;
-        [Tooltip("Kích thước ô dùng để distance-cull vegetation theo nhóm. Giá trị nhỏ giảm overdraw nhưng tăng số draw group.")]
-        [SerializeField, Range(8f, 64f)] private float vegetationChunkSize = 24f;
-        [Tooltip("Tắt cast/receive shadow trên vegetation trang trí.")]
-        [SerializeField] private bool disableVegetationShadows = true;
-        [Tooltip("Tắt cast/receive shadow trên Grass trang trí. Độc lập với Vegetation.")]
-        [SerializeField] private bool disableGrassShadows = true;
-        [Tooltip("Bật ParticleSystem lá trên từng tree prefab. Tắt mặc định vì 2.000 cây tương đương 2.000 particle simulations.")]
-        [SerializeField] private bool enableTreeParticles;
-
-        [Header("Runtime NavMesh")]
-        [Tooltip("Agent Type ID dùng để build NavMeshSurface. Phải trùng Agent Type ID trên mọi enemy prefab được spawn.")]
-        [SerializeField] private int navMeshAgentTypeId;
-        [Tooltip("Chiều cao vùng thu thập source của runtime NavMesh, đặt đủ để bao toàn bộ địa hình.")]
-        [SerializeField, Min(5f)] private float navMeshVolumeHeight = 40f;
-        [Tooltip("Thời gian chờ sau khi build để NavMeshObstacle carving ổn định trước khi validate spawn point. Nên lớn hơn Time To Stationary lớn nhất trên obstacle prefab.")]
-        [SerializeField, Range(0f, 2f)]
-        private float navMeshCarvingSettleSeconds = 0.65f;
-
-        [Header("Manual Enemy Spawn")]
-        [Tooltip("Prefab enemy spawn khi Host nhấn nút. Prefab phải có NetworkObject và NavMeshAgent đã cấu hình đầy đủ.")]
-        [SerializeField] private GameObject enemyPrefab;
-        [Tooltip("Giới hạn enemy đang tồn tại do nút Spawn Enemy của demo tạo ra.")]
-        [SerializeField, Range(1, 32)] private int maximumActiveEnemies = 5;
-
-        [Header("LAN")]
-        [Tooltip("Cổng UDP mặc định cho Host/Client LAN trong scene demo.")]
-        [SerializeField] private ushort defaultPort = 7777;
-
         public int GeneratorVersion => Mathf.Max(1, generatorVersion);
         public int InitialSeed => initialSeed;
         public Vector2 MapSize => new Vector2(
@@ -281,6 +302,8 @@ namespace MidnightChaos.Procedural
         public ProceduralCategorySettings Vegetation => vegetation;
         public ProceduralCategorySettings Grass => grass;
         public ProceduralGrassClusterSettings GrassClusters => grassClusters;
+        public ProceduralSmallRockSettings SmallRocks =>
+            smallRocks ??= new ProceduralSmallRockSettings();
         public int PlayerSpawnPointCount => Mathf.Clamp(playerSpawnPointCount, 0, 32);
         public int EnemySpawnPointCount => Mathf.Clamp(enemySpawnPointCount, 1, 64);
         public float PlayerSpawnClearance => Mathf.Max(0.5f, playerSpawnClearance);
@@ -289,39 +312,6 @@ namespace MidnightChaos.Procedural
             playerSpawnGroupRadius);
         public float EnemySpawnClearance => Mathf.Max(0.5f, enemySpawnClearance);
         public float EnemyDistanceFromPlayerSpawns => Mathf.Max(0f, enemyDistanceFromPlayerSpawns);
-        public float NavMeshSampleRadius => Mathf.Max(0.1f, navMeshSampleRadius);
-        public bool ShowSpawnMarkers => showSpawnMarkers;
-        public float SpawnMarkerScale => Mathf.Max(0.05f, spawnMarkerScale);
-        public bool UseLayerDistanceCulling => useLayerDistanceCulling;
-        public float CameraFarClipPlane => Mathf.Max(50f, cameraFarClipPlane);
-        public float VegetationCullDistance => Mathf.Max(1f, vegetationCullDistance);
-        public float VegetationLodSwitchDistance => Mathf.Clamp(
-            vegetationLodSwitchDistance,
-            1f,
-            VegetationCullDistance);
-        public float GrassCullDistance => Mathf.Max(1f, grassCullDistance);
-        public float GrassLodSwitchDistance => Mathf.Clamp(
-            grassLodSwitchDistance,
-            1f,
-            GrassCullDistance);
-        public float TreeCullDistance => Mathf.Max(1f, treeCullDistance);
-        public float SmallPropCullDistance => Mathf.Max(1f, smallPropCullDistance);
-        public float ResourceCullDistance => Mathf.Max(1f, resourceCullDistance);
-        public bool UseInstancedVegetation => useInstancedVegetation;
-        public float VegetationChunkSize => Mathf.Clamp(
-            vegetationChunkSize,
-            8f,
-            64f);
-        public bool DisableVegetationShadows => disableVegetationShadows;
-        public bool DisableGrassShadows => disableGrassShadows;
-        public bool EnableTreeParticles => enableTreeParticles;
-        public int NavMeshAgentTypeId => navMeshAgentTypeId;
-        public float NavMeshVolumeHeight => Mathf.Max(5f, navMeshVolumeHeight);
-        public float NavMeshCarvingSettleSeconds =>
-            Mathf.Clamp(navMeshCarvingSettleSeconds, 0f, 2f);
-        public GameObject EnemyPrefab => enemyPrefab;
-        public int MaximumActiveEnemies => Mathf.Clamp(maximumActiveEnemies, 1, 32);
-        public ushort DefaultPort => defaultPort == 0 ? (ushort)7777 : defaultPort;
         public int ConfiguredEnvironmentCount =>
             Trees.Count + Rocks.Count + Ores.Count + Vegetation.Count +
             Grass.Count;
@@ -332,8 +322,7 @@ namespace MidnightChaos.Procedural
             WorldObjectDefinition[] oreDefinitions,
             WorldObjectDefinition[] vegetationDefinitions,
             WorldObjectDefinition[] grassDefinitions,
-            Material configuredGroundMaterial,
-            GameObject configuredEnemyPrefab)
+            Material configuredGroundMaterial)
         {
             trees ??= new ProceduralCategorySettings();
             rocks ??= new ProceduralCategorySettings();
@@ -348,7 +337,6 @@ namespace MidnightChaos.Procedural
                 vegetationDefinitions);
             grass.ConfigureDefinitionReferencesIfEmpty(grassDefinitions);
             groundMaterial ??= configuredGroundMaterial;
-            enemyPrefab ??= configuredEnemyPrefab;
         }
 
         public void ConfigureDefinitionReferencesIfEmpty(
@@ -356,8 +344,7 @@ namespace MidnightChaos.Procedural
             WorldObjectDefinition[] rockDefinitions,
             WorldObjectDefinition[] oreDefinitions,
             WorldObjectDefinition[] vegetationDefinitions,
-            Material configuredGroundMaterial,
-            GameObject configuredEnemyPrefab)
+            Material configuredGroundMaterial)
         {
             ConfigureDefinitionReferencesIfEmpty(
                 treeDefinitions,
@@ -365,8 +352,7 @@ namespace MidnightChaos.Procedural
                 oreDefinitions,
                 vegetationDefinitions,
                 Array.Empty<WorldObjectDefinition>(),
-                configuredGroundMaterial,
-                configuredEnemyPrefab);
+                configuredGroundMaterial);
         }
 
         public void ValidateDefinitionsOrThrow()
@@ -635,24 +621,6 @@ namespace MidnightChaos.Procedural
             playerSpawnGroupRadius = PlayerSpawnGroupRadius;
             enemySpawnClearance = EnemySpawnClearance;
             enemyDistanceFromPlayerSpawns = EnemyDistanceFromPlayerSpawns;
-            navMeshSampleRadius = NavMeshSampleRadius;
-            spawnMarkerScale = SpawnMarkerScale;
-            cameraFarClipPlane = CameraFarClipPlane;
-            vegetationCullDistance = VegetationCullDistance;
-            vegetationLodSwitchDistance = VegetationLodSwitchDistance;
-            grassCullDistance = GrassCullDistance;
-            grassLodSwitchDistance = GrassLodSwitchDistance;
-            treeCullDistance = TreeCullDistance;
-            smallPropCullDistance = SmallPropCullDistance;
-            resourceCullDistance = ResourceCullDistance;
-            vegetationChunkSize = VegetationChunkSize;
-            navMeshVolumeHeight = NavMeshVolumeHeight;
-            navMeshCarvingSettleSeconds = NavMeshCarvingSettleSeconds;
-            maximumActiveEnemies = MaximumActiveEnemies;
-            if (defaultPort == 0)
-            {
-                defaultPort = 7777;
-            }
 
             trees ??= new ProceduralCategorySettings();
             rocks ??= new ProceduralCategorySettings();
@@ -660,12 +628,14 @@ namespace MidnightChaos.Procedural
             vegetation ??= new ProceduralCategorySettings();
             grass ??= new ProceduralCategorySettings();
             grassClusters ??= new ProceduralGrassClusterSettings();
+            smallRocks ??= new ProceduralSmallRockSettings();
             trees.Sanitize();
             rocks.Sanitize();
             ores.Sanitize();
             vegetation.Sanitize();
             grass.Sanitize();
             grassClusters.Sanitize();
+            smallRocks.Sanitize();
         }
     }
 }

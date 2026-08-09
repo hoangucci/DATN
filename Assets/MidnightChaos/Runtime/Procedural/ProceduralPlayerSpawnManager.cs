@@ -13,7 +13,7 @@ namespace MidnightChaos.Procedural
             new Dictionary<ulong, NetworkObject>();
 
         private NetworkManager networkManager;
-        private ProceduralWorldSettings settings;
+        private ProceduralNavigationSettings navigationSettings;
         private ProceduralSpawnPointRegistry spawnPoints;
         private ProceduralWorldCoordinator world;
         private GameObject playerPrefab;
@@ -24,13 +24,13 @@ namespace MidnightChaos.Procedural
 
         public void Initialize(
             NetworkManager configuredNetworkManager,
-            ProceduralWorldSettings configuredSettings,
+            ProceduralNavigationSettings configuredNavigationSettings,
             ProceduralSpawnPointRegistry configuredSpawnPoints,
             ProceduralWorldCoordinator configuredWorld,
             GameObject configuredPlayerPrefab)
         {
             networkManager = configuredNetworkManager;
-            settings = configuredSettings;
+            navigationSettings = configuredNavigationSettings;
             spawnPoints = configuredSpawnPoints;
             world = configuredWorld;
             playerPrefab = configuredPlayerPrefab;
@@ -81,7 +81,7 @@ namespace MidnightChaos.Procedural
         private bool TrySpawnPlayerServer(ulong clientId)
         {
             if (networkManager == null || !networkManager.IsServer ||
-                playerPrefab == null || settings == null ||
+                playerPrefab == null || navigationSettings == null ||
                 spawnPoints == null || !world.IsWorldReady)
             {
                 return false;
@@ -112,7 +112,7 @@ namespace MidnightChaos.Procedural
                     !NavMesh.SamplePosition(
                         planned,
                         out NavMeshHit hit,
-                        settings.NavMeshSampleRadius,
+                        navigationSettings.NavMeshSampleRadius,
                         NavMesh.AllAreas))
                 {
                     continue;

@@ -17,7 +17,7 @@ namespace MidnightChaos.Procedural
 
         public static void ConfigureCamera(
             Camera camera,
-            ProceduralWorldSettings settings,
+            ProceduralRenderingSettings settings,
             Object context)
         {
             if (camera == null || settings == null)

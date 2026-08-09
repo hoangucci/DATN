@@ -46,7 +46,7 @@ MonoBehaviour:
     randomTiltDegrees: 0
     surfaceAlignment: 0
     navigationMode: 2
-    lodCullScreenHeightOverride: 0
+    layoutHashCompatibilityValue: 0
   rocks:
     definitions:
     - {fileID: 11400000, guid: e5a2d8b9ba464cbbb32b90ad67b0ceb6, type: 2}
@@ -65,7 +65,7 @@ MonoBehaviour:
     randomTiltDegrees: 0
     surfaceAlignment: 1
     navigationMode: 2
-    lodCullScreenHeightOverride: 0
+    layoutHashCompatibilityValue: 0
   ores:
     definitions:
     - {fileID: 11400000, guid: a8f6fcbb0aeb4c87931ea85790b8d106, type: 2}
@@ -77,7 +77,7 @@ MonoBehaviour:
     randomTiltDegrees: 0
     surfaceAlignment: 1
     navigationMode: 2
-    lodCullScreenHeightOverride: 0
+    layoutHashCompatibilityValue: 0
   vegetation:
     definitions:
     - {fileID: 11400000, guid: 9e88f21fd4984afdab967eb0dab438f5, type: 2}
@@ -91,7 +91,7 @@ MonoBehaviour:
     randomTiltDegrees: 0
     surfaceAlignment: 1
     navigationMode: 0
-    lodCullScreenHeightOverride: 0.001
+    layoutHashCompatibilityValue: 0.001
   grass:
     definitions:
     - {fileID: 11400000, guid: 11d87eee178c47d889304b87d9895c78, type: 2}
@@ -102,37 +102,26 @@ MonoBehaviour:
     randomTiltDegrees: 0
     surfaceAlignment: 1
     navigationMode: 0
-    lodCullScreenHeightOverride: 0.001
+    layoutHashCompatibilityValue: 0.001
   grassClusters:
     instancesPerClusterRange: {x: 500, y: 1000}
     radiusRange: {x: 100, y: 300}
     minimumSpacingRange: {x: 0.15, y: 0.3}
+  smallRocks:
+    visualPrefab: {fileID: 3154134708773150627, guid: 143d9ed7e66a08b4d9bad1f884b4c9bc, type: 3}
+    useDensity: 1
+    fixedCount: 256
+    densityPer1000SquareMeters: 0.05
+    minimumSpacing: 2
+    starterCount: 2
+    starterRadius: 8
+    starterReachRadius: 1.05
+    groundOffset: 0.18
+    surfaceAlignment: 0
+    randomTiltDegrees: 0
   playerSpawnPointCount: 8
   enemySpawnPointCount: 12
   playerSpawnClearance: 4
   playerSpawnGroupRadius: 24
   enemySpawnClearance: 3
-  enemyDistanceFromPlayerSpawns: 18
-  navMeshSampleRadius: 2.5
-  showSpawnMarkers: 1
-  spawnMarkerScale: 0.65
-  useLayerDistanceCulling: 1
-  cameraFarClipPlane: 1000
-  vegetationCullDistance: 100
-  vegetationLodSwitchDistance: 10
-  grassCullDistance: 100
-  grassLodSwitchDistance: 10
-  treeCullDistance: 400
-  smallPropCullDistance: 100
-  resourceCullDistance: 200
-  useInstancedVegetation: 0
-  vegetationChunkSize: 24
-  disableVegetationShadows: 0
-  disableGrassShadows: 0
-  enableTreeParticles: 1
-  navMeshAgentTypeId: 0
-  navMeshVolumeHeight: 40
-  navMeshCarvingSettleSeconds: 0.65
-  enemyPrefab: {fileID: 5816324686337917677, guid: f6f3505d3c0b4f844849d8d0a2e5572e, type: 3}
-  maximumActiveEnemies: 32
-  defaultPort: 7777
+  enemyDistanceFromPlayerSpawns: 10
