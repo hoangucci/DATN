@@ -138,6 +138,7 @@ namespace Game.Editor
             DemoBackgroundInstaller.InstallBackground();
             MuckStyleUIBuilder.BuildMuckUI();
             IntroStoryUIBuilder.BuildIntroStoryUI();
+            MuckHotbarCanvasBuilder.BuildHotbarCanvas();
 
             // 3. Bật hiển thị lại các Panel bị giấu (Ensure Active)
             GameObject loginPanel = GameObject.Find("LoginPanel");
