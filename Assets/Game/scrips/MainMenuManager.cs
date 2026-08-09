@@ -26,7 +26,7 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private Button quitButton;
 
     [Header("Scene Config")]
-    [SerializeField] private string gameSceneName = "Map"; // Scene khi bấm Play
+    [SerializeField] private string gameSceneName = "ProceduralCombatDemo"; // Scene khi bấm Play (Gameplay của Hoàng)
     [SerializeField] private string loginSceneName = "Login"; // Scene màn hình Đăng Nhập khi bấm Logout
 
     private void Awake()
@@ -38,7 +38,7 @@ public class MainMenuManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(gameSceneName) || gameSceneName.Equals("SampleScene", System.StringComparison.OrdinalIgnoreCase))
         {
-            gameSceneName = "Map";
+            gameSceneName = "ProceduralCombatDemo";
         }
     }
 

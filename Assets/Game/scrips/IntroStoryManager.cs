@@ -37,7 +37,7 @@ namespace Game.UI
         [Header("Typewriter Settings")]
         [SerializeField] private float typewriterSpeed = 0.035f;
         [SerializeField] private bool triggerOnStart = false;
-        [SerializeField] private string targetSceneOnComplete = "Map";
+        [SerializeField] private string targetSceneOnComplete = "ProceduralCombatDemo";
 
         [Header("Events")]
         public UnityEvent onStoryCompleted;

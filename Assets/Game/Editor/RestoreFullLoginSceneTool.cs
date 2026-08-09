@@ -27,22 +27,22 @@ namespace Game.Editor
                 updated = true;
             }
 
-            EditorBuildSettingsScene mapScene = buildScenes.Find(s => s.path.Contains("Assets/Game/Scenes/Map.unity"));
-            if (mapScene == null)
+            EditorBuildSettingsScene combatScene = buildScenes.Find(s => s.path.Contains("ProceduralCombatDemo.unity"));
+            if (combatScene == null)
             {
-                buildScenes.Add(new EditorBuildSettingsScene("Assets/Game/Scenes/Map.unity", true));
+                buildScenes.Add(new EditorBuildSettingsScene("Assets/MidnightChaos/Generated/Scenes/ProceduralCombatDemo.unity", true));
                 updated = true;
             }
-            else if (!mapScene.enabled)
+            else if (!combatScene.enabled)
             {
-                mapScene.enabled = true;
+                combatScene.enabled = true;
                 updated = true;
             }
 
             if (updated)
             {
                 EditorBuildSettings.scenes = buildScenes.ToArray();
-                Debug.Log("[AutoRegister] Đã tự động kích hoạt (Enable) Login.unity và Map.unity trong Build Settings!");
+                Debug.Log("[AutoRegister] Đã tự động kích hoạt (Enable) Login.unity, Map.unity và ProceduralCombatDemo.unity trong Build Settings!");
             }
         }
 
