@@ -20,8 +20,25 @@ namespace MidnightChaos.UI
 
         private IHotbarDataSource hotbar;
 
+        private void Awake()
+        {
+            LoadDefaultSpritesIfNull();
+        }
+
+        private void LoadDefaultSpritesIfNull()
+        {
+#if UNITY_EDITOR
+            if (woodSprite == null) woodSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_wood.png");
+            if (rockSprite == null) rockSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_rock.png");
+            if (oreSprite == null) oreSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_ore.png");
+            if (chaosShardSprite == null) chaosShardSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_chaos_shard.png");
+            if (workbenchSprite == null) workbenchSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_workbench.png");
+#endif
+        }
+
         private void Start()
         {
+            LoadDefaultSpritesIfNull();
             InitializeSlotIndices();
         }
 
