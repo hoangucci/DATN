@@ -34,13 +34,6 @@ namespace MidnightChaos.Inventory
         [Tooltip("Height of one hotbar slot.")]
         [SerializeField, Min(24f)] private float slotHeight = 58f;
 
-        [Header("Custom Slot Textures")]
-        [Tooltip("Kéo thả file ảnh PNG/Texture2D ô bình thường vào đây")]
-        [SerializeField] private Texture2D slotNormalTexture;
-
-        [Tooltip("Kéo thả file ảnh PNG/Texture2D ô được chọn (Highlight) vào đây")]
-        [SerializeField] private Texture2D slotSelectedTexture;
-
         private DiagnosticNetworkInventory inventory;
         private GUIStyle hotbarSlotStyle;
         private GUIStyle selectedItemStyle;
@@ -116,8 +109,7 @@ namespace MidnightChaos.Inventory
                 ? $"{DisplaySlotNumber(index)}\n—"
                 : $"{DisplaySlotNumber(index)}\n" +
                   $"{GetShortItemName(slot.Item)}\nx{slot.Amount}";
-            bool isSelected = index == inventory.SelectedSlotIndex;
-            GUI.backgroundColor = isSelected
+            GUI.backgroundColor = index == inventory.SelectedSlotIndex
                 ? new Color(1f, 0.72f, 0.18f, 1f)
                 : new Color(0.28f, 0.34f, 0.44f, 0.96f);
             Rect slotRect = new Rect(
@@ -125,14 +117,7 @@ namespace MidnightChaos.Inventory
                 startY,
                 slotWidth,
                 slotHeight);
-
-            Texture2D customTex = isSelected ? slotSelectedTexture : slotNormalTexture;
-            if (customTex != null)
-            {
-                GUI.DrawTexture(slotRect, customTex);
-            }
-
-            if (GUI.Button(slotRect, label, customTex != null ? GUIStyle.none : hotbarSlotStyle))
+            if (GUI.Button(slotRect, label, hotbarSlotStyle))
             {
                 inventory.RequestSelectSlot(index);
             }
