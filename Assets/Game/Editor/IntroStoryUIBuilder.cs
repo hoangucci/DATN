@@ -161,7 +161,7 @@ namespace Game.Editor
             managerSO.FindProperty("skipButton").objectReferenceValue = skipBtnObj.GetComponent<Button>();
             managerSO.FindProperty("panelClickButton").objectReferenceValue = panelBtn;
             managerSO.FindProperty("backgroundBlackOverlay").objectReferenceValue = bgImg;
-            managerSO.FindProperty("targetSceneOnComplete").stringValue = "Map";
+            managerSO.FindProperty("targetSceneOnComplete").stringValue = "ProceduralCombatDemo";
 
             // Nếu đang dựng ở Scene Map -> Tự động phát cốt truyện khi vừa mở Đảo (triggerOnStart = true)
             // Nếu ở Scene Login -> Chờ bấm Start mới phát (triggerOnStart = false)

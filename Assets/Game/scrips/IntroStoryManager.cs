@@ -215,9 +215,15 @@ namespace Game.UI
 
             Debug.Log("[IntroStoryManager] Đã hoàn thành dẫn dắt cốt truyện!");
 
+            if (string.IsNullOrEmpty(targetSceneOnComplete) || targetSceneOnComplete.Equals("Map", System.StringComparison.OrdinalIgnoreCase))
+            {
+                targetSceneOnComplete = "ProceduralCombatDemo";
+            }
+
             string activeScene = SceneManager.GetActiveScene().name;
             if (!string.IsNullOrEmpty(targetSceneOnComplete) && activeScene != targetSceneOnComplete && (activeScene == "Login" || activeScene == "MainMenu"))
             {
+                Debug.Log($"[IntroStoryManager] Đang chuyển sang Scene Gameplay của Hoàng: {targetSceneOnComplete}");
                 SceneManager.LoadScene(targetSceneOnComplete);
             }
         }
