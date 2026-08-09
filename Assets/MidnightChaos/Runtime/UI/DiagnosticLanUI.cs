@@ -23,32 +23,12 @@ namespace MidnightChaos.UI
         private string portText = LanEndpointValidator.DefaultPort.ToString();
         private string inlineError = string.Empty;
 
-        [SerializeField] private bool autoStartSinglePlayer = true;
-
         private void Awake()
         {
             session = GetComponent<LanSessionController>();
             networkManager = GetComponent<NetworkManager>();
             enemySpawner = GetComponent<DiagnosticEnemySpawner>();
             portText = session.DefaultPort.ToString();
-        }
-
-        private void Start()
-        {
-            if (autoStartSinglePlayer && session != null && !session.IsSessionActive)
-            {
-                StartCoroutine(AutoStartRoutine());
-            }
-        }
-
-        private System.Collections.IEnumerator AutoStartRoutine()
-        {
-            yield return new WaitForSeconds(0.1f);
-            if (session != null && !session.IsSessionActive && !session.OperationInProgress)
-            {
-                Debug.Log("[DiagnosticLanUI] Tự động khởi chạy Single Player Host...");
-                StartSinglePlayer();
-            }
         }
 
         private void OnGUI()
