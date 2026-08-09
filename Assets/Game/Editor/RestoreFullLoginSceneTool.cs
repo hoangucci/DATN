@@ -126,7 +126,14 @@ namespace Game.Editor
             }
             EditorBuildSettings.scenes = buildScenes.ToArray();
 
-            // 2. Tự động chạy lại các Builder UI, Texture Sprites & Background để khôi phục 100%
+            // 2. Tự động kiểm tra và dựng Scene ProceduralCombatDemo của Hoàng nếu chưa có
+            string combatScenePath = "Assets/MidnightChaos/Generated/Scenes/ProceduralCombatDemo.unity";
+            if (!System.IO.File.Exists(combatScenePath))
+            {
+                MidnightChaos.Editor.MidnightChaosProceduralDemoBuilder.CreateOrRefreshProceduralCombatDemo();
+            }
+
+            // 3. Tự động chạy lại các Builder UI, Texture Sprites & Background để khôi phục 100%
             ConvertUITexturesToSprites.ConvertImagesToSprites();
             DemoBackgroundInstaller.InstallBackground();
             MuckStyleUIBuilder.BuildMuckUI();
