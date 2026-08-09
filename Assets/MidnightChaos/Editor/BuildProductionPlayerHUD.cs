@@ -71,13 +71,21 @@ namespace MidnightChaos.Editor
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
 
-            // Load UI Sprites
+            // Ensure Icon Textures are imported as Sprites
+            EnsureSpriteImport("Assets/Asset/UI/Icons/icon_wood.png");
+            EnsureSpriteImport("Assets/Asset/UI/Icons/icon_rock.png");
+            EnsureSpriteImport("Assets/Asset/UI/Icons/icon_ore.png");
+            EnsureSpriteImport("Assets/Asset/UI/Icons/icon_chaos_shard.png");
+            EnsureSpriteImport("Assets/Asset/UI/Icons/icon_workbench.png");
+
             Sprite slotNormalSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/kenney_ui-pack/PNG/Yellow/Double/button_square_flat.png");
             Sprite slotHighlightSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/kenney_ui-pack/PNG/Yellow/Double/button_square_border.png");
 
-            Sprite woodSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/image.png");
-            Sprite rockSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/image.png");
-            Sprite oreSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/image.png");
+            Sprite woodSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_wood.png");
+            Sprite rockSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_rock.png");
+            Sprite oreSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_ore.png");
+            Sprite chaosShardSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_chaos_shard.png");
+            Sprite workbenchSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Asset/UI/Icons/icon_workbench.png");
 
             HotbarUGUIView hotbarView = canvas.GetComponent<HotbarUGUIView>() ?? canvas.gameObject.AddComponent<HotbarUGUIView>();
             SerializedObject viewSO = new SerializedObject(hotbarView);
@@ -86,6 +94,8 @@ namespace MidnightChaos.Editor
             if (woodSprite != null) viewSO.FindProperty("woodSprite").objectReferenceValue = woodSprite;
             if (rockSprite != null) viewSO.FindProperty("rockSprite").objectReferenceValue = rockSprite;
             if (oreSprite != null) viewSO.FindProperty("oreSprite").objectReferenceValue = oreSprite;
+            if (chaosShardSprite != null) viewSO.FindProperty("chaosShardSprite").objectReferenceValue = chaosShardSprite;
+            if (workbenchSprite != null) viewSO.FindProperty("workbenchSprite").objectReferenceValue = workbenchSprite;
 
             SerializedProperty slotViewsProp = viewSO.FindProperty("slotViews");
             slotViewsProp.ClearArray();
@@ -201,7 +211,19 @@ namespace MidnightChaos.Editor
             EditorSceneManager.MarkSceneDirty(canvas.gameObject.scene);
             Selection.activeGameObject = canvas.gameObject;
 
-            EditorUtility.DisplayDialog("Hoàn tất 100%!", "Đã tự động dựng xong 100% Giao Diện Hotbar HUD mới cực đẹp!\n\n✓ Đã tạo PlayerHUD & 10 ô Slot_1 -> Slot_10.\n✓ Đã kết nối HotbarUGUIView & HotbarSlotView.\n✓ Đã tự động tắt UI IMGUI cũ trên Prefab theo hướng dẫn của Hoàng.", "OK");
+            EditorUtility.DisplayDialog("Hoàn tất 100%!", "Đã tự động dựng xong 100% Giao Diện Hotbar HUD mới cực đẹp!\n\n✓ Đã tạo PlayerHUD & 10 ô Slot_1 -> Slot_10.\n✓ Đã nạp Icon chuẩn cho Gỗ, Đá, Quặng, Mảnh Chaos & Bàn Chế.\n✓ Đã kết nối HotbarUGUIView & HotbarSlotView.\n✓ Đã tự động tắt UI IMGUI cũ trên Prefab theo hướng dẫn của Hoàng.", "OK");
+        }
+
+        private static void EnsureSpriteImport(string assetPath)
+        {
+            TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (importer != null && importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.SaveAndReimport();
+            }
         }
     }
+}
 }
