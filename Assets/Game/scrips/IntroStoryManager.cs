@@ -103,7 +103,6 @@ namespace Game.UI
             // Kiểm tra phím Space / Enter tương thích an toàn với cả New Input System và Old Input System
             bool nextPressed = false;
 
-#if ENABLE_INPUT_SYSTEM
             if (UnityEngine.InputSystem.Keyboard.current != null)
             {
                 if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame ||
@@ -112,12 +111,6 @@ namespace Game.UI
                     nextPressed = true;
                 }
             }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
-            {
-                nextPressed = true;
-            }
-#endif
 
             if (nextPressed)
             {
