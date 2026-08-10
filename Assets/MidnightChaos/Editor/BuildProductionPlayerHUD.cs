@@ -200,6 +200,9 @@ namespace MidnightChaos.Editor
             // 4. Build In-Game Settings Modal Overlay
             BuildSettingsOverlay(canvas.gameObject);
 
+            // 5. Build Intro Story Cutscene Panel
+            Game.Editor.IntroStoryUIBuilder.BuildIntroStoryUI();
+
             // 5. Disable old IMGUI Hotbar in DiagnosticNetworkPlayer.prefab
             string playerPrefabPath = "Assets/MidnightChaos/Generated/Prefabs/DiagnosticNetworkPlayer.prefab";
             GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(playerPrefabPath);

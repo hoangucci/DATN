@@ -68,7 +68,17 @@ namespace MidnightChaos.Procedural
             }
 
             error = string.Empty;
+            TriggerStorySequence();
             return true;
+        }
+
+        private void TriggerStorySequence()
+        {
+            var storyManager = Object.FindFirstObjectByType<Game.UI.IntroStoryManager>(FindObjectsInactive.Include);
+            if (storyManager != null)
+            {
+                storyManager.StartStorySequence();
+            }
         }
 
         public bool StartClient(string rawAddress, ushort port, out string error)
