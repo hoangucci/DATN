@@ -30,6 +30,11 @@ namespace MidnightChaos.Enemies
             new NetworkVariable<int>(0);
         private readonly NetworkVariable<uint> feedbackSequence =
             new NetworkVariable<uint>(0);
+        private readonly NetworkVariable<int> replicatedGroupId =
+            new NetworkVariable<int>(
+                -1,
+                NetworkVariableReadPermission.Everyone,
+                NetworkVariableWritePermission.Server);
 
         private NetworkHealth health;
         private Transform bodyVisual;
@@ -37,6 +42,7 @@ namespace MidnightChaos.Enemies
         private bool deathProcessedServer;
         private bool missingServiceLoggedServer;
         private bool shardDroppedServer;
+        private int configuredGroupIdBeforeSpawn = -1;
 
         public event Action<DiagnosticEnemyStage, DiagnosticEnemyStage> StageChanged;
         public event Action<uint, uint> FeedbackRequested;
@@ -49,6 +55,7 @@ namespace MidnightChaos.Enemies
             : $"Tier {CurrentTierIndex}";
         public int CurrentCharge => replicatedCharge.Value;
         public int SpeciesId => speciesId;
+        public int GroupId => replicatedGroupId.Value;
         public bool IsFinalTier => CurrentTier == null || CurrentTier.FinalTier ||
                                    CurrentTierIndex >= Tiers.Length - 1;
         public bool CanReceiveCharge =>
@@ -75,6 +82,21 @@ namespace MidnightChaos.Enemies
         public void Configure(ChaosEvolutionProfile configuredEvolutionProfile)
         {
             evolutionProfile = configuredEvolutionProfile;
+        }
+
+        public bool ConfigureGroupIdServer(int groupId)
+        {
+            if (IsSpawned && !IsServer)
+            {
+                return false;
+            }
+
+            configuredGroupIdBeforeSpawn = groupId;
+            if (IsSpawned)
+            {
+                replicatedGroupId.Value = groupId;
+            }
+            return true;
         }
 
         private void Awake()
@@ -123,6 +145,7 @@ namespace MidnightChaos.Enemies
                 shardDroppedServer = false;
                 replicatedTier.Value = 0;
                 replicatedCharge.Value = 0;
+                replicatedGroupId.Value = configuredGroupIdBeforeSpawn;
                 health.TrySetMaxHealthPreserveRatioServer(GetMaxHealth(0));
             }
             ApplyTierPresentation();

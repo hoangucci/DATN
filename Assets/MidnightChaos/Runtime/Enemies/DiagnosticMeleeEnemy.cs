@@ -66,6 +66,12 @@ namespace MidnightChaos.Enemies
                 NetworkVariableReadPermission.Everyone,
                 NetworkVariableWritePermission.Server);
 
+        private readonly NetworkVariable<bool> replicatedSuspended =
+            new NetworkVariable<bool>(
+                false,
+                NetworkVariableReadPermission.Everyone,
+                NetworkVariableWritePermission.Server);
+
         private NetworkHealth health;
         private DiagnosticEnemyEvolution evolution;
         private NavMeshAgent navMeshAgent;
@@ -106,6 +112,7 @@ namespace MidnightChaos.Enemies
             StateChanged;
         public event Action<uint, uint> AttackSequenceChanged;
         public event Action<uint, uint> HitSequenceChanged;
+        public event Action<bool, bool> SuspensionChanged;
 
         public DiagnosticEnemyState CurrentState =>
             (DiagnosticEnemyState)replicatedState.Value;
@@ -120,6 +127,7 @@ namespace MidnightChaos.Enemies
         public bool HasCurrentDestination => hasCurrentDestination;
         public bool ServerNavigationReady => serverNavigationReady;
         public bool ServerMovementEnabled => serverMovementEnabled;
+        public bool IsSuspended => replicatedSuspended.Value;
         public Vector3 LastLineOfSightStart => lastLineOfSightStart;
         public Vector3 LastLineOfSightEnd => lastLineOfSightEnd;
         public Vector3 LastLineOfSightHitPoint => lastLineOfSightHitPoint;
@@ -160,6 +168,7 @@ namespace MidnightChaos.Enemies
             replicatedAttackSequence.OnValueChanged +=
                 HandleAttackSequenceChanged;
             replicatedHitSequence.OnValueChanged += HandleHitSequenceChanged;
+            replicatedSuspended.OnValueChanged += HandleSuspensionChanged;
             health.HealthChanged += HandleHealthChanged;
 
             if (CurrentState == DiagnosticEnemyState.Dead)
@@ -189,7 +198,7 @@ namespace MidnightChaos.Enemies
             replicatedSpawnEndsAt.Value = SynchronizedNetworkTime +
                                           definition.SpawnPresentationSeconds;
             serverNavigationReady = true;
-            navMeshAgent.isStopped = !serverMovementEnabled;
+            navMeshAgent.isStopped = IsSuspended || !serverMovementEnabled;
             SetStateServer(DiagnosticEnemyState.Patrol);
         }
 
@@ -205,6 +214,7 @@ namespace MidnightChaos.Enemies
             replicatedAttackSequence.OnValueChanged -=
                 HandleAttackSequenceChanged;
             replicatedHitSequence.OnValueChanged -= HandleHitSequenceChanged;
+            replicatedSuspended.OnValueChanged -= HandleSuspensionChanged;
             health.HealthChanged -= HandleHealthChanged;
             targetPlayer = null;
             lastRetargetCandidate = null;
@@ -224,6 +234,11 @@ namespace MidnightChaos.Enemies
             if (health.IsDead)
             {
                 UpdateDeathServer();
+                return;
+            }
+
+            if (IsSuspended)
+            {
                 return;
             }
 
@@ -295,10 +310,74 @@ namespace MidnightChaos.Enemies
                 navMeshAgent.ResetPath();
                 hasCurrentDestination = false;
             }
-            navMeshAgent.isStopped = !movementEnabled;
+            navMeshAgent.isStopped = IsSuspended || !movementEnabled;
 
             error = string.Empty;
             return true;
+        }
+
+        public bool SetServerSuspended(bool suspended, out string error)
+        {
+            if (!IsServer || !IsSpawned)
+            {
+                error =
+                    "Enemy suspension can only be changed by the active server.";
+                return false;
+            }
+            if (health == null || health.IsDead)
+            {
+                error = "Dead enemy suspension cannot be changed.";
+                return false;
+            }
+            if (IsSuspended == suspended)
+            {
+                error = string.Empty;
+                return true;
+            }
+            if (navMeshAgent == null || !navMeshAgent.enabled ||
+                !navMeshAgent.isOnNavMesh)
+            {
+                error = "Enemy NavMeshAgent is not ready for suspension.";
+                return false;
+            }
+
+            double now = Time.realtimeSinceStartupAsDouble;
+            ClearTransientAiStateServer(now);
+            StopMovingServer();
+            if (suspended)
+            {
+                navMeshAgent.isStopped = true;
+                SetStateServer(DiagnosticEnemyState.Patrol);
+                replicatedSuspended.Value = true;
+                error = string.Empty;
+                return true;
+            }
+
+            navMeshAgent.isStopped = !serverMovementEnabled;
+            SetStateServer(DiagnosticEnemyState.Patrol);
+            replicatedSuspended.Value = false;
+            error = string.Empty;
+            return true;
+        }
+
+        private void ClearTransientAiStateServer(double now)
+        {
+            targetPlayer = null;
+            lastRetargetCandidate = null;
+            pendingAttackTarget = null;
+            attackImpactPending = false;
+            attackPoseEndsAt = 0d;
+            attackImpactAt = 0d;
+            hitReactionEndsAt = 0d;
+            nextAllowedAttackTime = now;
+            nextTargetEvaluationTime = now;
+            nextRepathTime = now;
+            nextPatrolDecisionTime = now;
+            lastTargetVisibleTime = now;
+            waitingAtPatrolPoint = false;
+            hasCurrentDestination = false;
+            hasLockedAttackSample = false;
+            lastAttackImpactHit = false;
         }
 
         private bool ValidateServerConfiguration()
@@ -790,6 +869,11 @@ namespace MidnightChaos.Enemies
             {
                 HitSequenceChanged?.Invoke(previous, current);
             }
+        }
+
+        private void HandleSuspensionChanged(bool previous, bool current)
+        {
+            SuspensionChanged?.Invoke(previous, current);
         }
 
         private void HandleHealthChanged(int previousHealth, int currentHealth)

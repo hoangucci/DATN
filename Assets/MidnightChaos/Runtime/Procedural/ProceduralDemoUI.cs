@@ -271,16 +271,41 @@ namespace MidnightChaos.Procedural
             {
                 GUILayout.Label($"Revision: {world.Revision}");
             }
-            GUILayout.Label($"Enemies: {enemies.ActiveEnemyCount}");
-            if (displayMode != DebugDisplayMode.Minimal &&
-                networkManager.IsServer)
+            GUILayout.Label($"Network Enemies: {enemies.ActiveEnemyCount}");
+            if (networkManager.IsServer &&
+                displayMode == DebugDisplayMode.Minimal)
             {
                 GUILayout.Label(
-                    $"Gameplay Groups: {enemies.GameplayGroupCount}/" +
-                    $"{gameplaySettings.GameplayGroupCount} | " +
-                    $"Group Enemies: {enemies.GameplayGroupSize}/" +
-                    $"{gameplaySettings.GameplayGroupCount * evolutionProfile.RequiredEnemyGroupSize} | " +
-                    $"Debug Max: {gameplaySettings.MaximumActiveEnemies}");
+                    $"Groups Active: {enemies.ActiveGameplayGroupCount}/" +
+                    $"{enemies.TotalGameplayGroupCount} | " +
+                    $"Gameplay Enemies Active: " +
+                    $"{enemies.ActiveGameplayEnemyCount}");
+            }
+            else if (networkManager.IsServer)
+            {
+                GUILayout.Label(
+                    $"Groups: Total {enemies.TotalGameplayGroupCount} | " +
+                    $"Dormant {enemies.DormantGameplayGroupCount} | " +
+                    $"Active {enemies.ActiveGameplayGroupCount} | " +
+                    $"Suspended {enemies.SuspendedGameplayGroupCount} | " +
+                    $"Completed {enemies.CompletedGameplayGroupCount}");
+                string sizeMode = enemies.GroupSizeMode ==
+                                  GameplayGroupSizeMode.Auto
+                    ? "Auto"
+                    : "Manual";
+                GUILayout.Label(
+                    $"Group Size: {sizeMode}: " +
+                    $"{enemies.ResolvedGameplayGroupSize} | " +
+                    $"Max Active Groups: " +
+                    $"{gameplaySettings.MaximumActiveGroups}");
+                GUILayout.Label(
+                    $"Gameplay Enemies: Active " +
+                    $"{enemies.ActiveGameplayEnemyCount} | " +
+                    $"Suspended {enemies.SuspendedGameplayEnemyCount} | " +
+                    $"Alive Total {enemies.AliveGameplayEnemyCount}");
+                GUILayout.Label(
+                    $"Debug Enemy Limit: " +
+                    $"{gameplaySettings.MaximumActiveEnemies}");
             }
             GUILayout.Label(
                 networkManager.IsServer

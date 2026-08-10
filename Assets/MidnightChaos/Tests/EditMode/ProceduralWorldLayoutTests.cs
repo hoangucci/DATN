@@ -587,7 +587,7 @@ namespace MidnightChaos.Procedural.Tests
             Assert.That(profile.Tiers[1].ChargesToNextTier, Is.EqualTo(3));
             Assert.That(profile.Tiers[2].FinalTier, Is.True);
             Assert.That(profile.MinimumRequiredEnemyGroupSize, Is.EqualTo(6));
-            Assert.That(profile.RequiredEnemyGroupSize, Is.EqualTo(7));
+            Assert.That(profile.RequiredEnemyGroupSize, Is.EqualTo(8));
         }
 
         [Test]
@@ -618,6 +618,41 @@ namespace MidnightChaos.Procedural.Tests
         }
 
         [Test]
+        public void GameplayGroupSizeModeUsesSingleAutoOrManualSource()
+        {
+            VerticalSliceGameplaySettings gameplay =
+                ScriptableObject.CreateInstance<VerticalSliceGameplaySettings>();
+            ChaosEvolutionProfile profile =
+                ScriptableObject.CreateInstance<ChaosEvolutionProfile>();
+            try
+            {
+                Assert.That(
+                    gameplay.ResolveGameplayGroupSize(profile),
+                    Is.EqualTo(profile.RequiredEnemyGroupSize));
+
+                SetPrivateField(
+                    gameplay,
+                    "gameplayGroupSizeMode",
+                    GameplayGroupSizeMode.Manual);
+                SetPrivateField(gameplay, "manualGameplayGroupSize", 4);
+
+                Assert.That(gameplay.ManualGameplayGroupSize, Is.EqualTo(4));
+                Assert.That(
+                    gameplay.ManualGameplayGroupSize,
+                    Is.LessThan(profile.MinimumRequiredEnemyGroupSize));
+                Assert.That(
+                    gameplay.ResolveGameplayGroupSize(profile),
+                    Is.EqualTo(4),
+                    "Manual mode must not clamp to the evolution minimum.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameplay);
+                Object.DestroyImmediate(profile);
+            }
+        }
+
+        [Test]
         public void SplitConfigAssetsPreserveMigratedRuntimeValues()
         {
             ProceduralRenderingSettings rendering =
@@ -629,10 +664,14 @@ namespace MidnightChaos.Procedural.Tests
             VerticalSliceGameplaySettings gameplay =
                 UnityEngine.Resources.Load<VerticalSliceGameplaySettings>(
                     VerticalSliceGameplaySettings.ResourcePath);
+            ChaosEvolutionProfile evolution =
+                UnityEngine.Resources.Load<ChaosEvolutionProfile>(
+                    ChaosEvolutionProfile.ResourcePath);
 
             Assert.That(rendering, Is.Not.Null);
             Assert.That(navigation, Is.Not.Null);
             Assert.That(gameplay, Is.Not.Null);
+            Assert.That(evolution, Is.Not.Null);
             Assert.That(rendering.UseInstancedVegetation, Is.False);
             Assert.That(rendering.EnableTreeParticles, Is.True);
             Assert.That(rendering.GrassCullDistance, Is.EqualTo(100f));
@@ -641,7 +680,19 @@ namespace MidnightChaos.Procedural.Tests
             Assert.That(gameplay.TreeHealth, Is.EqualTo(3));
             Assert.That(gameplay.OreHealth, Is.EqualTo(4));
             Assert.That(gameplay.WorkbenchWoodCost, Is.EqualTo(3));
-            Assert.That(gameplay.GameplayGroupCount, Is.EqualTo(3));
+            Assert.That(
+                gameplay.GroupSizeMode,
+                Is.EqualTo(GameplayGroupSizeMode.Auto));
+            Assert.That(gameplay.ManualGameplayGroupSize, Is.EqualTo(8));
+            Assert.That(gameplay.MaximumActiveGroups, Is.EqualTo(12));
+            Assert.That(gameplay.GroupActivationDistance, Is.EqualTo(150f));
+            Assert.That(gameplay.GroupSuspensionDistance, Is.EqualTo(200f));
+            Assert.That(
+                gameplay.GroupProximityCheckInterval,
+                Is.EqualTo(0.5f));
+            Assert.That(
+                gameplay.ResolveGameplayGroupSize(evolution),
+                Is.EqualTo(8));
             Assert.That(gameplay.GameplayGroupRadius, Is.EqualTo(8f));
             Assert.That(
                 gameplay.GameplayGroupMinimumSpacing,

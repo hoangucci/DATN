@@ -86,6 +86,7 @@ namespace MidnightChaos.Procedural
             enemySpawnManager.Initialize(
                 networkManager,
                 gameplaySettings,
+                evolutionProfile,
                 navigationSettings,
                 spawnPoints,
                 navMeshBuilder);
@@ -120,7 +121,6 @@ namespace MidnightChaos.Procedural
                     networkManager,
                     settings,
                     gameplaySettings,
-                    evolutionProfile,
                     world,
                     enemySpawnManager);
             }

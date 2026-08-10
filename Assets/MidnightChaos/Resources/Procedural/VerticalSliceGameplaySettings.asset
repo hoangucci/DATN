@@ -24,6 +24,12 @@ MonoBehaviour:
   placementGroundProbe: 3
   enemyPrefab: {fileID: 5816324686337917677, guid: f6f3505d3c0b4f844849d8d0a2e5572e, type: 3}
   gameplayGroupCount: 3
+  gameplayGroupSizeMode: 0
+  manualGameplayGroupSize: 8
+  maximumActiveGroups: 12
+  groupActivationDistance: 150
+  groupSuspensionDistance: 200
+  groupProximityCheckInterval: 0.5
   gameplayGroupRadius: 8
   gameplayGroupMinimumSpacing: 1.5
   maximumActiveEnemies: 32

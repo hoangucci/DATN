@@ -120,7 +120,7 @@ MonoBehaviour:
     surfaceAlignment: 0
     randomTiltDegrees: 0
   playerSpawnPointCount: 8
-  enemySpawnPointCount: 12
+  enemySpawnPointCount: 64
   playerSpawnClearance: 4
   playerSpawnGroupRadius: 24
   enemySpawnClearance: 3

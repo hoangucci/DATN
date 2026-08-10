@@ -1,7 +1,14 @@
+using MidnightChaos.Enemies;
 using UnityEngine;
 
 namespace MidnightChaos.Inventory
 {
+    public enum GameplayGroupSizeMode : byte
+    {
+        Auto = 0,
+        Manual = 1
+    }
+
     [CreateAssetMenu(
         fileName = "VerticalSliceGameplaySettings",
         menuName = "Midnight Chaos/Gameplay/Vertical Slice Settings")]
@@ -36,11 +43,28 @@ namespace MidnightChaos.Inventory
         [Tooltip("Độ cao ray origin dùng để tìm ground cho Workbench preview và server validation.")]
         [SerializeField, Min(0.1f)] private float placementGroundProbe = 3f;
 
-        [Header("Enemy Spawning")]
+        [Header("Gameplay Enemy Groups")]
         [Tooltip("Prefab enemy dùng bởi nút Spawn Enemy và gameplay group của demo.")]
         [SerializeField] private GameObject enemyPrefab;
-        [Tooltip("Số group center được kích hoạt khi Host world/NavMesh ready. Mỗi center spawn đủ Required Group Size enemy. Không được lớn hơn số Enemy Spawn Point hợp lệ của world.")]
-        [SerializeField, Range(1, 64)] private int gameplayGroupCount = 3;
+        // Legacy serialized data only. Total runtime groups now come from the
+        // actual Enemy Spawn Point registry and this field is intentionally
+        // hidden from the Inspector.
+        [SerializeField, HideInInspector]
+        private int gameplayGroupCount = 3;
+        [Tooltip("Auto lấy trực tiếp Required Enemy Group Size từ ChaosEvolutionProfile. Manual dùng Manual Gameplay Group Size mà không clamp theo evolution minimum.")]
+        [SerializeField] private GameplayGroupSizeMode gameplayGroupSizeMode =
+            GameplayGroupSizeMode.Auto;
+        [Tooltip("Số enemy được spawn cho mỗi gameplay group khi Group Size Mode là Manual. Giá trị dưới evolution minimum được phép nhưng không bảo đảm tiến hóa tới Final Tier.")]
+        [SerializeField, Min(1)] private int manualGameplayGroupSize = 8;
+        [Tooltip("Số gameplay group tối đa được Active cùng lúc. Không giới hạn tổng gameplay enemy.")]
+        [SerializeField, Range(1, 64)] private int maximumActiveGroups = 12;
+        [Tooltip("Group Dormant/Suspended được Activate khi có ít nhất một player sống trong bán kính này tính từ group center.")]
+        [SerializeField, Min(0.1f)] private float groupActivationDistance = 150f;
+        [Tooltip("Active group được Suspended khi tất cả player sống ở xa hơn khoảng này. Phải lớn hơn Activation Distance.")]
+        [SerializeField, Min(0.2f)] private float groupSuspensionDistance = 200f;
+        [Tooltip("Khoảng thời gian giữa hai lần Host kiểm tra khoảng cách player-group.")]
+        [SerializeField, Min(0.05f)] private float groupProximityCheckInterval =
+            0.5f;
         [Tooltip("Bán kính tối đa quanh một Enemy Spawn Point dùng để đặt toàn bộ enemy của một gameplay group.")]
         [SerializeField, Min(1f)] private float gameplayGroupRadius = 8f;
         [Tooltip("Khoảng cách phẳng tối thiểu giữa hai enemy trong cùng gameplay group.")]
@@ -63,8 +87,18 @@ namespace MidnightChaos.Inventory
         public float PlacementGroundProbe =>
             Mathf.Max(0.1f, placementGroundProbe);
         public GameObject EnemyPrefab => enemyPrefab;
-        public int GameplayGroupCount =>
-            Mathf.Clamp(gameplayGroupCount, 1, 64);
+        public GameplayGroupSizeMode GroupSizeMode => gameplayGroupSizeMode;
+        public int ManualGameplayGroupSize =>
+            Mathf.Max(1, manualGameplayGroupSize);
+        public int MaximumActiveGroups =>
+            Mathf.Clamp(maximumActiveGroups, 1, 64);
+        public float GroupActivationDistance =>
+            Mathf.Max(0.1f, groupActivationDistance);
+        public float GroupSuspensionDistance => Mathf.Max(
+            GroupActivationDistance + 0.1f,
+            groupSuspensionDistance);
+        public float GroupProximityCheckInterval =>
+            Mathf.Max(0.05f, groupProximityCheckInterval);
         public float GameplayGroupRadius =>
             Mathf.Max(1f, gameplayGroupRadius);
         public float GameplayGroupMinimumSpacing =>
@@ -75,6 +109,19 @@ namespace MidnightChaos.Inventory
         public int MaximumActiveEnemies =>
             Mathf.Clamp(maximumActiveEnemies, 1, 32);
         public float DebugSpawnDistance => Mathf.Max(1f, debugSpawnDistance);
+
+        public int ResolveGameplayGroupSize(
+            ChaosEvolutionProfile evolutionProfile)
+        {
+            if (GroupSizeMode == GameplayGroupSizeMode.Manual)
+            {
+                return ManualGameplayGroupSize;
+            }
+
+            return evolutionProfile != null
+                ? evolutionProfile.RequiredEnemyGroupSize
+                : 1;
+        }
 
         public void ConfigureReferencesIfEmpty(
             GameObject worldItemPrefab,
@@ -95,7 +142,12 @@ namespace MidnightChaos.Inventory
             workbenchWoodCost = WorkbenchWoodCost;
             placementDistance = PlacementDistance;
             placementGroundProbe = PlacementGroundProbe;
-            gameplayGroupCount = GameplayGroupCount;
+            gameplayGroupCount = Mathf.Max(1, gameplayGroupCount);
+            manualGameplayGroupSize = ManualGameplayGroupSize;
+            maximumActiveGroups = MaximumActiveGroups;
+            groupActivationDistance = GroupActivationDistance;
+            groupSuspensionDistance = GroupSuspensionDistance;
+            groupProximityCheckInterval = GroupProximityCheckInterval;
             gameplayGroupRadius = GameplayGroupRadius;
             gameplayGroupMinimumSpacing = GameplayGroupMinimumSpacing;
             maximumActiveEnemies = MaximumActiveEnemies;

@@ -31,6 +31,8 @@ namespace MidnightChaos.Enemies
         private bool animatorStatesValidated;
         private bool spawnAnimationStarted;
         private bool deathAnimationStarted;
+        private bool suspensionPresentationApplied;
+        private bool lastSuspensionState;
 
         public EnemyDefinition Definition => definition;
         public Transform VisualRoot => visualRoot;
@@ -55,6 +57,7 @@ namespace MidnightChaos.Enemies
             enemy.AttackSequenceChanged += HandleAttackSequenceChanged;
             enemy.HitSequenceChanged += HandleHitSequenceChanged;
             enemy.StateChanged += HandleEnemyStateChanged;
+            enemy.SuspensionChanged += HandleSuspensionChanged;
         }
 
         private void OnDisable()
@@ -64,11 +67,19 @@ namespace MidnightChaos.Enemies
                 enemy.AttackSequenceChanged -= HandleAttackSequenceChanged;
                 enemy.HitSequenceChanged -= HandleHitSequenceChanged;
                 enemy.StateChanged -= HandleEnemyStateChanged;
+                enemy.SuspensionChanged -= HandleSuspensionChanged;
             }
         }
 
         private void Update()
         {
+            ApplySuspensionPresentationIfNeeded();
+            if (enemy != null && enemy.IsSuspended)
+            {
+                previousPosition = transform.position;
+                return;
+            }
+
             if (animator == null || definition == null ||
                 !animatorStatesValidated)
             {
@@ -259,6 +270,79 @@ namespace MidnightChaos.Enemies
             {
                 PlayDeathIfNeeded();
             }
+        }
+
+        private void HandleSuspensionChanged(bool previous, bool current)
+        {
+            ApplySuspensionPresentation(current);
+        }
+
+        private void ApplySuspensionPresentationIfNeeded()
+        {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            bool suspended = enemy.IsSuspended;
+            if (!suspensionPresentationApplied)
+            {
+                suspensionPresentationApplied = true;
+                lastSuspensionState = suspended;
+                if (suspended)
+                {
+                    ApplySuspensionPresentation(true);
+                }
+                return;
+            }
+            if (lastSuspensionState != suspended)
+            {
+                ApplySuspensionPresentation(suspended);
+            }
+        }
+
+        private void ApplySuspensionPresentation(bool suspended)
+        {
+            suspensionPresentationApplied = true;
+            lastSuspensionState = suspended;
+            if (suspended)
+            {
+                attackAnimationEndsAt = 0d;
+                hitAnimationEndsAt = 0d;
+                if (animator != null)
+                {
+                    animator.enabled = false;
+                }
+                if (visualRoot != null)
+                {
+                    visualRoot.gameObject.SetActive(false);
+                }
+                return;
+            }
+
+            if (visualRoot != null)
+            {
+                visualRoot.gameObject.SetActive(true);
+            }
+            if (animator != null)
+            {
+                animator.enabled = true;
+            }
+            previousPosition = transform.position;
+            attackAnimationEndsAt = 0d;
+            hitAnimationEndsAt = 0d;
+            if (!animatorStatesValidated || enemy == null)
+            {
+                return;
+            }
+
+            spawnAnimationStarted =
+                enemy.SynchronizedNetworkTime >= enemy.SpawnEndsAt;
+            activeStateHash = 0;
+            PlayState(
+                enemy.CurrentState == DiagnosticEnemyState.Chase
+                    ? moveStateHash
+                    : idleStateHash);
         }
 
         private void PlaySpawnIfNeeded()

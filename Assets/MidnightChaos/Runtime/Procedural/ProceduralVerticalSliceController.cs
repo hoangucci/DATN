@@ -12,23 +12,19 @@ namespace MidnightChaos.Procedural
         private NetworkManager networkManager;
         private ProceduralWorldSettings settings;
         private VerticalSliceGameplaySettings gameplaySettings;
-        private ChaosEvolutionProfile evolutionProfile;
         private ProceduralWorldCoordinator world;
         private ProceduralEnemySpawnManager enemies;
-        private bool gameplayGroupSpawned;
 
         public void Initialize(
             NetworkManager configuredNetworkManager,
             ProceduralWorldSettings configuredSettings,
             VerticalSliceGameplaySettings configuredGameplaySettings,
-            ChaosEvolutionProfile configuredEvolutionProfile,
             ProceduralWorldCoordinator configuredWorld,
             ProceduralEnemySpawnManager configuredEnemies)
         {
             networkManager = configuredNetworkManager;
             settings = configuredSettings;
             gameplaySettings = configuredGameplaySettings;
-            evolutionProfile = configuredEvolutionProfile;
             world = configuredWorld;
             enemies = configuredEnemies;
             world.HostGenerationStarted += HandleHostGenerationStarted;
@@ -38,7 +34,6 @@ namespace MidnightChaos.Procedural
         private void HandleHostGenerationStarted()
         {
             if (networkManager == null || !networkManager.IsServer) return;
-            gameplayGroupSpawned = false;
             foreach (DiagnosticWorldPickup pickup in
                      FindObjectsByType<DiagnosticWorldPickup>(
                          FindObjectsSortMode.None))
@@ -64,36 +59,21 @@ namespace MidnightChaos.Procedural
                 return;
             }
             SpawnInitialSmallRocks();
-            SpawnInitialGameplayGroup();
+            InitializeGameplayGroups();
         }
 
-        private void SpawnInitialGameplayGroup()
+        private void InitializeGameplayGroups()
         {
-            if (gameplayGroupSpawned || networkManager == null ||
-                !networkManager.IsServer || world == null ||
+            if (networkManager == null || !networkManager.IsServer ||
+                world == null ||
                 !world.IsWorldReady)
             {
                 return;
             }
-            int requestedGroups = gameplaySettings.GameplayGroupCount;
-            int enemiesPerGroup = evolutionProfile.RequiredEnemyGroupSize;
-            int actualGroups = enemies.SpawnGameplayGroupsServer(
-                requestedGroups,
-                enemiesPerGroup);
-            gameplayGroupSpawned = actualGroups == requestedGroups;
-            if (gameplayGroupSpawned)
-            {
-                Debug.Log(
-                    $"[EnemySpawn] Automatic gameplay groups ready: " +
-                    $"{actualGroups}/{requestedGroups} groups x " +
-                    $"{enemiesPerGroup} enemies after Host world/NavMesh ready.");
-                return;
-            }
-
-            Debug.LogError(
-                $"[EnemySpawn] Automatic gameplay groups failed: " +
-                $"{actualGroups}/{requestedGroups}. The batch was rolled " +
-                "back; increase Enemy Spawn Point Count or group radius.");
+            int actualGroups = enemies.InitializeGameplayGroupsServer();
+            Debug.Log(
+                $"[EnemyGroup] World ready with {actualGroups} Dormant " +
+                "gameplay groups. Proximity activation is server-authoritative.");
         }
 
         private void SpawnInitialSmallRocks()

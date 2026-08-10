@@ -123,7 +123,8 @@ namespace MidnightChaos.Enemies
             {
                 if (candidate == null || candidate == deadEnemy ||
                     !candidate.IsSpawned || !candidate.CanReceiveCharge ||
-                    candidate.SpeciesId != deadEnemy.SpeciesId)
+                    candidate.SpeciesId != deadEnemy.SpeciesId ||
+                    candidate.GroupId != deadEnemy.GroupId)
                 {
                     continue;
                 }

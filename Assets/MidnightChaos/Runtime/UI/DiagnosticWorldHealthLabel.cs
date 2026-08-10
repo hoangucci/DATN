@@ -33,6 +33,10 @@ namespace MidnightChaos.UI
             {
                 return;
             }
+            if (enemy != null && enemy.IsSuspended)
+            {
+                return;
+            }
 
             float heightOffset = evolution != null
                 ? evolution.WorldLabelHeightOffset
