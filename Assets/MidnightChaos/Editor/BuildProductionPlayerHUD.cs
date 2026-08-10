@@ -277,7 +277,7 @@ namespace MidnightChaos.Editor
             GameObject quitBtn = CreateMuckButton(panel.transform, "QuitButton", "THOÁT GAME", new Vector2(0f, -215f));
 
             // Setup Controller
-            Game.UI.InGameSettingsController ctrl = canvasObj.GetComponent<Game.UI.InGameSettingsController>() ?? canvasObj.AddComponent<Game.UI.InGameSettingsController>();
+            MidnightChaos.UI.InGameSettingsController ctrl = canvasObj.GetComponent<MidnightChaos.UI.InGameSettingsController>() ?? canvasObj.AddComponent<MidnightChaos.UI.InGameSettingsController>();
             SerializedObject ctrlSO = new SerializedObject(ctrl);
             ctrlSO.FindProperty("settingsOverlay").objectReferenceValue = overlay;
             ctrlSO.FindProperty("resumeButton").objectReferenceValue = resumeBtn.GetComponent<Button>();

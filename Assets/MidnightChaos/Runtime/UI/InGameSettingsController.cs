@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace Game.UI
+namespace MidnightChaos.UI
 {
     public class InGameSettingsController : MonoBehaviour
     {
@@ -16,9 +16,8 @@ namespace Game.UI
         [SerializeField] private Button mainMenuButton;
         [SerializeField] private Button quitButton;
 
-        [Header("Audio & Quality Controls")]
+        [Header("Audio Controls")]
         [SerializeField] private Slider masterVolumeSlider;
-        [SerializeField] private Slider sfxVolumeSlider;
 
         private bool isSettingsOpen = false;
 
