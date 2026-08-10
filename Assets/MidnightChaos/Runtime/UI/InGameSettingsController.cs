@@ -71,9 +71,13 @@ namespace MidnightChaos.UI
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
+            if (UnityEngine.InputSystem.Keyboard.current != null)
             {
-                ToggleSettings();
+                if (UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame ||
+                    UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame)
+                {
+                    ToggleSettings();
+                }
             }
         }
 
