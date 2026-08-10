@@ -82,7 +82,7 @@ namespace Game.UI
         {
             Debug.Log($"[MuckLobby] Bắt đầu trận đấu...");
 
-            IntroStoryManager storyManager = IntroStoryManager.Instance ?? Object.FindFirstObjectByType<IntroStoryManager>(FindObjectsInactive.Include);
+            MidnightChaos.UI.IntroStoryManager storyManager = MidnightChaos.UI.IntroStoryManager.Instance ?? Object.FindFirstObjectByType<MidnightChaos.UI.IntroStoryManager>(FindObjectsInactive.Include);
             if (storyManager != null)
             {
                 storyManager.StartStorySequence();
