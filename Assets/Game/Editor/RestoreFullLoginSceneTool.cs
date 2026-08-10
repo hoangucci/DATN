@@ -137,7 +137,7 @@ namespace Game.Editor
             ConvertUITexturesToSprites.ConvertImagesToSprites();
             DemoBackgroundInstaller.InstallBackground();
             MuckStyleUIBuilder.BuildMuckUI();
-            IntroStoryUIBuilder.BuildIntroStoryUI();
+            MidnightChaos.Editor.IntroStoryUIBuilder.BuildIntroStoryUI();
             MuckHotbarCanvasBuilder.BuildHotbarCanvas();
 
             // 3. Bật hiển thị lại các Panel bị giấu (Ensure Active)
