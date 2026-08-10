@@ -13,6 +13,8 @@ namespace MidnightChaos.Editor
         [MenuItem("Midnight Chaos/UI/Build Production Hotbar HUD (Tự Động Dựng Hotbar HUD 100%)")]
         public static void BuildHUD()
         {
+            Selection.activeObject = null;
+
             // Find or Create Main HUD Canvas
             Canvas canvas = Object.FindFirstObjectByType<Canvas>();
             if (canvas == null)
