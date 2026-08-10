@@ -1,5 +1,3 @@
-using MidnightChaos.Gameplay;
-using MidnightChaos.Procedural;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
