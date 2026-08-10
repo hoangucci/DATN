@@ -6,7 +6,7 @@ using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace Game.UI
+namespace MidnightChaos.UI
 {
     public class IntroStoryManager : MonoBehaviour
     {
@@ -18,7 +18,7 @@ namespace Game.UI
         [SerializeField] private TMP_Text storyText;
         [SerializeField] private TMP_Text continueHintText;
         [SerializeField] private Button skipButton;
-        [SerializeField] private Button panelClickButton; // Nút bấm toàn màn hình để chuyển dòng
+        [SerializeField] private Button panelClickButton;
         [SerializeField] private Image backgroundBlackOverlay;
 
         [Header("Story Lines Configuration")]
@@ -100,7 +100,6 @@ namespace Game.UI
         {
             if (storyPanel == null || !storyPanel.activeSelf) return;
 
-            // Kiểm tra phím Space / Enter tương thích an toàn với cả New Input System và Old Input System
             bool nextPressed = false;
 
             if (UnityEngine.InputSystem.Keyboard.current != null)
@@ -122,15 +121,13 @@ namespace Game.UI
         {
             if (isTyping)
             {
-                // Nếu đang gõ chữ chưa xong, bấm 1 cái sẽ hiển thị hết chữ dòng đó ngay lập tức
                 if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-                storyText.text = currentFullText;
+                if (storyText != null) storyText.text = currentFullText;
                 isTyping = false;
                 if (continueHintText != null) continueHintText.text = "Bấm chuột hoặc Space để tiếp tục >>";
             }
             else
             {
-                // Sang dòng tiếp theo
                 currentLineIndex++;
                 if (currentLineIndex < storyLines.Count)
                 {
@@ -153,12 +150,12 @@ namespace Game.UI
         private IEnumerator TypewriterRoutine(string line)
         {
             isTyping = true;
-            storyText.text = "";
+            if (storyText != null) storyText.text = "";
             if (continueHintText != null) continueHintText.text = "Đang tải dữ liệu cốt truyện...";
 
             for (int i = 0; i <= line.Length; i++)
             {
-                storyText.text = line.Substring(0, i);
+                if (storyText != null) storyText.text = line.Substring(0, i);
                 yield return new WaitForSecondsRealtime(typewriterSpeed);
             }
 
@@ -198,14 +195,6 @@ namespace Game.UI
         private void OnStoryFinished()
         {
             onStoryCompleted?.Invoke();
-
-            // Tự động kích hoạt banner DAY 1 của bạn sau khi xem xong cốt truyện
-            var dayUI = FindFirstObjectByType<MidnightChaos.UI.DayNightUIController>();
-            if (dayUI != null)
-            {
-                dayUI.TriggerDayOneBanner();
-            }
-
             Debug.Log("[IntroStoryManager] Đã hoàn thành dẫn dắt cốt truyện!");
 
             if (string.IsNullOrEmpty(targetSceneOnComplete) || targetSceneOnComplete.Equals("Map", System.StringComparison.OrdinalIgnoreCase))
@@ -216,7 +205,7 @@ namespace Game.UI
             string activeScene = SceneManager.GetActiveScene().name;
             if (!string.IsNullOrEmpty(targetSceneOnComplete) && activeScene != targetSceneOnComplete && (activeScene == "Login" || activeScene == "MainMenu"))
             {
-                Debug.Log($"[IntroStoryManager] Đang chuyển sang Scene Gameplay của Hoàng: {targetSceneOnComplete}");
+                Debug.Log($"[IntroStoryManager] Đang chuyển sang Scene Gameplay: {targetSceneOnComplete}");
                 SceneManager.LoadScene(targetSceneOnComplete);
             }
         }

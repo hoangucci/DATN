@@ -46,7 +46,7 @@ namespace Game.Editor
                 storyManagerObj = new GameObject("[IntroStoryManager]");
             }
 
-            IntroStoryManager storyManager = storyManagerObj.GetComponent<IntroStoryManager>() ?? storyManagerObj.AddComponent<IntroStoryManager>();
+            MidnightChaos.UI.IntroStoryManager storyManager = storyManagerObj.GetComponent<MidnightChaos.UI.IntroStoryManager>() ?? storyManagerObj.AddComponent<MidnightChaos.UI.IntroStoryManager>();
 
             // 2. Dựng Khung Giao Diện Intro Cốt Truyện (Full-screen Dark Cutscene Panel)
             Transform oldPanel = canvas.transform.Find("[IntroStoryPanel]");

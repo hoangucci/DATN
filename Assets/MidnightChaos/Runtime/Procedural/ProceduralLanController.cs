@@ -74,7 +74,7 @@ namespace MidnightChaos.Procedural
 
         private void TriggerStorySequence()
         {
-            var storyManager = Object.FindFirstObjectByType<Game.UI.IntroStoryManager>(FindObjectsInactive.Include);
+            var storyManager = Object.FindFirstObjectByType<MidnightChaos.UI.IntroStoryManager>(FindObjectsInactive.Include);
             if (storyManager != null)
             {
                 storyManager.StartStorySequence();

@@ -115,7 +115,7 @@ public class MainMenuManager : MonoBehaviour
 
         Debug.Log($"[MainMenuManager] Đang tải Scene game: {gameSceneName}...");
 
-        Game.UI.IntroStoryManager storyManager = Game.UI.IntroStoryManager.Instance ?? Object.FindFirstObjectByType<Game.UI.IntroStoryManager>(FindObjectsInactive.Include);
+        MidnightChaos.UI.IntroStoryManager storyManager = MidnightChaos.UI.IntroStoryManager.Instance ?? Object.FindFirstObjectByType<MidnightChaos.UI.IntroStoryManager>(FindObjectsInactive.Include);
         if (storyManager != null)
         {
             storyManager.StartStorySequence();
