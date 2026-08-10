@@ -230,15 +230,15 @@ namespace MidnightChaos.Editor
                 Object.DestroyImmediate(oldHp.gameObject);
             }
 
-            // Health Panel (Top-Left)
+            // Health Panel (Top-Right)
             GameObject hpPanel = new GameObject("[PlayerHealthBarPanel]", typeof(RectTransform), typeof(Image));
             hpPanel.transform.SetParent(canvasObj.transform, false);
 
             RectTransform panelRect = hpPanel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0f, 1f);
-            panelRect.anchorMax = new Vector2(0f, 1f);
-            panelRect.pivot = new Vector2(0f, 1f);
-            panelRect.anchoredPosition = new Vector2(25f, -25f);
+            panelRect.anchorMin = new Vector2(1f, 1f);
+            panelRect.anchorMax = new Vector2(1f, 1f);
+            panelRect.pivot = new Vector2(1f, 1f);
+            panelRect.anchoredPosition = new Vector2(-25f, -25f);
             panelRect.sizeDelta = new Vector2(340f, 65f);
 
             Image panelBg = hpPanel.GetComponent<Image>();
