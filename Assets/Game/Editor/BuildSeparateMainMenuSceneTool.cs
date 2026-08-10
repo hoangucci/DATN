@@ -60,7 +60,13 @@ namespace Game.Editor
                 if (mainAuthGroup != null) mainAuthGroup.SetActive(true);
 
                 GameObject mainOverlayMenu = GameObject.Find("MainMenuPanel");
-                if (mainOverlayMenu != null) mainOverlayMenu.SetActive(false);
+                if (mainOverlayMenu != null) Object.DestroyImmediate(mainOverlayMenu);
+
+                GameObject introStoryObj = GameObject.Find("[IntroStoryPanel]");
+                if (introStoryObj != null) Object.DestroyImmediate(introStoryObj);
+
+                GameObject lobbyObj = GameObject.Find("[Muck_LobbyManager]");
+                if (lobbyObj != null) Object.DestroyImmediate(lobbyObj);
 
                 EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             }
