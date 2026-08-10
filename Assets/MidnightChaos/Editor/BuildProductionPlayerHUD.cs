@@ -194,10 +194,13 @@ namespace MidnightChaos.Editor
 
             viewSO.ApplyModifiedProperties();
 
-            // 3. Build In-Game Settings Modal Overlay
+            // 3. Build Player Health Bar UI Panel (Top-Left)
+            BuildPlayerHealthBar(canvas.gameObject);
+
+            // 4. Build In-Game Settings Modal Overlay
             BuildSettingsOverlay(canvas.gameObject);
 
-            // 4. Disable old IMGUI Hotbar in DiagnosticNetworkPlayer.prefab
+            // 5. Disable old IMGUI Hotbar in DiagnosticNetworkPlayer.prefab
             string playerPrefabPath = "Assets/MidnightChaos/Generated/Prefabs/DiagnosticNetworkPlayer.prefab";
             GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(playerPrefabPath);
             if (playerPrefab != null)
@@ -216,7 +219,127 @@ namespace MidnightChaos.Editor
             EditorSceneManager.MarkSceneDirty(canvas.gameObject.scene);
             Selection.activeGameObject = canvas.gameObject;
 
-            EditorUtility.DisplayDialog("Hoàn tất 100%!", "Đã tự động dựng xong 100% Giao Diện Hotbar HUD & Bảng Settings mới cực đẹp!\n\n✓ Đã tạo PlayerHUD & 10 ô Slot_1 -> Slot_10.\n✓ Đã nạp Bảng cài đặt Settings (phím ESC / P để bật/tắt khi chơi).\n✓ Đã nạp Icon chuẩn cho Gỗ, Đá, Quặng, Mảnh Chaos & Bàn Chế.\n✓ Đã kết nối InGameSettingsController, HotbarUGUIView & HotbarSlotView.\n✓ Đã tự động tắt UI IMGUI cũ trên Prefab theo hướng dẫn của Hoàng.", "OK");
+            EditorUtility.DisplayDialog("Hoàn tất 100%!", "Đã tự động dựng xong 100% Giao Diện Hotbar HUD, Thanh Máu & Bảng Settings mới cực đẹp!\n\n✓ Đã tạo PlayerHUD & 10 ô Slot_1 -> Slot_10.\n✓ Đã nạp Thanh Máu Player (Khung Muck, Đổi màu theo HP, Ghost fill).\n✓ Đã nạp Bảng cài đặt Settings (phím ESC / P để bật/tắt khi chơi).\n✓ Đã nạp Icon chuẩn cho Gỗ, Đá, Quặng, Mảnh Chaos & Bàn Chế.\n✓ Đã kết nối PlayerHealthBarUI, InGameSettingsController & HotbarUGUIView.\n✓ Đã tự động tắt UI IMGUI cũ trên Prefab theo hướng dẫn của Hoàng.", "OK");
+        }
+
+        private static void BuildPlayerHealthBar(GameObject canvasObj)
+        {
+            Transform oldHp = canvasObj.transform.Find("[PlayerHealthBarPanel]");
+            if (oldHp != null)
+            {
+                Object.DestroyImmediate(oldHp.gameObject);
+            }
+
+            // Health Panel (Top-Left)
+            GameObject hpPanel = new GameObject("[PlayerHealthBarPanel]", typeof(RectTransform), typeof(Image));
+            hpPanel.transform.SetParent(canvasObj.transform, false);
+
+            RectTransform panelRect = hpPanel.GetComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0f, 1f);
+            panelRect.anchorMax = new Vector2(0f, 1f);
+            panelRect.pivot = new Vector2(0f, 1f);
+            panelRect.anchoredPosition = new Vector2(25f, -25f);
+            panelRect.sizeDelta = new Vector2(340f, 65f);
+
+            Image panelBg = hpPanel.GetComponent<Image>();
+            panelBg.color = new Color(0.14f, 0.1f, 0.06f, 0.92f);
+
+            Outline outline = hpPanel.AddComponent<Outline>();
+            outline.effectColor = new Color(0.55f, 0.38f, 0.18f, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
+
+            // Heart Icon Image
+            GameObject heartObj = new GameObject("HeartIcon", typeof(RectTransform), typeof(Image));
+            heartObj.transform.SetParent(hpPanel.transform, false);
+            RectTransform heartRect = heartObj.GetComponent<RectTransform>();
+            heartRect.anchorMin = new Vector2(0f, 0.5f);
+            heartRect.anchorMax = new Vector2(0f, 0.5f);
+            heartRect.pivot = new Vector2(0f, 0.5f);
+            heartRect.anchoredPosition = new Vector2(10f, 0f);
+            heartRect.sizeDelta = new Vector2(45f, 45f);
+
+            Image heartImg = heartObj.GetComponent<Image>();
+            heartImg.color = new Color(1f, 0.25f, 0.25f, 1f);
+
+            // Health Bar Background Track
+            GameObject trackObj = new GameObject("HealthBarTrack", typeof(RectTransform), typeof(Image));
+            trackObj.transform.SetParent(hpPanel.transform, false);
+            RectTransform trackRect = trackObj.GetComponent<RectTransform>();
+            trackRect.anchorMin = new Vector2(0f, 0.5f);
+            trackRect.anchorMax = new Vector2(1f, 0.5f);
+            trackRect.pivot = new Vector2(0f, 0.5f);
+            trackRect.anchoredPosition = new Vector2(65f, -6f);
+            trackRect.sizeDelta = new Vector2(-75f, 26f);
+
+            Image trackImg = trackObj.GetComponent<Image>();
+            trackImg.color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
+
+            // Damage Ghost Bar (Red trailing fill)
+            GameObject ghostObj = new GameObject("DamageGhostFill", typeof(RectTransform), typeof(Image));
+            ghostObj.transform.SetParent(trackObj.transform, false);
+            RectTransform ghostRect = ghostObj.GetComponent<RectTransform>();
+            ghostRect.anchorMin = Vector2.zero;
+            ghostRect.anchorMax = Vector2.one;
+            ghostRect.sizeDelta = Vector2.zero;
+
+            Image ghostImg = ghostObj.GetComponent<Image>();
+            ghostImg.type = Image.Type.Filled;
+            ghostImg.fillMethod = Image.FillMethod.Horizontal;
+            ghostImg.color = new Color(0.95f, 0.2f, 0.15f, 0.85f);
+
+            // Health Fill Image (Green/Dynamic gradient fill)
+            GameObject fillObj = new GameObject("HealthFill", typeof(RectTransform), typeof(Image));
+            fillObj.transform.SetParent(trackObj.transform, false);
+            RectTransform fillRect = fillObj.GetComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.sizeDelta = Vector2.zero;
+
+            Image fillImg = fillObj.GetComponent<Image>();
+            fillImg.type = Image.Type.Filled;
+            fillImg.fillMethod = Image.FillMethod.Horizontal;
+            fillImg.color = new Color(0.2f, 0.85f, 0.3f, 1f);
+
+            // Player Name Text (Top)
+            GameObject nameObj = new GameObject("PlayerNameText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            nameObj.transform.SetParent(hpPanel.transform, false);
+            RectTransform nameRect = nameObj.GetComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0f, 1f);
+            nameRect.anchorMax = new Vector2(1f, 1f);
+            nameRect.pivot = new Vector2(0f, 1f);
+            nameRect.anchoredPosition = new Vector2(65f, -8f);
+            nameRect.sizeDelta = new Vector2(-75f, 18f);
+
+            TMP_Text nameTxt = nameObj.GetComponent<TextMeshProUGUI>();
+            nameTxt.text = "NGƯỜI CHƠI";
+            nameTxt.fontSize = 13;
+            nameTxt.fontStyle = FontStyles.Bold;
+            nameTxt.color = new Color(0.95f, 0.9f, 0.8f);
+
+            // Health Text (Inside Bar)
+            GameObject txtObj = new GameObject("HealthText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            txtObj.transform.SetParent(trackObj.transform, false);
+            RectTransform txtRect = txtObj.GetComponent<RectTransform>();
+            txtRect.anchorMin = Vector2.zero;
+            txtRect.anchorMax = Vector2.one;
+            txtRect.sizeDelta = Vector2.zero;
+
+            TMP_Text hpTxt = txtObj.GetComponent<TextMeshProUGUI>();
+            hpTxt.text = "100 / 100";
+            hpTxt.fontSize = 14;
+            hpTxt.fontStyle = FontStyles.Bold;
+            hpTxt.alignment = TextAlignmentOptions.Center;
+            hpTxt.color = Color.white;
+
+            // Attach PlayerHealthBarUI component
+            PlayerHealthBarUI healthUI = canvasObj.GetComponent<PlayerHealthBarUI>() ?? canvasObj.AddComponent<PlayerHealthBarUI>();
+            SerializedObject hpSO = new SerializedObject(healthUI);
+            hpSO.FindProperty("healthPanel").objectReferenceValue = hpPanel;
+            hpSO.FindProperty("healthFillImage").objectReferenceValue = fillImg;
+            hpSO.FindProperty("damageGhostFillImage").objectReferenceValue = ghostImg;
+            hpSO.FindProperty("healthText").objectReferenceValue = hpTxt;
+            hpSO.FindProperty("playerNameText").objectReferenceValue = nameTxt;
+            hpSO.ApplyModifiedProperties();
         }
 
         private static void BuildSettingsOverlay(GameObject canvasObj)
