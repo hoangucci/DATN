@@ -75,25 +75,25 @@ namespace MidnightChaos.Procedural
             {
                 return;
             }
-            int requested = evolutionProfile.RequiredEnemyGroupSize;
-            int actual = enemies.SpawnGameplayGroupServer(requested);
-            gameplayGroupSpawned = actual == requested;
+            int requestedGroups = gameplaySettings.GameplayGroupCount;
+            int enemiesPerGroup = evolutionProfile.RequiredEnemyGroupSize;
+            int actualGroups = enemies.SpawnGameplayGroupsServer(
+                requestedGroups,
+                enemiesPerGroup);
+            gameplayGroupSpawned = actualGroups == requestedGroups;
             if (gameplayGroupSpawned)
             {
                 Debug.Log(
-                    $"[EnemySpawn] Automatic gameplay group ready: " +
-                    $"{actual}/{requested} after Host world/NavMesh ready.");
+                    $"[EnemySpawn] Automatic gameplay groups ready: " +
+                    $"{actualGroups}/{requestedGroups} groups x " +
+                    $"{enemiesPerGroup} enemies after Host world/NavMesh ready.");
                 return;
             }
 
-            if (actual > 0)
-            {
-                enemies.ClearEnemiesServer();
-            }
             Debug.LogError(
-                $"[EnemySpawn] Automatic gameplay group failed: " +
-                $"{actual}/{requested}. Any partial group was rolled back; " +
-                "increase valid enemy spawn points.");
+                $"[EnemySpawn] Automatic gameplay groups failed: " +
+                $"{actualGroups}/{requestedGroups}. The batch was rolled " +
+                "back; increase Enemy Spawn Point Count or group radius.");
         }
 
         private void SpawnInitialSmallRocks()

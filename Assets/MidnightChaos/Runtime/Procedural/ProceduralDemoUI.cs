@@ -276,8 +276,10 @@ namespace MidnightChaos.Procedural
                 networkManager.IsServer)
             {
                 GUILayout.Label(
-                    $"Gameplay Group: {enemies.GameplayGroupSize}/" +
-                    $"{evolutionProfile.RequiredEnemyGroupSize} | " +
+                    $"Gameplay Groups: {enemies.GameplayGroupCount}/" +
+                    $"{gameplaySettings.GameplayGroupCount} | " +
+                    $"Group Enemies: {enemies.GameplayGroupSize}/" +
+                    $"{gameplaySettings.GameplayGroupCount * evolutionProfile.RequiredEnemyGroupSize} | " +
                     $"Debug Max: {gameplaySettings.MaximumActiveEnemies}");
             }
             GUILayout.Label(

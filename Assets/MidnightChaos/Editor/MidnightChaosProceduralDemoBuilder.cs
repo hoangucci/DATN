@@ -484,6 +484,10 @@ namespace MidnightChaos.Editor
                 root.GetComponent<VerticalSlicePlayerActions>() ??
                 root.AddComponent<VerticalSlicePlayerActions>();
             actions.Configure(worldSettings, gameplaySettings);
+            if (root.GetComponent<DiagnosticHotbarIMGUI>() == null)
+            {
+                root.AddComponent<DiagnosticHotbarIMGUI>();
+            }
             DiagnosticResourceGatherer gatherer =
                 root.GetComponent<DiagnosticResourceGatherer>();
             gatherer?.Configure(gameplaySettings);

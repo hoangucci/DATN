@@ -14,6 +14,7 @@ namespace MidnightChaos.Procedural
 
         private readonly List<NetworkObject> activeEnemies = new();
         private readonly HashSet<ulong> gameplayGroupEnemyIds = new();
+        private readonly HashSet<int> gameplayGroupCenterIndices = new();
         private readonly HashSet<ulong> debugEnemyIds = new();
         private NetworkManager networkManager;
         private VerticalSliceGameplaySettings gameplaySettings;
@@ -37,6 +38,7 @@ namespace MidnightChaos.Procedural
         }
 
         public int GameplayGroupSize => gameplayGroupEnemyIds.Count;
+        public int GameplayGroupCount => gameplayGroupCenterIndices.Count;
         public string LastSpawnMessage { get; private set; } =
             "No enemy has been spawned.";
 
@@ -87,6 +89,72 @@ namespace MidnightChaos.Procedural
             return true;
         }
 
+        public int SpawnGameplayGroupsServer(
+            int requestedGroupCount,
+            int requestedEnemiesPerGroup)
+        {
+            if (!ValidateCommon(out string validationError))
+            {
+                Debug.LogError(
+                    $"[EnemySpawn] Gameplay groups rejected: " +
+                    validationError);
+                return 0;
+            }
+
+            requestedGroupCount = Mathf.Max(1, requestedGroupCount);
+            requestedEnemiesPerGroup = Mathf.Max(
+                1,
+                requestedEnemiesPerGroup);
+            int availableCenters = spawnPoints.EnemySpawnPoints.Count;
+            if (requestedGroupCount > availableCenters)
+            {
+                LastSpawnMessage =
+                    $"Gameplay groups rejected: requested " +
+                    $"{requestedGroupCount} centers but world has only " +
+                    $"{availableCenters}.";
+                Debug.LogError($"[EnemySpawn] {LastSpawnMessage}");
+                return 0;
+            }
+            if (gameplayGroupCenterIndices.Count > 0)
+            {
+                LastSpawnMessage =
+                    "Gameplay groups already exist for this world revision.";
+                Debug.LogWarning($"[EnemySpawn] {LastSpawnMessage}");
+                return gameplayGroupCenterIndices.Count;
+            }
+
+            for (int groupIndex = 0;
+                 groupIndex < requestedGroupCount;
+                 groupIndex++)
+            {
+                int spawnedEnemies =
+                    SpawnGameplayGroupServer(requestedEnemiesPerGroup);
+                if (spawnedEnemies == requestedEnemiesPerGroup)
+                {
+                    continue;
+                }
+
+                string failure =
+                    $"Gameplay groups failed at group " +
+                    $"{groupIndex + 1}/{requestedGroupCount}: " +
+                    LastSpawnMessage;
+                ClearGameplayGroupsServer();
+                LastSpawnMessage = failure +
+                    " All groups from this batch were rolled back.";
+                Debug.LogError($"[EnemySpawn] {LastSpawnMessage}");
+                return 0;
+            }
+
+            int totalEnemies =
+                requestedGroupCount * requestedEnemiesPerGroup;
+            LastSpawnMessage =
+                $"Gameplay groups ready: {requestedGroupCount} groups x " +
+                $"{requestedEnemiesPerGroup} enemies = " +
+                $"{totalEnemies}.";
+            Debug.Log($"[EnemySpawn] {LastSpawnMessage}");
+            return requestedGroupCount;
+        }
+
         public int SpawnGameplayGroupServer(int requestedCount)
         {
             if (!ValidateCommon(out string error))
@@ -104,6 +172,10 @@ namespace MidnightChaos.Procedural
             {
                 int centerIndex = nextSpawnPointIndex % centerCount;
                 nextSpawnPointIndex = (nextSpawnPointIndex + 1) % centerCount;
+                if (gameplayGroupCenterIndices.Contains(centerIndex))
+                {
+                    continue;
+                }
                 if (!spawnPoints.TryGetEnemySpawnPoint(
                         centerIndex,
                         out Vector3 center))
@@ -150,6 +222,7 @@ namespace MidnightChaos.Procedural
                 {
                     gameplayGroupEnemyIds.Add(enemy.NetworkObjectId);
                 }
+                gameplayGroupCenterIndices.Add(centerIndex);
                 LastSpawnMessage =
                     $"Gameplay group: {spawnedGroup.Count}/" +
                     $"{requestedCount} enemies around group center " +
@@ -316,10 +389,34 @@ namespace MidnightChaos.Procedural
             ResetTracking();
         }
 
+        private void ClearGameplayGroupsServer()
+        {
+            if (networkManager != null && networkManager.IsServer)
+            {
+                for (int index = activeEnemies.Count - 1; index >= 0; index--)
+                {
+                    NetworkObject enemy = activeEnemies[index];
+                    if (enemy == null ||
+                        !gameplayGroupEnemyIds.Contains(enemy.NetworkObjectId))
+                    {
+                        continue;
+                    }
+                    activeEnemies.RemoveAt(index);
+                    if (enemy.IsSpawned)
+                    {
+                        enemy.Despawn(true);
+                    }
+                }
+            }
+            gameplayGroupEnemyIds.Clear();
+            gameplayGroupCenterIndices.Clear();
+        }
+
         public void ResetTracking()
         {
             activeEnemies.Clear();
             gameplayGroupEnemyIds.Clear();
+            gameplayGroupCenterIndices.Clear();
             debugEnemyIds.Clear();
             nextSpawnPointIndex = 0;
             LastSpawnMessage = "No enemy has been spawned.";

@@ -39,6 +39,8 @@ namespace MidnightChaos.Inventory
         [Header("Enemy Spawning")]
         [Tooltip("Prefab enemy dùng bởi nút Spawn Enemy và gameplay group của demo.")]
         [SerializeField] private GameObject enemyPrefab;
+        [Tooltip("Số group center được kích hoạt khi Host world/NavMesh ready. Mỗi center spawn đủ Required Group Size enemy. Không được lớn hơn số Enemy Spawn Point hợp lệ của world.")]
+        [SerializeField, Range(1, 64)] private int gameplayGroupCount = 3;
         [Tooltip("Bán kính tối đa quanh một Enemy Spawn Point dùng để đặt toàn bộ enemy của một gameplay group.")]
         [SerializeField, Min(1f)] private float gameplayGroupRadius = 8f;
         [Tooltip("Khoảng cách phẳng tối thiểu giữa hai enemy trong cùng gameplay group.")]
@@ -61,6 +63,8 @@ namespace MidnightChaos.Inventory
         public float PlacementGroundProbe =>
             Mathf.Max(0.1f, placementGroundProbe);
         public GameObject EnemyPrefab => enemyPrefab;
+        public int GameplayGroupCount =>
+            Mathf.Clamp(gameplayGroupCount, 1, 64);
         public float GameplayGroupRadius =>
             Mathf.Max(1f, gameplayGroupRadius);
         public float GameplayGroupMinimumSpacing =>
@@ -91,6 +95,7 @@ namespace MidnightChaos.Inventory
             workbenchWoodCost = WorkbenchWoodCost;
             placementDistance = PlacementDistance;
             placementGroundProbe = PlacementGroundProbe;
+            gameplayGroupCount = GameplayGroupCount;
             gameplayGroupRadius = GameplayGroupRadius;
             gameplayGroupMinimumSpacing = GameplayGroupMinimumSpacing;
             maximumActiveEnemies = MaximumActiveEnemies;

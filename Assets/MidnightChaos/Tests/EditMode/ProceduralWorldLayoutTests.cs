@@ -641,6 +641,7 @@ namespace MidnightChaos.Procedural.Tests
             Assert.That(gameplay.TreeHealth, Is.EqualTo(3));
             Assert.That(gameplay.OreHealth, Is.EqualTo(4));
             Assert.That(gameplay.WorkbenchWoodCost, Is.EqualTo(3));
+            Assert.That(gameplay.GameplayGroupCount, Is.EqualTo(3));
             Assert.That(gameplay.GameplayGroupRadius, Is.EqualTo(8f));
             Assert.That(
                 gameplay.GameplayGroupMinimumSpacing,

@@ -7,7 +7,8 @@ namespace MidnightChaos.Inventory
 {
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
-    public sealed class DiagnosticNetworkInventory : NetworkBehaviour
+    public sealed class DiagnosticNetworkInventory : NetworkBehaviour,
+        IHotbarDataSource
     {
         public const int HotbarSize = 10;
 
@@ -20,14 +21,23 @@ namespace MidnightChaos.Inventory
                 NetworkVariableReadPermission.Everyone,
                 NetworkVariableWritePermission.Server);
         private NetworkList<VerticalSliceInventorySlot> slots;
-        private GUIStyle hotbarSlotStyle;
-        private GUIStyle selectedItemStyle;
-
         public event Action<int, int> WoodChanged;
         public event Action InventoryChanged;
 
+        /// <summary>
+        /// Raised when slot contents or the selected slot changes. Custom
+        /// hotbar views should subscribe to this event and refresh themselves.
+        /// </summary>
+        public event Action HotbarChanged
+        {
+            add => InventoryChanged += value;
+            remove => InventoryChanged -= value;
+        }
+
+        public int SlotCount => HotbarSize;
         public int SelectedSlotIndex => Mathf.Clamp(selectedSlot.Value, 0, HotbarSize - 1);
         public VerticalSliceItemId SelectedItem => GetSlot(SelectedSlotIndex).Item;
+        public bool IsLocalPlayerHotbar => IsOwner && IsSpawned;
         public int Wood => Count(VerticalSliceItemId.Wood);
 
         private void Awake()
@@ -71,7 +81,7 @@ namespace MidnightChaos.Inventory
                 {
                     if (WasSlotKeyPressed(keyboard, index))
                     {
-                        SelectSlotRpc((byte)index);
+                        RequestSelectSlot(index);
                     }
                 }
             }
@@ -84,7 +94,7 @@ namespace MidnightChaos.Inventory
                 int direction = wheel > 0f ? -1 : 1;
                 int next = (SelectedSlotIndex + direction + HotbarSize) %
                            HotbarSize;
-                SelectSlotRpc((byte)next);
+                RequestSelectSlot(next);
             }
         }
 
@@ -111,6 +121,21 @@ namespace MidnightChaos.Inventory
             return slots != null && index >= 0 && index < slots.Count
                 ? slots[index]
                 : default;
+        }
+
+        /// <summary>
+        /// Requests a selected-slot change from the owning player. UI code
+        /// should call this method instead of interacting with Netcode RPCs.
+        /// Invalid indices and calls made by non-owners are ignored.
+        /// </summary>
+        public void RequestSelectSlot(int index)
+        {
+            if (!IsOwner || !IsSpawned || index < 0 || index >= HotbarSize)
+            {
+                return;
+            }
+
+            SelectSlotRpc((byte)index);
         }
 
         public int Count(VerticalSliceItemId item)
@@ -254,100 +279,6 @@ namespace MidnightChaos.Inventory
         private void HandleSelectedSlotChanged(byte previous, byte current)
         {
             InventoryChanged?.Invoke();
-        }
-
-        private void OnGUI()
-        {
-            if (!IsOwner || !IsSpawned)
-            {
-                return;
-            }
-            EnsureHotbarStyles();
-            const float margin = 8f;
-            const float gap = 2f;
-            const float slotHeight = 58f;
-            float availableWidth = Mathf.Max(
-                400f,
-                Screen.width - margin * 2f);
-            float slotWidth = Mathf.Min(
-                92f,
-                (availableWidth - gap * (HotbarSize - 1)) / HotbarSize);
-            float totalWidth = slotWidth * HotbarSize +
-                               gap * (HotbarSize - 1);
-            float startX = Mathf.Max(margin, (Screen.width - totalWidth) * 0.5f);
-            float startY = Screen.height - slotHeight - 8f;
-
-            VerticalSliceInventorySlot selectedSlotData =
-                GetSlot(SelectedSlotIndex);
-            string selectedText = selectedSlotData.Item ==
-                                  VerticalSliceItemId.None
-                ? $"Selected [{DisplaySlotNumber(SelectedSlotIndex)}]: Empty"
-                : $"Selected [{DisplaySlotNumber(SelectedSlotIndex)}]: " +
-                  $"{selectedSlotData.Item} x{selectedSlotData.Amount}";
-            GUI.Label(
-                new Rect(startX, startY - 24f, totalWidth, 22f),
-                selectedText,
-                selectedItemStyle);
-
-            Color previousBackground = GUI.backgroundColor;
-            for (int index = 0; index < HotbarSize; index++)
-            {
-                VerticalSliceInventorySlot slot = GetSlot(index);
-                string label = slot.Item == VerticalSliceItemId.None
-                    ? $"{DisplaySlotNumber(index)}\n—"
-                    : $"{DisplaySlotNumber(index)}\n" +
-                      $"{GetShortItemName(slot.Item)}\nx{slot.Amount}";
-                GUI.backgroundColor = index == SelectedSlotIndex
-                    ? new Color(1f, 0.72f, 0.18f, 1f)
-                    : new Color(0.28f, 0.34f, 0.44f, 0.96f);
-                Rect slotRect = new Rect(
-                    startX + index * (slotWidth + gap),
-                    startY,
-                    slotWidth,
-                    slotHeight);
-                if (GUI.Button(slotRect, label, hotbarSlotStyle))
-                {
-                    SelectSlotRpc((byte)index);
-                }
-            }
-            GUI.backgroundColor = previousBackground;
-        }
-
-        private void EnsureHotbarStyles()
-        {
-            hotbarSlotStyle ??= new GUIStyle(GUI.skin.button)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 11,
-                fontStyle = FontStyle.Bold,
-                wordWrap = false,
-                padding = new RectOffset(2, 2, 2, 2)
-            };
-            selectedItemStyle ??= new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 13,
-                fontStyle = FontStyle.Bold
-            };
-            selectedItemStyle.normal.textColor = Color.white;
-        }
-
-        private static int DisplaySlotNumber(int index)
-        {
-            return index == HotbarSize - 1 ? 0 : index + 1;
-        }
-
-        private static string GetShortItemName(VerticalSliceItemId item)
-        {
-            return item switch
-            {
-                VerticalSliceItemId.Workbench => "BENCH",
-                VerticalSliceItemId.ChaosShard => "SHARD",
-                VerticalSliceItemId.Rock => "ROCK",
-                VerticalSliceItemId.Wood => "WOOD",
-                VerticalSliceItemId.Ore => "ORE",
-                _ => "EMPTY"
-            };
         }
     }
 }

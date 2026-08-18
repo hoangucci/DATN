@@ -2180,6 +2180,7 @@ GameObject:
   - component: {fileID: 5354963794722989644}
   - component: {fileID: 4589231162503214709}
   - component: {fileID: 4080027991942046832}
+  - component: {fileID: 6123456789012345678}
   - component: {fileID: 1340945166633524855}
   - component: {fileID: 7242967608879962294}
   - component: {fileID: 4895094931377683227}
@@ -2251,7 +2252,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 2819133824
+  GlobalObjectIdHash: 1285303486
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -2342,6 +2343,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   maximumStackSize: 999
+--- !u!114 &6123456789012345678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7106681116296994028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61bd6aa98ea14dfcb778e732fe374712, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  showHotbar: 0
+  showSelectedItemLabel: 1
+  horizontalMargin: 8
+  bottomMargin: 8
+  slotGap: 2
+  maximumSlotWidth: 92
+  slotHeight: 58
 --- !u!114 &1340945166633524855
 MonoBehaviour:
   m_ObjectHideFlags: 0

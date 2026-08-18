@@ -343,6 +343,7 @@ namespace MidnightChaos.Editor
             NetworkHealth playerHealth = root.AddComponent<NetworkHealth>();
             playerHealth.ConfigureForDiagnostics(100, "Player");
             root.AddComponent<DiagnosticNetworkInventory>();
+            root.AddComponent<DiagnosticHotbarIMGUI>();
             ProceduralWorldSettings proceduralWorldSettings =
                 AssetDatabase.LoadAssetAtPath<ProceduralWorldSettings>(
                     ProceduralWorldSettingsPath);

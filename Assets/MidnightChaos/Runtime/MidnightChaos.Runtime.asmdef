@@ -6,7 +6,8 @@
     "Unity.Netcode.Runtime",
     "Unity.Networking.Transport",
     "Unity.AI.Navigation",
-    "Unity.Collections"
+    "Unity.Collections",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
